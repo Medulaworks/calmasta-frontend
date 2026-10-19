@@ -1,0 +1,37 @@
+export interface ProfileView {
+  email: string;
+  emailVerified: boolean;
+  name: string | null;
+  timezone: string;
+  role: string | null;
+  onboarded: boolean;
+  defaultTemplate: string;
+}
+
+export class ProfileError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+async function request(init?: RequestInit): Promise<ProfileView> {
+  const res = await fetch("/api/me", init);
+  const body = (await res.json().catch(() => ({}))) as Partial<ProfileView> & { error?: string };
+  if (!res.ok) {
+    throw new ProfileError(
+      res.status,
+      res.status === 401
+        ? "You're not signed in. Sign-in isn't set up yet; for local development set DEV_AUTH_EMAIL."
+        : (body.error ?? "Something went wrong. Please try again."),
+    );
+  }
+  return body as ProfileView;
+}
+
+export const getProfile = () => request();
+
+export const saveProfile = (patch: { role?: string | null; complete?: boolean; name?: string | null; timezone?: string }) =>
+  request({ method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) });
