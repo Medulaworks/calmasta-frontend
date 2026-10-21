@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import StarterKit from "@tiptap/starter-kit";
 import { EditorContent, useEditor } from "@tiptap/react";
+import { type DocNode, docToMarkdown, docToText, exportFileName } from "@/lib/export";
+import { countUncertain } from "@/lib/uncertainty";
+import { UncertaintyHighlight } from "./uncertainty-highlight";
 import {
   DocError,
   type DocumentView,
@@ -13,6 +16,7 @@ import {
   getDocument,
   listVersions,
   regenerateDocument,
+  regenerateSection,
   restoreVersion,
   saveDocument,
   templateLabel,
@@ -36,7 +40,22 @@ const ORIGIN_LABEL: Record<VersionItem["origin"], string> = {
 };
 
 // Only formats the server keeps are offered; the sanitiser would silently drop anything else.
-const EXTENSIONS = [StarterKit.configure({ underline: false, link: false, trailingNode: false, heading: { levels: [1, 2, 3] } })];
+const EXTENSIONS = [StarterKit.configure({ underline: false, link: false, trailingNode: false, heading: { levels: [1, 2, 3] } }), UncertaintyHighlight];
+
+function readOutline(e: { getJSON: () => unknown; getText: () => string }) {
+  const seen = new Map<string, number>();
+  const sections: Array<{ heading: string; occurrence: number }> = [];
+  for (const n of ((e.getJSON() as DocNode).content ?? [])) {
+    if (n.type !== "heading" || Number(n.attrs?.level) !== 2) continue;
+    const heading = (n.content ?? []).map((c) => c.text ?? "").join("").trim();
+    if (!heading) continue;
+    const key = heading.toLowerCase();
+    const occurrence = seen.get(key) ?? 0;
+    seen.set(key, occurrence + 1);
+    sections.push({ heading, occurrence });
+  }
+  return { sections, uncertain: countUncertain(e.getText()) };
+}
 
 export function DocumentStudio({ id }: { id: string }) {
   const router = useRouter();
@@ -44,7 +63,9 @@ export function DocumentStudio({ id }: { id: string }) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>("saved");
   const [notice, setNotice] = useState<string | null>(null);
-  const [confirm, setConfirm] = useState<null | "rewrite" | "delete">(null);
+  const [confirm, setConfirm] = useState<null | "rewrite" | "delete" | { section: string; occurrence: number }>(null);
+  // The document's outline and how many places say "Not specified", kept current as the user types.
+  const [outline, setOutline] = useState<{ sections: Array<{ heading: string; occurrence: number }>; uncertain: number }>({ sections: [], uncertain: 0 });
   const [versions, setVersions] = useState<VersionItem[] | null>(null);
   const [title, setTitle] = useState("");
 
@@ -69,6 +90,7 @@ export function DocumentStudio({ id }: { id: string }) {
     immediatelyRender: false, // Next renders on the server first
     editorProps: { attributes: { class: "prose-doc min-h-[24rem] px-4 py-3 focus:outline-none", "aria-label": "Document" } },
     onUpdate: ({ editor: e }) => {
+      setOutline(readOutline(e));
       if (locked.current) return;
       const html = e.getHTML();
       if (html === knownHtml.current) {
@@ -158,6 +180,7 @@ export function DocumentStudio({ id }: { id: string }) {
     shownVersion.current = doc.version;
     editor.commands.setContent(doc.contentHtml, { emitUpdate: false });
     knownHtml.current = editor.getHTML();
+    setOutline(readOutline(editor));
     setTitle(doc.title);
   }, [editor, doc]);
 
@@ -202,6 +225,22 @@ export function DocumentStudio({ id }: { id: string }) {
     }
   }
 
+  async function rewriteOneSection(section: { section: string; occurrence: number }, overwrite: boolean) {
+    setNotice(null);
+    await flush(); // what was just typed is saved first, so the rewrite works from the real current version
+    try {
+      await regenerateSection(id, { heading: section.section, occurrence: section.occurrence, baseVersion: baseVersion.current, overwrite });
+      setConfirm(null);
+      await loadOnce();
+    } catch (err) {
+      if (err instanceof DocError && err.code === "section_has_edits") setConfirm(section);
+      else {
+        setConfirm(null);
+        setNotice(err instanceof Error ? err.message : "Could not start the rewrite.");
+      }
+    }
+  }
+
   async function toggleVersions() {
     if (versions) return setVersions(null);
     try {
@@ -237,22 +276,28 @@ export function DocumentStudio({ id }: { id: string }) {
 
   async function copyText() {
     try {
-      await navigator.clipboard.writeText(editor?.getText({ blockSeparator: "\n" }) ?? "");
+      await navigator.clipboard.writeText(editor ? docToText(editor.getJSON() as DocNode) : "");
       setNotice("Copied as plain text.");
     } catch {
       setNotice("Couldn't copy. Select the text and copy it manually.");
     }
   }
 
-  function download() {
-    const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-    const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${esc(title || "Document")}</title></head><body>${editor?.getHTML() ?? ""}</body></html>`;
-    const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+  function saveFile(content: string, name: string, type: string) {
+    const url = URL.createObjectURL(new Blob([content], { type }));
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${(title || "document").replace(/[^A-Za-z0-9._ -]/g, "_").slice(0, 80)}.html`;
+    a.download = name;
     a.click();
     URL.revokeObjectURL(url);
+  }
+  // Export stays in the browser: the user's own text goes to their own file, and nothing is shared or uploaded.
+  function exportAs(kind: "md" | "txt") {
+    if (!editor) return;
+    const json = editor.getJSON() as DocNode;
+    if (kind === "md") saveFile(docToMarkdown(json), exportFileName(title || "document", "md"), "text/markdown;charset=utf-8");
+    else saveFile(docToText(json), exportFileName(title || "document", "txt"), "text/plain;charset=utf-8");
+    setNotice(kind === "md" ? "Downloaded as Markdown." : "Downloaded as a text file.");
   }
 
   if (loadError) {
@@ -270,9 +315,16 @@ export function DocumentStudio({ id }: { id: string }) {
   return (
     <div className="max-w-3xl space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <Link href="/library" className="text-sm text-muted hover:text-foreground">&larr; Library</Link>
+        <p className="flex flex-wrap items-center gap-x-3 text-sm">
+          {doc.captureId ? (
+            <Link href={`/captures/${doc.captureId}?tab=documents`} className="text-muted hover:text-foreground">&larr; Back to conversation</Link>
+          ) : (
+            <span className="text-muted">Source recording deleted</span>
+          )}
+          <Link href="/library" className="text-muted hover:text-foreground">Library</Link>
+        </p>
         <p role="status" aria-live="polite" className={`text-xs ${saveState === "error" || saveState === "conflict" ? "text-red-700 dark:text-red-300" : "text-muted"}`}>
-          {generating ? "Writing…" : SAVE_LABEL[saveState]}
+          {generating ? (doc.rewritingSection ? "Rewriting a section…" : "Writing…") : SAVE_LABEL[saveState]}
         </p>
       </div>
 
@@ -287,7 +339,7 @@ export function DocumentStudio({ id }: { id: string }) {
       />
       <p className="text-xs text-muted">
         {templateLabel(doc.template)}
-        {doc.sourceTitle ? ` · from “${doc.sourceTitle}”` : doc.captureId ? "" : " · source recording deleted"}
+        {doc.sourceTitle ? ` · from “${doc.sourceTitle}”` : ""}
         {doc.provider === "mock" && " · development draft (no AI used)"}
       </p>
 
@@ -316,17 +368,47 @@ export function DocumentStudio({ id }: { id: string }) {
           <EditorContent editor={editor} />
           {generating && (
             <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-background/70 text-sm" role="status">
-              Writing your document…
+              {doc.rewritingSection ? `Rewriting “${doc.rewritingSection}”…` : "Writing your document…"}
             </div>
           )}
         </div>
       )}
 
+      {!failedEmpty && outline.uncertain > 0 && (
+        <p className="rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">
+          {outline.uncertain} {outline.uncertain === 1 ? "place is" : "places are"} marked <span className="font-medium">not specified</span> or to confirm. CalMasta leaves a gap rather than guess an owner, date or number: fill them in, or check them against the conversation.
+        </p>
+      )}
+
       {!failedEmpty && (
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" disabled={readOnly} onClick={() => void rewrite(false)} className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-surface disabled:opacity-50">Rewrite with AI</button>
-          <button type="button" onClick={() => void copyText()} className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-surface">Copy text</button>
-          <button type="button" onClick={download} className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-surface">Download .html</button>
+          {outline.sections.length > 0 && (
+            <label className="inline-flex items-center">
+              <span className="sr-only">Rewrite one section</span>
+              <select
+                value=""
+                disabled={readOnly}
+                onChange={(e) => {
+                  const picked = outline.sections[Number(e.target.value)];
+                  if (picked) void rewriteOneSection({ section: picked.heading, occurrence: picked.occurrence }, false);
+                }}
+                className="rounded-md border border-border bg-background px-3 py-1.5 text-sm hover:bg-surface disabled:opacity-50"
+              >
+                <option value="">Rewrite a section…</option>
+                {outline.sections.map((sec, i) => <option key={i} value={i}>{sec.heading}</option>)}
+              </select>
+            </label>
+          )}
+          <details className="relative">
+            <summary className="cursor-pointer list-none rounded-md border border-border px-3 py-1.5 text-sm hover:bg-surface">Export ▾</summary>
+            <div className="absolute left-0 z-10 mt-1 w-56 rounded-lg border border-border bg-background p-1 text-sm shadow-lg">
+              <button type="button" onClick={(e) => { void copyText(); e.currentTarget.closest("details")?.removeAttribute("open"); }} className="block w-full rounded-md px-3 py-2 text-left hover:bg-surface">Copy as text</button>
+              <button type="button" onClick={(e) => { exportAs("md"); e.currentTarget.closest("details")?.removeAttribute("open"); }} className="block w-full rounded-md px-3 py-2 text-left hover:bg-surface">Download Markdown (.md)</button>
+              <button type="button" onClick={(e) => { exportAs("txt"); e.currentTarget.closest("details")?.removeAttribute("open"); }} className="block w-full rounded-md px-3 py-2 text-left hover:bg-surface">Download text (.txt)</button>
+              <p className="px-3 py-2 text-xs text-muted">Private: saved to your device only. Nothing is shared.</p>
+            </div>
+          </details>
           <button type="button" onClick={() => void toggleVersions()} className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-surface">{versions ? "Hide history" : "History"}</button>
           <button type="button" onClick={() => setConfirm("delete")} className="ml-auto rounded-md px-3 py-1.5 text-sm text-red-700 hover:bg-surface dark:text-red-300">Delete</button>
         </div>
@@ -338,6 +420,16 @@ export function DocumentStudio({ id }: { id: string }) {
           <p className="mt-1 text-muted">Your current version is kept in History, so you can restore it.</p>
           <div className="mt-3 flex gap-2">
             <button type="button" onClick={() => void rewrite(true)} className="rounded-md bg-accent-solid px-3 py-1.5 font-medium text-white">Replace with new draft</button>
+            <button type="button" onClick={() => setConfirm(null)} className="rounded-md px-3 py-1.5 text-muted hover:text-foreground">Keep my edits</button>
+          </div>
+        </div>
+      )}
+      {typeof confirm === "object" && confirm !== null && (
+        <div role="alertdialog" aria-label="Confirm section rewrite" className="rounded-lg border border-border bg-surface p-4 text-sm">
+          <p className="font-medium">Replace your edits to “{confirm.section}”?</p>
+          <p className="mt-1 text-muted">Only this section is rewritten; the rest of the document is not touched. Your current version is kept in History, so you can restore it.</p>
+          <div className="mt-3 flex gap-2">
+            <button type="button" onClick={() => void rewriteOneSection(confirm, true)} className="rounded-md bg-accent-solid px-3 py-1.5 font-medium text-white">Rewrite this section</button>
             <button type="button" onClick={() => setConfirm(null)} className="rounded-md px-3 py-1.5 text-muted hover:text-foreground">Keep my edits</button>
           </div>
         </div>

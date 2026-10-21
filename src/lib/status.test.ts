@@ -27,12 +27,29 @@ describe("captureStatus", () => {
   });
 });
 
+describe("meeting outcomes", () => {
+  it("says a host decline or a timeout plainly, never as success or as a generic failure", () => {
+    expect(captureStatus({ source: "meeting_url", state: "ended", status: "denied" })).toMatchObject({ label: "Host declined", tone: "warning", active: false });
+    expect(captureStatus({ source: "meeting_url", state: "ended", status: "timed_out" })).toMatchObject({ label: "Not let in in time", tone: "warning", active: false });
+  });
+  it("waiting to be let in never looks like recording", () => {
+    const waiting = captureStatus({ source: "meeting_url", state: "processing_audio", status: "waiting_for_admission" });
+    const recording = captureStatus({ source: "meeting_url", state: "processing_audio", status: "recording" });
+    expect(waiting.label).toBe("Waiting to be let in");
+    expect(waiting.tone).not.toBe(recording.tone);
+    expect(recording).toMatchObject({ label: "Recording", active: true });
+  });
+});
+
 describe("documentStatus", () => {
   it("distinguishes writing, failed, rewrite-failed and ready", () => {
     expect(documentStatus({ status: "generating" })).toMatchObject({ label: "Writing", active: true });
     expect(documentStatus({ status: "failed" })).toMatchObject({ label: "Failed", tone: "danger" });
     expect(documentStatus({ status: "ready", failureReason: "x" })).toMatchObject({ label: "Rewrite failed", tone: "warning" });
     expect(documentStatus({ status: "ready" })).toMatchObject({ label: "Ready", tone: "success" });
+    expect(documentStatus({ status: "ready", editedByUser: true })).toMatchObject({ label: "Edited", tone: "info" });
+    // A failed rewrite is the more important thing to say, even on an edited document.
+    expect(documentStatus({ status: "ready", editedByUser: true, failureReason: "x" })).toMatchObject({ label: "Rewrite failed" });
   });
 });
 

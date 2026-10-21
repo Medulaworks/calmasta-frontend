@@ -7,6 +7,23 @@ export interface TranscriptSegmentView {
   endMs: number;
   text: string;
   speakerId: string | null;
+  editedByUser: boolean;
+}
+
+export type ActionStatus = "suggested" | "confirmed" | "dismissed" | "done";
+export interface ActionItemView {
+  id: string;
+  text: string;
+  status: ActionStatus;
+  createdBy: "ai" | "user";
+  /** The transcript line it came from, if that line still exists. */
+  sourceSegmentId: string | null;
+  sourceStartMs: number | null;
+}
+export interface ActionsView {
+  state: "none" | "extracting" | "ready" | "failed";
+  error: string | null;
+  items: ActionItemView[];
 }
 
 export interface CaptureView {
@@ -14,7 +31,7 @@ export interface CaptureView {
   title: string | null;
   filename: string | null;
   createdAt: string;
-  documents: Array<{ id: string; title: string; template: string; status: string; updatedAt: string }>;
+  documents: Array<{ id: string; title: string; template: string; status: string; editedByUser: boolean; updatedAt: string }>;
   source: string;
   platform: string | null;
   status: string;
@@ -22,18 +39,32 @@ export interface CaptureView {
   state: string;
   failureReason: string | null;
   transcript: TranscriptSegmentView[];
+  /** Action items found in the conversation, for the Actions tab. */
+  actions: ActionsView;
+  /** The meeting assistant's timeline (meeting captures only). */
+  events: Array<{ status: string; detail: string | null; at: string }>;
+  /** Counter used to detect that someone else edited the transcript first; null until there is a transcript. */
+  transcriptVersion: number | null;
+  /** The user's names for the provider's speaker labels, e.g. { S1: "Maya" }. */
+  speakerNames: Record<string, string>;
+  /** A short-lived link to play the recording; null when there is none to play. */
+  audio: { url: string; contentType: string; sizeBytes: number } | null;
+  /** "unavailable" = the file is gone (removed or expired); the transcript and documents remain. */
+  audioStatus: "available" | "unavailable" | "none";
 }
 
 export class ApiError extends Error {
   constructor(
     readonly status: number,
     message: string,
+    /** A machine-readable reason from the server, e.g. "version_conflict". */
+    readonly code?: string,
   ) {
     super(message);
   }
 }
 
-async function api<T>(url: string, init?: RequestInit): Promise<T> {
+export async function api<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init);
   if (res.status === 204) return undefined as T;
   const body = await res.json().catch(() => ({}));
@@ -42,7 +73,7 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
       res.status === 401
         ? "You're not signed in. Sign-in isn't set up yet; for local development set DEV_AUTH_EMAIL."
         : ((body as { error?: string }).error ?? "Something went wrong. Please try again.");
-    throw new ApiError(res.status, message);
+    throw new ApiError(res.status, message, (body as { code?: string }).code);
   }
   return body as T;
 }
@@ -149,3 +180,45 @@ export const PLATFORM_LABELS: Record<string, string> = {
 
 export const stateLabel = (state: string) => STATE_LABELS[state] ?? state;
 export const isTerminal = (state: string) => state === "ready_to_review" || state === "completed" || state === "failed" || state === "cancelled";
+
+export interface TranscriptEditInput {
+  baseVersion: number;
+  /** Only the lines that changed. */
+  segments?: Array<{ id: string; text: string }>;
+  /** Provider label -> display name; an empty name removes it. */
+  speakers?: Record<string, string>;
+}
+
+/** Saves corrections. Throws ApiError with code "version_conflict" (409) if someone else edited first. */
+export const saveTranscript = (id: string, edit: TranscriptEditInput) =>
+  api<{ version: number; speakerNames: Record<string, string> }>(`/api/captures/${id}/transcript`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(edit),
+  });
+
+/** Sends the assistant again after a denial, timeout or failure. The user must confirm they may record, again. */
+export const retryMeeting = (id: string, consentConfirmed: boolean) =>
+  api<{ captureId: string; duplicate: boolean }>(`/api/captures/${id}/retry`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ consentConfirmed }),
+  });
+
+/** Development only: pretend the meeting provider reported this status. */
+export const simulateMeetingStatus = (id: string, status: string) =>
+  api<{ applied: boolean }>(`/api/dev/captures/${id}/simulate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+
+/** Starts looking through the conversation for action items (runs in the background). */
+export const findActions = (id: string) => api<{ state: string; alreadyRunning: boolean }>(`/api/captures/${id}/actions`, { method: "POST" });
+
+export const setActionStatus = (id: string, status: ActionStatus) =>
+  api<{ id: string; status: ActionStatus }>(`/api/actions/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });

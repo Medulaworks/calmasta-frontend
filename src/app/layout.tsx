@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Calmaster",
+  title: "CalMasta",
   description: "Your conversations, turned into useful work.",
 };
 

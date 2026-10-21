@@ -6,14 +6,14 @@ Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, Tiptap 3, lucide-
 
 ## What is here
 
-- `src/app/`: pages. `login`, `welcome` (onboarding), and the signed-in app under `(app)/`: dashboard, capture, voice, library, recording and document detail, settings.
+- `src/app/`: pages. `login`, `welcome` (onboarding), `deleted`, the signed-in app under `(app)/` (dashboard, capture with voice and meeting bot, library, recording and document detail, calendar, booking, plan and usage, settings), the public guest booking pages under `(public)/` (`book/`, `manage/`), and the separate staff area under `admin/`.
 - `src/components/`: shared UI kit (`ui/`), app shell, dashboard, Document Studio editor, voice recorder, forms.
 - `src/lib/`: browser-side helpers that call the API (`*-client.ts`), status wording, roles, audio.
 - `src/server/domain/`: the document template definitions and shared types the UI reads. UI-only copy; the backend owns the real ones.
 
 ## What is not here
 
-The backend: API routes (`/api/*`), database, sign-in (ZITADEL over OIDC), job worker and provider adapters. The pages call `/api/dashboard`, `/api/uploads`, `/api/captures`, `/api/documents` and `/api/me`, so they need the Calmaster backend running at the same origin (or a proxy to it) to show real data.
+The backend: API routes (`/api/*`), database, sign-in (ZITADEL over OIDC), job worker and provider adapters. The pages call `/api/dashboard`, `/api/uploads`, `/api/captures`, `/api/documents`, `/api/library`, `/api/calendar`, `/api/booking`, `/api/public`, `/api/plan`, `/api/account`, `/api/admin` and `/api/me`, so they need the Calmaster backend running at the same origin (or a proxy to it) to show real data.
 
 ## Develop
 

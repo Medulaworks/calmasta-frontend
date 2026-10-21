@@ -13,6 +13,8 @@ export interface DocumentView {
   version: number;
   provider: string | null;
   model: string | null;
+  /** While a single-section rewrite runs: which section. */
+  rewritingSection: string | null;
 }
 
 export interface DocumentListItem {
@@ -21,6 +23,7 @@ export interface DocumentListItem {
   template: string;
   status: string;
   failureReason: string | null;
+  editedByUser: boolean;
   updatedAt: string;
 }
 
@@ -84,3 +87,12 @@ export const restoreVersion = (id: string, version: number) =>
 export const deleteDocument = (id: string) => api<void>(`/api/documents/${id}`, { method: "DELETE" });
 
 export const templateLabel = (id: string) => TEMPLATE_CHOICES.find((t) => t.id === id)?.label ?? "Document";
+
+/** Rewrites one section. Throws DocError code "section_has_edits" unless `overwrite` is true. */
+export async function regenerateSection(id: string, input: { heading: string; occurrence: number; baseVersion: number; overwrite: boolean }) {
+  const res = await fetch(`/api/documents/${id}/regenerate-section`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string; code?: string };
+    throw new DocError(res.status, body.error ?? "Could not start the rewrite.", body.code);
+  }
+}

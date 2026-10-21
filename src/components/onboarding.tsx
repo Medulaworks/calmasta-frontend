@@ -11,7 +11,7 @@ const STEPS = 3;
 
 const PRINCIPLES = [
   ["You start every recording.", "Nothing is captured unless you choose it. Connecting a calendar never starts recording."],
-  ["It's always visible.", "Meeting assistants join as “Calmaster Notetaker” and may need the host to let them in."],
+  ["It's always visible.", "Meeting assistants join as “CalMasta Assistant” and may need the host to let them in."],
   ["You confirm each meeting.", "You tell us you have the right to record, and you should tell the participants."],
   ["Your recordings are private.", "Only you can see them. You can delete a recording and everything made from it."],
 ] as const;
@@ -132,7 +132,7 @@ export function Onboarding() {
       <main className="flex flex-col px-6 py-8 sm:px-12 md:px-16">
         <header className="flex items-center gap-4">
           <Link href="/" className="text-lg font-semibold tracking-tight">
-            Calmaster
+            CalMasta
           </Link>
           <ol className="flex items-center gap-1.5" aria-label={`Step ${step + 1} of ${STEPS}`}>
             {Array.from({ length: STEPS }, (_, i) => (
@@ -220,7 +220,7 @@ export function Onboarding() {
               <h1 ref={heading} tabIndex={-1} className="text-3xl font-semibold tracking-tight outline-none">
                 Start with your first conversation
               </h1>
-              <p className="mt-3 text-muted">The quickest way to see Calmaster work is to give it something to write about.</p>
+              <p className="mt-3 text-muted">The quickest way to see CalMasta work is to give it something to write about.</p>
               <ul className="mt-6 space-y-3">
                 {FIRST_ACTIONS.map((a) => (
                   <li key={a.title}>

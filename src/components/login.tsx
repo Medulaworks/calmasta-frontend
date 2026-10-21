@@ -12,6 +12,7 @@ export function Login() {
   const params = useSearchParams();
   const returnTo = safePath(params.get("returnTo"));
   const error = authErrorMessage(params.get("error"));
+  const expired = params.get("reason") === "expired" && !error;
   const [checking, setChecking] = useState(true);
 
   // Already signed in? Go straight to where they were headed.
@@ -37,11 +38,16 @@ export function Login() {
         <div className="mx-auto w-full max-w-sm">
           <div className="mb-8 flex items-center gap-2.5 text-lg font-semibold tracking-tight">
             <span aria-hidden className="grid h-8 w-8 place-items-center rounded-lg bg-accent-solid text-sm font-bold text-white">C</span>
-            Calmaster
+            CalMasta
           </div>
           <h1 className="text-3xl font-semibold tracking-tight">Welcome</h1>
           <p className="mt-2 text-muted">Sign in to turn your conversations into useful work.</p>
 
+          {expired && (
+            <p role="status" className="mt-6 rounded-lg border border-border bg-surface px-4 py-3 text-sm">
+              Your session ended, so we signed you out. Signing in again picks up where you left off: your recordings and documents are safe.
+            </p>
+          )}
           {error && (
             <p role="alert" className="mt-6 rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
               {error}
@@ -59,7 +65,7 @@ export function Login() {
           </div>
           <p className="mt-6 text-sm text-muted">Forgot your password? Choose &ldquo;Sign in&rdquo;, then use the reset link on the next page.</p>
           <p className="mt-10 text-xs text-muted">
-            Calmaster never sees your password. Sign-in is handled by a dedicated identity provider.
+            CalMasta never sees your password. Sign-in is handled by a dedicated identity provider.
           </p>
         </div>
       </main>

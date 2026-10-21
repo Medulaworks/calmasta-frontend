@@ -6,6 +6,9 @@ export interface ProfileView {
   role: string | null;
   onboarded: boolean;
   defaultTemplate: string;
+  outputsOnly: boolean;
+  audioRetentionDays: number;
+  isStaff: boolean;
 }
 
 export class ProfileError extends Error {
@@ -33,5 +36,5 @@ async function request(init?: RequestInit): Promise<ProfileView> {
 
 export const getProfile = () => request();
 
-export const saveProfile = (patch: { role?: string | null; complete?: boolean; name?: string | null; timezone?: string }) =>
+export const saveProfile = (patch: { role?: string | null; complete?: boolean; name?: string | null; timezone?: string; outputsOnly?: boolean }) =>
   request({ method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) });

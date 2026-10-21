@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import {
   type CaptureListItem,
@@ -12,7 +13,9 @@ import {
 } from "@/lib/upload-client";
 
 export function CaptureForm() {
-  const [url, setUrl] = useState("");
+  // Arriving from a calendar event: the meeting link is filled in, but consent is still the user's to give.
+  const search = useSearchParams();
+  const [url, setUrl] = useState(() => search.get("link") ?? "");
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,8 +60,8 @@ export function CaptureForm() {
       const result = await requestMeetingCapture(url, consent);
       setNotice(
         result.duplicate
-          ? "A Calmaster assistant is already set up for this meeting, so no second one was sent."
-          : "Request sent. The assistant will join as “Calmaster Notetaker”.",
+          ? "A CalMasta assistant is already set up for this meeting, so no second one was sent."
+          : "Request sent. The assistant will join as “CalMasta Assistant”.",
       );
       setUrl("");
       setConsent(false);
@@ -106,7 +109,7 @@ export function CaptureForm() {
           />
           <span>
             I have the right to record this meeting, and I will tell its participants. A visible assistant named
-            “Calmaster Notetaker” will join and may need to be admitted by the host.
+            “CalMasta Assistant” will join and may need to be admitted by the host.
           </span>
         </label>
         <button
@@ -117,7 +120,7 @@ export function CaptureForm() {
           {busy ? "Sending…" : "Send assistant"}
         </button>
         <p className="text-xs text-muted">
-          Supports Google Meet, Microsoft Teams and Zoom links. Calmaster never bypasses waiting rooms or host
+          Supports Google Meet, Microsoft Teams and Zoom links. CalMasta never bypasses waiting rooms or host
           controls.
         </p>
       </form>

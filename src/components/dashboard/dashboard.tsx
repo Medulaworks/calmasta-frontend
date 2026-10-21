@@ -141,8 +141,8 @@ export function Dashboard() {
         )}
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="min-w-0 space-y-6 lg:col-span-2">
+      <div className="grid gap-6 xl:grid-cols-3">
+        <div className="min-w-0 space-y-6 xl:col-span-2">
           {data && data.needsAttention.length > 0 && (
             <Card className="border-danger/30">
               <div className="flex items-center gap-2 border-b border-danger/20 px-5 py-3.5 text-danger">

@@ -6,6 +6,7 @@ import { useProfile, useSetProfile } from "@/components/shell/profile-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
+import { ConnectionsCard, DataPrivacyCard, DeleteAccountCard } from "@/components/settings-data";
 import { signOut } from "@/lib/auth-client";
 import { type Dashboard, fetchDashboard } from "@/lib/dashboard-client";
 import { TEMPLATE_CHOICES } from "@/lib/documents-client";
@@ -15,7 +16,7 @@ import { formatMinutes } from "@/lib/status";
 
 const PRIVACY = [
   "Recordings, transcripts and documents are private to you.",
-  "Meeting assistants are always visible and join as “Calmaster Notetaker”.",
+  "Meeting assistants are always visible and join as “CalMasta Assistant”.",
   "You confirm you have the right to record every meeting. Nothing records automatically.",
   "Deleting a recording deletes its audio and transcript. Documents you made from it are kept.",
 ];
@@ -240,6 +241,10 @@ export function SettingsView() {
         </dl>
       </Card>
 
+      <ConnectionsCard />
+
+      <DataPrivacyCard />
+
       <Card>
         <CardHeader title="Privacy and recording" />
         <ul className="space-y-3 p-5 text-sm">
@@ -251,6 +256,8 @@ export function SettingsView() {
           ))}
         </ul>
       </Card>
+
+      <DeleteAccountCard />
     </div>
   );
 }

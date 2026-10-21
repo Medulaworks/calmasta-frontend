@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { Login } from "@/components/login";
 
-export const metadata = { title: "Sign in · Calmaster" };
+export const metadata = { title: "Sign in · CalMasta" };
 
 export default function LoginPage() {
   return (

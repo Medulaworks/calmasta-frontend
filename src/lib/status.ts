@@ -33,6 +33,9 @@ export function captureStatus(c: { source: string; state: string; status: string
   if (c.state === "failed" || c.status === "failed") return { label: "Failed", tone: "danger", active: false };
 
   if (c.source === "meeting_url") {
+    if (c.status === "denied") return { label: "Host declined", tone: "warning", active: false };
+    if (c.status === "timed_out") return { label: "Not let in in time", tone: "warning", active: false };
+    if (c.status === "recording") return { label: "Recording", tone: "danger", active: true }; // red on purpose: recording must be obvious
     if (MEETING_ACTIVE.has(c.status)) return { label: MEETING_LABELS[c.status] ?? c.status, tone: "info", active: true };
     if (c.status === "completed") return { label: "Ready", tone: "success", active: false };
     return { label: c.status, tone: "neutral", active: false };
@@ -43,10 +46,11 @@ export function captureStatus(c: { source: string; state: string; status: string
   return { label: c.state, tone: "neutral", active: false };
 }
 
-export function documentStatus(d: { status: string; failureReason?: string | null }): StatusView {
+export function documentStatus(d: { status: string; failureReason?: string | null; editedByUser?: boolean }): StatusView {
   if (d.status === "generating") return { label: "Writing", tone: "info", active: true };
   if (d.status === "failed") return { label: "Failed", tone: "danger", active: false };
   if (d.failureReason) return { label: "Rewrite failed", tone: "warning", active: false };
+  if (d.editedByUser) return { label: "Edited", tone: "info", active: false };
   return { label: "Ready", tone: "success", active: false };
 }
 

@@ -1,12 +1,16 @@
 "use client";
 
-import { ArrowLeft, FileText, Mic, Trash2, Video } from "lucide-react";
+import { ArrowLeft, FileText, Mic, TriangleAlert, Trash2, Video } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useProfile } from "@/components/shell/profile-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tabs, tabId, tabPanelId } from "@/components/ui/tabs";
+import { ActionsPanel } from "@/components/actions-panel";
+import { MeetingPanel } from "@/components/meeting-panel";
+import { TranscriptEditor } from "@/components/transcript-editor";
 import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TEMPLATE_CHOICES, createDocument } from "@/lib/documents-client";
@@ -24,13 +28,21 @@ const titleOf = (c: CaptureView) => {
   return t || (c.source === "voice_recording" ? "Voice note" : c.filename?.replace(/\.[^.]+$/, "") || "Untitled recording");
 };
 
-export function CaptureDetail({ id }: { id: string }) {
+const TABS = ["recording", "transcript", "documents", "actions"] as const;
+type TabId = (typeof TABS)[number];
+
+const formatBytes = (n: number) => (n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / (1024 * 1024)).toFixed(1)} MB`);
+
+export function CaptureDetail({ id, devTools = false }: { id: string; devTools?: boolean }) {
   const router = useRouter();
+  const search = useSearchParams();
   const profile = useProfile();
   const [cap, setCap] = useState<CaptureView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [tick, setTick] = useState(0);
+  // The real length, as reported by the audio itself once the browser has read its header.
+  const [audioSeconds, setAudioSeconds] = useState<number | null>(null);
   // The template the user picked, else the one that suits their role, else a sensible general one.
   const [picked, setTemplate] = useState<string | null>(null);
   const template = picked ?? profile?.defaultTemplate ?? TEMPLATE_CHOICES[1].id;
@@ -58,11 +70,12 @@ export function CaptureDetail({ id }: { id: string }) {
   }, [id, tick]);
 
   const status = cap ? captureStatus({ source: cap.source, state: cap.state, status: cap.status }) : null;
+  const extracting = cap?.actions.state === "extracting";
   useEffect(() => {
-    if (!status?.active) return;
+    if (!status?.active && !extracting) return;
     const t = setInterval(refresh, 3000);
     return () => clearInterval(t);
-  }, [status?.active, refresh]);
+  }, [status?.active, extracting, refresh]);
 
   async function makeDocument() {
     setBusy(true);
@@ -119,6 +132,9 @@ export function CaptureDetail({ id }: { id: string }) {
   const ready = cap.state === "ready_to_review" || cap.state === "completed";
   const Icon = cap.source === "meeting_url" ? Video : Mic;
   const meetingActive = cap.source === "meeting_url" && isMeetingActive(cap.status);
+  // Land on the transcript once there is one; until then the recording tab shows what is happening.
+  const asked = search.get("tab");
+  const tab: TabId = (TABS as readonly string[]).includes(asked ?? "") ? (asked as TabId) : ready ? "transcript" : "recording";
 
   return (
     <div className="space-y-6">
@@ -167,32 +183,87 @@ export function CaptureDetail({ id }: { id: string }) {
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="min-w-0 lg:col-span-2">
-          <CardHeader title="Transcript" />
-          {ready && cap.transcript.length > 0 ? (
-            <ol className="divide-y divide-border">
-              {cap.transcript.map((seg) => (
-                <li key={seg.id} className="flex gap-4 px-5 py-3 text-sm">
-                  <span className="w-12 shrink-0 pt-0.5 font-mono text-xs text-muted">{formatDuration(seg.startMs / 1000)}</span>
-                  <p className="min-w-0">
-                    {seg.speakerId && <span className="mr-2 text-xs font-medium text-muted">{seg.speakerId}</span>}
-                    {seg.text}
-                  </p>
-                </li>
-              ))}
-            </ol>
-          ) : status.active ? (
-            <EmptyState icon={<Mic className="h-5 w-5" />} title={`${status.label}…`} body="This page updates by itself." />
-          ) : cap.source === "meeting_url" && cap.state !== "failed" ? (
-            <EmptyState icon={<Video className="h-5 w-5" />} title="No transcript yet" body="Meeting transcripts appear here once the meeting has ended and a capture provider is connected." />
-          ) : (
-            <EmptyState title="No transcript" body="There is nothing to show for this recording." />
-          )}
-        </Card>
+      <Tabs
+        label="Conversation"
+        items={[
+          { id: "recording", label: "Recording" },
+          { id: "transcript", label: "Transcript" },
+          { id: "documents", label: "Documents", count: cap.documents.length },
+          { id: "actions", label: "Actions", count: cap.actions.items.filter((a) => a.status === "suggested" || a.status === "confirmed").length },
+        ]}
+        active={tab}
+        onChange={(t) => router.replace(`?tab=${t}`, { scroll: false })}
+      />
 
-        <div className="min-w-0 space-y-6">
+      {tab === "recording" && cap.source === "meeting_url" && (
+        <div role="tabpanel" id={tabPanelId("recording")} aria-labelledby={tabId("recording")}>
+          <MeetingPanel cap={cap} devTools={devTools} onChanged={refresh} />
+        </div>
+      )}
+
+      {tab === "recording" && cap.source !== "meeting_url" && (
+        <div role="tabpanel" id={tabPanelId("recording")} aria-labelledby={tabId("recording")} className="space-y-4">
           <Card>
+            <CardHeader title="Recording" />
+            <div className="space-y-4 p-5 text-sm">
+              {cap.audio ? (
+                <>
+                  {/* A short-lived, signed link: the audio is private to this user and the link stops working soon after. */}
+                  <audio
+                    controls
+                    preload="metadata"
+                    src={cap.audio.url}
+                    onLoadedMetadata={(e) => setAudioSeconds(Number.isFinite(e.currentTarget.duration) ? e.currentTarget.duration : null)}
+                    className="w-full"
+                    aria-label="Recording playback"
+                  />
+                  <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
+                    <div><dt className="text-muted">Source</dt><dd>{cap.source === "voice_recording" ? "Recorded in the browser" : "Uploaded file"}</dd></div>
+                    <div><dt className="text-muted">Added</dt><dd>{timeAgo(cap.createdAt)}</dd></div>
+                    {audioSeconds !== null && <div><dt className="text-muted">Length</dt><dd>{formatDuration(audioSeconds)}</dd></div>}
+                    <div><dt className="text-muted">Size</dt><dd>{formatBytes(cap.audio.sizeBytes)}</dd></div>
+                    {cap.filename && <div className="sm:col-span-2"><dt className="text-muted">File</dt><dd className="truncate">{cap.filename}</dd></div>}
+                  </dl>
+                  <p className="text-xs text-muted">Only you can play this. If the audio is ever removed, the transcript and your documents stay.</p>
+                </>
+              ) : cap.audioStatus === "unavailable" ? (
+                <div role="status" className="flex items-start gap-3 rounded-lg border border-border bg-surface px-4 py-3">
+                  <TriangleAlert aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+                  <div>
+                    <p className="font-medium">Audio no longer available</p>
+                    <p className="mt-0.5 text-muted">The recording has been removed. Its transcript and any documents made from it are still here.</p>
+                  </div>
+                </div>
+              ) : cap.source === "meeting_url" ? (
+                <p className="text-muted">Meetings are captured by the CalMasta Assistant. There is no audio file to play here; the transcript appears in the Transcript tab once the meeting has ended and a capture provider is connected.</p>
+              ) : (
+                <p className="text-muted">The audio is still being uploaded.</p>
+              )}
+            </div>
+          </Card>
+          {status.active && (
+            <p role="status" className="rounded-lg border border-border bg-surface px-4 py-3 text-sm">
+              <span className="font-medium">{status.label}…</span> <span className="text-muted">This page updates by itself, so you can leave it and come back.</span>
+            </p>
+          )}
+        </div>
+      )}
+
+      {tab === "transcript" && (
+        <div role="tabpanel" id={tabPanelId("transcript")} aria-labelledby={tabId("transcript")}>
+          <TranscriptEditor cap={cap} statusLabel={status.label} active={status.active} onChanged={refresh} />
+        </div>
+      )}
+
+      {tab === "actions" && (
+        <div role="tabpanel" id={tabPanelId("actions")} aria-labelledby={tabId("actions")}>
+          <ActionsPanel cap={cap} onChanged={refresh} />
+        </div>
+      )}
+
+      {tab === "documents" && (
+        <div role="tabpanel" id={tabPanelId("documents")} aria-labelledby={tabId("documents")} className="grid gap-6 lg:grid-cols-2">
+          <Card className="min-w-0">
             <CardHeader title="Make a document" />
             <div className="space-y-3 p-5">
               <label className="block text-sm">
@@ -215,14 +286,14 @@ export function CaptureDetail({ id }: { id: string }) {
             </div>
           </Card>
 
-          <Card>
+          <Card className="min-w-0">
             <CardHeader title="Documents from this recording" />
             {cap.documents.length === 0 ? (
               <p className="px-5 py-6 text-sm text-muted">None yet.</p>
             ) : (
               <ul className="divide-y divide-border">
                 {cap.documents.map((d) => {
-                  const ds = documentStatus({ status: d.status });
+                  const ds = documentStatus({ status: d.status, editedByUser: d.editedByUser });
                   return (
                     <li key={d.id}>
                       <Link href={`/library/${d.id}`} className="flex items-center justify-between gap-3 px-5 py-3 text-sm hover:bg-surface">
@@ -236,7 +307,7 @@ export function CaptureDetail({ id }: { id: string }) {
             )}
           </Card>
         </div>
-      </div>
+      )}
     </div>
   );
 }
