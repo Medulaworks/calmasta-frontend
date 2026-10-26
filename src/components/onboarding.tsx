@@ -11,7 +11,7 @@ const STEPS = 3;
 
 const PRINCIPLES = [
   ["You start every recording.", "Nothing is captured unless you choose it. Connecting a calendar never starts recording."],
-  ["It's always visible.", "Meeting assistants join as “CalMasta Assistant” and may need the host to let them in."],
+  ["It's always visible.", "Meeting assistants join as “Mojooba Assistant” and may need the host to let them in."],
   ["You confirm each meeting.", "You tell us you have the right to record, and you should tell the participants."],
   ["Your recordings are private.", "Only you can see them. You can delete a recording and everything made from it."],
 ] as const;
@@ -132,7 +132,7 @@ export function Onboarding() {
       <main className="flex flex-col px-6 py-8 sm:px-12 md:px-16">
         <header className="flex items-center gap-4">
           <Link href="/" className="text-lg font-semibold tracking-tight">
-            CalMasta
+            Mojooba
           </Link>
           <ol className="flex items-center gap-1.5" aria-label={`Step ${step + 1} of ${STEPS}`}>
             {Array.from({ length: STEPS }, (_, i) => (
@@ -171,7 +171,7 @@ export function Onboarding() {
                   </li>
                 ))}
               </ul>
-              <button type="button" onClick={() => setStep(1)} className="mt-8 rounded-lg bg-accent-solid px-6 py-3 text-sm font-medium text-white hover:opacity-90">
+              <button type="button" onClick={() => setStep(1)} className="inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-accent-solid px-6 text-sm font-medium text-on-accent transition-colors hover:brightness-95 active:brightness-90 disabled:pointer-events-none disabled:opacity-50 mt-8">
                 Continue →
               </button>
             </>
@@ -189,7 +189,7 @@ export function Onboarding() {
                   {ROLES.map((r) => (
                     <label
                       key={r.id}
-                      className="group cursor-pointer rounded-lg border border-border px-4 py-2.5 text-sm transition-colors hover:bg-surface has-[:checked]:border-accent has-[:checked]:bg-accent/20 has-[:checked]:font-medium has-[:checked]:ring-1 has-[:checked]:ring-accent has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent"
+                      className="group cursor-pointer rounded-lg border border-border px-4 py-2 text-sm transition-colors hover:bg-surface has-[:checked]:border-accent has-[:checked]:bg-accent/20 has-[:checked]:font-medium has-[:checked]:ring-1 has-[:checked]:ring-accent has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent"
                     >
                       <input type="radio" name="role" value={r.id} checked={role === r.id} onChange={() => setRole(r.id)} className="sr-only" />
                       {/* A tick as well as colour, so the choice is clear without relying on colour alone. */}
@@ -204,7 +204,7 @@ export function Onboarding() {
                   type="button"
                   disabled={busy || !role}
                   onClick={() => void run(() => saveProfile({ role }), () => setStep(2))}
-                  className="rounded-lg bg-accent-solid px-6 py-3 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+                  className="inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-accent-solid px-6 text-sm font-medium text-on-accent transition-colors hover:brightness-95 active:brightness-90 disabled:pointer-events-none disabled:opacity-50"
                 >
                   {busy ? "Saving…" : "Continue →"}
                 </button>
@@ -220,7 +220,7 @@ export function Onboarding() {
               <h1 ref={heading} tabIndex={-1} className="text-3xl font-semibold tracking-tight outline-none">
                 Start with your first conversation
               </h1>
-              <p className="mt-3 text-muted">The quickest way to see CalMasta work is to give it something to write about.</p>
+              <p className="mt-3 text-muted">The quickest way to see Mojooba work is to give it something to write about.</p>
               <ul className="mt-6 space-y-3">
                 {FIRST_ACTIONS.map((a) => (
                   <li key={a.title}>
@@ -246,7 +246,7 @@ export function Onboarding() {
           )}
 
           {error && (
-            <p role="alert" className="mt-6 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+            <p role="alert" className="mt-6 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
               {error}
             </p>
           )}

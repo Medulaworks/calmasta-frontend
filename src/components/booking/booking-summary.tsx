@@ -9,7 +9,7 @@ const isUrl = (s: string) => /^https?:\/\//i.test(s);
 
 function googleCalendarLink(b: GuestBooking) {
   const t = (iso: string) => iso.replace(/[-:]/g, "").replace(/\.\d{3}/, "");
-  const p = new URLSearchParams({ action: "TEMPLATE", text: b.hostName ? `${b.meetingName} with ${b.hostName}` : b.meetingName, dates: `${t(b.startAt)}/${t(b.endAt)}`, details: "Booked through CalMasta." });
+  const p = new URLSearchParams({ action: "TEMPLATE", text: b.hostName ? `${b.meetingName} with ${b.hostName}` : b.meetingName, dates: `${t(b.startAt)}/${t(b.endAt)}`, details: "Booked through Mojooba." });
   if (b.locationText) p.set("location", b.locationText);
   return `https://calendar.google.com/calendar/render?${p}`;
 }

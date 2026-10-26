@@ -121,7 +121,7 @@ export function BookingsTab() {
                   {b.status === "confirmed" && b.emailStatus === "not_configured" && <li>The guest was not emailed (email isn&apos;t set up). They have a link to manage the booking.</li>}
                   {b.status === "confirmed" && b.calendarStatus === "failed" && <li className="text-warning">Could not be added to your calendar. The booking itself is confirmed.</li>}
                   {b.status === "confirmed" && b.calendarStatus === "created" && <li>Added to your calendar.</li>}
-                  {b.captureId && <li className="flex items-center gap-1.5"><Video aria-hidden className="h-3.5 w-3.5" /> The CalMasta Assistant is scheduled to join. <Link href={`/captures/${b.captureId}`} className="font-medium text-accent hover:underline">View</Link></li>}
+                  {b.captureId && <li className="flex items-center gap-1.5"><Video aria-hidden className="h-3.5 w-3.5" /> The Mojooba Assistant is scheduled to join. <Link href={`/captures/${b.captureId}`} className="font-medium text-accent hover:underline">View</Link></li>}
                 </ul>
                 {b.status === "confirmed" && new Date(b.startAt) > new Date() && (
                   <div className="flex gap-2 pt-1">

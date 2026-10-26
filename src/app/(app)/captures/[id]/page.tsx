@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { CaptureDetail } from "@/components/capture-detail";
 
-export const metadata = { title: "Recording · CalMasta" };
+export const metadata = { title: "Recording · Mojooba" };
 
 async function Detail(props: PageProps<"/captures/[id]">) {
   const { id } = await props.params;

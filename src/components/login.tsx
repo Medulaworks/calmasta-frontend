@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { authErrorMessage } from "@/lib/auth-errors";
+import { Brand } from "@/components/ui/brand";
 import { buttonClass } from "@/components/ui/button";
 
 /** Only same-site paths survive; mirrors the server's check so the link we build is already safe. */
@@ -36,9 +37,8 @@ export function Login() {
     <div className="grid min-h-screen md:grid-cols-2">
       <main className="flex flex-col justify-center px-6 py-12 sm:px-12 md:px-16">
         <div className="mx-auto w-full max-w-sm">
-          <div className="mb-8 flex items-center gap-2.5 text-lg font-semibold tracking-tight">
-            <span aria-hidden className="grid h-8 w-8 place-items-center rounded-lg bg-accent-solid text-sm font-bold text-white">C</span>
-            CalMasta
+          <div className="mb-8 text-xl">
+            <Brand size={36} />
           </div>
           <h1 className="text-3xl font-semibold tracking-tight">Welcome</h1>
           <p className="mt-2 text-muted">Sign in to turn your conversations into useful work.</p>
@@ -56,16 +56,16 @@ export function Login() {
 
           {/* Plain links (not next/link): these are full-page navigations to the identity provider, and must never be prefetched. */}
           <div className="mt-8 space-y-3">
-            <a href={`/api/auth/login?${q}`} aria-disabled={checking} className={buttonClass("primary", "w-full py-3")}>
+            <a href={`/api/auth/login?${q}`} aria-disabled={checking} className={buttonClass("primary", "w-full", "lg")}>
               Sign in
             </a>
-            <a href={`/api/auth/login?${q}&signup=1`} className={buttonClass("secondary", "w-full py-3")}>
+            <a href={`/api/auth/login?${q}&signup=1`} className={buttonClass("secondary", "w-full", "lg")}>
               Create an account
             </a>
           </div>
           <p className="mt-6 text-sm text-muted">Forgot your password? Choose &ldquo;Sign in&rdquo;, then use the reset link on the next page.</p>
           <p className="mt-10 text-xs text-muted">
-            CalMasta never sees your password. Sign-in is handled by a dedicated identity provider.
+            Mojooba never sees your password. Sign-in is handled by a dedicated identity provider.
           </p>
         </div>
       </main>

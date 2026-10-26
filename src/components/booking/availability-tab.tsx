@@ -9,6 +9,7 @@ import { useProfile } from "@/components/shell/profile-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { summarizeWeek } from "@/lib/booking-hours";
 import { type AvailabilityInput, type AvailabilityView, WEEKDAYS, type Weekday, type WeeklyHours, deleteAvailability, listAvailabilities, saveAvailability } from "@/lib/booking-client";
 import { type ConnectionView, getConnections } from "@/lib/calendar-client";
 import { browserTimeZone } from "@/lib/tz";
@@ -88,7 +89,7 @@ export function AvailabilityTab() {
     }
     setBusy(false);
   }
-  const summary = (w: WeeklyHours) => WEEKDAYS.filter((d) => w[d.id]?.length).map((d) => `${d.label.slice(0, 3)} ${w[d.id]!.map((x) => `${x.start}–${x.end}`).join(", ")}`).join(" · ") || "No days set";
+  const summary = (w: WeeklyHours) => summarizeWeek(w);
 
   return (
     <div className="space-y-4">
@@ -147,7 +148,7 @@ export function AvailabilityTab() {
             <fieldset className="space-y-3 rounded-xl border border-border p-4">
               <legend className="px-1 text-sm font-medium">Calendars</legend>
               {calendars.length === 0 ? (
-                <p className="text-sm text-muted">No calendar is connected, so only bookings made through CalMasta are checked for clashes. <Link href="/calendar" className="font-medium text-accent hover:underline">Connect a calendar</Link> to avoid double-booking.</p>
+                <p className="text-sm text-muted">No calendar is connected, so only bookings made through Mojooba are checked for clashes. <Link href="/calendar" className="font-medium text-accent hover:underline">Connect a calendar</Link> to avoid double-booking.</p>
               ) : (
                 <>
                   <div>
@@ -159,9 +160,9 @@ export function AvailabilityTab() {
                       ))}
                     </ul>
                   </div>
-                  <Field label="Add new bookings to" hint="Confirmed bookings are written here. Leave empty to keep them only in CalMasta.">
+                  <Field label="Add new bookings to" hint="Confirmed bookings are written here. Leave empty to keep them only in Mojooba.">
                     <select value={form.destinationCalendarId ?? ""} onChange={(e) => setForm({ ...form, destinationCalendarId: e.target.value || null })} className={field}>
-                      <option value="">Nowhere (CalMasta only)</option>
+                      <option value="">Nowhere (Mojooba only)</option>
                       {calendars.map((c) => <option key={c.id} value={c.id}>{c.name} · {c.account}</option>)}
                     </select>
                   </Field>
@@ -184,7 +185,7 @@ export function AvailabilityTab() {
           <ul className="divide-y divide-border">
             {items.map((a) => (
               <li key={a.id} className="flex flex-wrap items-start justify-between gap-3 px-5 py-4 text-sm">
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="font-medium">{a.name} <span className="font-normal text-muted">· {a.timezone.replace(/_/g, " ")}</span></p>
                   <p className="text-xs text-muted">{summary(a.weekly)}</p>
                   <p className="text-xs text-muted">{a.conflictCalendarIds.length ? `Checks ${a.conflictCalendarIds.length} calendar${a.conflictCalendarIds.length === 1 ? "" : "s"}` : "No calendars checked"} · used by {a.usedBy} meeting type{a.usedBy === 1 ? "" : "s"}</p>

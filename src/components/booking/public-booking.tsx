@@ -174,7 +174,7 @@ export function PublicBooking({ slug }: { slug: string }) {
             </label>
             {formError && <p role="alert" className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">{formError}</p>}
             <div className="flex flex-wrap items-center gap-3">
-              <button type="submit" disabled={submitting} className="inline-flex items-center gap-2 rounded-lg bg-accent-solid px-5 py-2.5 text-sm font-medium text-white disabled:opacity-60">
+              <button type="submit" disabled={submitting} className="inline-flex min-h-9 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-accent-solid px-4 text-sm font-medium text-on-accent transition-colors hover:brightness-95 active:brightness-90 disabled:pointer-events-none disabled:opacity-50">
                 {submitting && <Loader2 aria-hidden className="h-4 w-4 animate-spin" />}
                 {submitting ? "Checking availability…" : "Confirm booking"}
               </button>

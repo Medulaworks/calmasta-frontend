@@ -1,9 +1,10 @@
+import type { PlanId } from "./plan-types";
 import { api } from "./upload-client";
 
 export type PlanStatus = "none" | "pending_activation" | "active" | "grace" | "expired";
 
 export interface PlanSummary {
-  plan: { plan: "free" | "pro"; status: PlanStatus; renewsAt: string | null; graceUntil: string | null };
+  plan: { plan: PlanId; status: PlanStatus; renewsAt: string | null; graceUntil: string | null };
   allowanceMinutes: number;
   usedMinutes: number;
   includedRemainingMinutes: number;
@@ -17,6 +18,15 @@ export interface PlanSummary {
   timezone: string;
   packs: Array<{ sku: string; minutes: number; label: string }>;
   checkoutUrl: string | null;
+  checkoutUrlAnnual: string | null;
+  checkoutUrlBusiness: string | null;
+  checkoutUrlBusinessAnnual: string | null;
+  testCheckout: boolean;
+  enterpriseUrl: string | null;
+  freeAllowanceMinutes: number;
+  proAllowanceMinutes: number;
+  businessAllowanceMinutes: number;
+  pricing: { currency: string; proMonthly: number; businessMonthly: number; annualDiscountPct: number };
   billingUrl: string | null;
   placeholder: boolean;
 }

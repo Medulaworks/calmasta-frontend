@@ -13,7 +13,7 @@ import { DataTable, Notice, ResourceBoundary, Td, Th, useResource } from "./ui";
 
 const FILTERS = [
   { id: "all", label: "All" },
-  { id: "pro", label: "Pro" },
+  { id: "paid", label: "Paid plans" },
   { id: "staff", label: "Staff-granted" },
   { id: "grace", label: "Payment trouble" },
 ] as const;

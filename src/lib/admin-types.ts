@@ -1,3 +1,4 @@
+import type { PlanId } from "./plan-types";
 // The shapes the staff API returns. Kept here (not in the server modules) so the staff UI never imports server code.
 
 export interface OverviewJob {
@@ -36,7 +37,7 @@ export interface CustomerRow {
 export interface RegistryRow {
   id: string;
   email: string;
-  plan: "free" | "pro";
+  plan: PlanId;
   status: string;
   source: string | null;
   endsAt: Date | null;
@@ -159,7 +160,7 @@ export interface CustomerDetail {
   outputsOnly: boolean;
   createdAt: Date;
   deletion: { status: string; requestedAt: Date; filesRemoved: number; filesFailed: number; canCancel: boolean; startsAt: Date | null } | null;
-  plan: { plan: "free" | "pro"; status: string; renewsAt: Date | null; graceUntil: Date | null; source: string | null; storeReference: string | null };
+  plan: { plan: PlanId; status: string; renewsAt: Date | null; graceUntil: Date | null; source: string | null; storeReference: string | null };
   allowance: { allowanceMinutes: number; usedMinutes: number; purchasedMinutes: number; remainingMinutes: number; resetsAt: string };
   grants: Array<{ id: string; minutes: number; kind: string; expiresAt: Date | null; reason: string | null; createdAt: Date; reference: string | null }>;
   connections: Array<{ id: string; provider: string; status: string; connectedAt: Date; calendars: number }>;

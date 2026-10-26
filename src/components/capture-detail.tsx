@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, tabId, tabPanelId } from "@/components/ui/tabs";
 import { ActionsPanel } from "@/components/actions-panel";
+import { MeetingVideo } from "./meeting-video";
 import { MeetingPanel } from "@/components/meeting-panel";
 import { TranscriptEditor } from "@/components/transcript-editor";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -71,11 +72,13 @@ export function CaptureDetail({ id, devTools = false }: { id: string; devTools?:
 
   const status = cap ? captureStatus({ source: cap.source, state: cap.state, status: cap.status }) : null;
   const extracting = cap?.actions.state === "extracting";
+  // The video is saved a little after the meeting ends, so keep looking until it is there (or has failed).
+  const videoComing = cap?.videoStatus === "processing";
   useEffect(() => {
-    if (!status?.active && !extracting) return;
+    if (!status?.active && !extracting && !videoComing) return;
     const t = setInterval(refresh, 3000);
     return () => clearInterval(t);
-  }, [status?.active, extracting, refresh]);
+  }, [status?.active, extracting, videoComing, refresh]);
 
   async function makeDocument() {
     setBusy(true);
@@ -197,7 +200,15 @@ export function CaptureDetail({ id, devTools = false }: { id: string; devTools?:
 
       {tab === "recording" && cap.source === "meeting_url" && (
         <div role="tabpanel" id={tabPanelId("recording")} aria-labelledby={tabId("recording")}>
-          <MeetingPanel cap={cap} devTools={devTools} onChanged={refresh} />
+          <div className="space-y-4">
+            {cap.recordVideo && (
+              <Card>
+                <CardHeader title="Video" />
+                <div className="p-5"><MeetingVideo cap={cap} /></div>
+              </Card>
+            )}
+            <MeetingPanel cap={cap} devTools={devTools} onChanged={refresh} />
+          </div>
         </div>
       )}
 
@@ -235,7 +246,7 @@ export function CaptureDetail({ id, devTools = false }: { id: string; devTools?:
                   </div>
                 </div>
               ) : cap.source === "meeting_url" ? (
-                <p className="text-muted">Meetings are captured by the CalMasta Assistant. There is no audio file to play here; the transcript appears in the Transcript tab once the meeting has ended and a capture provider is connected.</p>
+                <p className="text-muted">Meetings are captured by the Mojooba Assistant. There is no audio file to play here; the transcript appears in the Transcript tab once the meeting has ended and a capture provider is connected.</p>
               ) : (
                 <p className="text-muted">The audio is still being uploaded.</p>
               )}

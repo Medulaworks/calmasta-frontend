@@ -1,5 +1,6 @@
 "use client";
 
+import { Check, ChevronDown, ChevronRight, CircleAlert, History, Loader2, Sparkles, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -21,6 +22,9 @@ import {
   saveDocument,
   templateLabel,
 } from "@/lib/documents-client";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useDismiss } from "@/components/ui/use-dismiss";
 import { EditorToolbar } from "./editor-toolbar";
 
 type SaveState = "saved" | "dirty" | "saving" | "error" | "conflict";
@@ -88,7 +92,7 @@ export function DocumentStudio({ id }: { id: string }) {
     extensions: EXTENSIONS,
     content: "",
     immediatelyRender: false, // Next renders on the server first
-    editorProps: { attributes: { class: "prose-doc min-h-[24rem] px-4 py-3 focus:outline-none", "aria-label": "Document" } },
+    editorProps: { attributes: { class: "prose-doc min-h-[28rem] px-6 py-5 focus:outline-none", "aria-label": "Document" } },
     onUpdate: ({ editor: e }) => {
       setOutline(readOutline(e));
       if (locked.current) return;
@@ -303,48 +307,62 @@ export function DocumentStudio({ id }: { id: string }) {
   if (loadError) {
     return (
       <div className="max-w-2xl space-y-3">
-        <p role="alert" className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200">{loadError}</p>
+        <p role="alert" className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">{loadError}</p>
         <Link href="/library" className="text-sm text-accent">Back to Library</Link>
       </div>
     );
   }
-  if (!doc) return <p className="text-sm text-muted">Loading…</p>;
+  if (!doc) {
+    return (
+      <div role="status" aria-label="Loading document" className="max-w-4xl space-y-4" aria-busy="true">
+        <div className="h-4 w-40 animate-pulse rounded bg-border" />
+        <div className="h-8 w-2/3 animate-pulse rounded bg-border" />
+        <div className="h-96 animate-pulse rounded-xl border border-border bg-surface" />
+      </div>
+    );
+  }
 
   const failedEmpty = doc.status === "failed";
+  const saveTone = saveState === "error" || saveState === "conflict" ? "text-danger" : "text-muted";
+  const SaveIcon = generating || saveState === "saving" ? Loader2 : saveState === "error" || saveState === "conflict" ? CircleAlert : Check;
 
   return (
-    <div className="max-w-3xl space-y-4">
+    <div className="max-w-4xl space-y-5">
       <div className="flex items-center justify-between gap-3">
-        <p className="flex flex-wrap items-center gap-x-3 text-sm">
+        <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1 text-sm text-muted">
+          <Link href="/library" className="hover:text-foreground">Library</Link>
+          <ChevronRight aria-hidden className="h-3.5 w-3.5 shrink-0" />
           {doc.captureId ? (
-            <Link href={`/captures/${doc.captureId}?tab=documents`} className="text-muted hover:text-foreground">&larr; Back to conversation</Link>
+            <Link href={`/captures/${doc.captureId}?tab=documents`} className="truncate hover:text-foreground">{doc.sourceTitle ?? "Conversation"}</Link>
           ) : (
-            <span className="text-muted">Source recording deleted</span>
+            <span className="truncate">Source recording deleted</span>
           )}
-          <Link href="/library" className="text-muted hover:text-foreground">Library</Link>
-        </p>
-        <p role="status" aria-live="polite" className={`text-xs ${saveState === "error" || saveState === "conflict" ? "text-red-700 dark:text-red-300" : "text-muted"}`}>
+        </nav>
+        <p role="status" aria-live="polite" className={`flex shrink-0 items-center gap-1.5 text-xs ${saveTone}`}>
+          <SaveIcon aria-hidden className={`h-3.5 w-3.5 ${SaveIcon === Loader2 ? "animate-spin" : ""}`} />
           {generating ? (doc.rewritingSection ? "Rewriting a section…" : "Writing…") : SAVE_LABEL[saveState]}
         </p>
       </div>
 
-      <input
-        value={title}
-        onChange={(e) => onTitle(e.target.value)}
-        disabled={readOnly || failedEmpty}
-        maxLength={200}
-        placeholder="Untitled"
-        aria-label="Title"
-        className="w-full bg-transparent text-2xl font-semibold tracking-tight outline-none placeholder:text-muted"
-      />
-      <p className="text-xs text-muted">
-        {templateLabel(doc.template)}
-        {doc.sourceTitle ? ` · from “${doc.sourceTitle}”` : ""}
-        {doc.provider === "mock" && " · development draft (no AI used)"}
-      </p>
+      <header className="space-y-2">
+        <input
+          value={title}
+          onChange={(e) => onTitle(e.target.value)}
+          disabled={readOnly || failedEmpty}
+          maxLength={200}
+          placeholder="Untitled"
+          aria-label="Title"
+          className="h-auto min-h-0 w-full border-0 bg-transparent p-0 text-2xl font-semibold tracking-tight placeholder:text-muted focus-visible:shadow-none"
+        />
+        <p className="flex flex-wrap items-center gap-2 text-xs text-muted">
+          <Badge>{templateLabel(doc.template)}</Badge>
+          {doc.sourceTitle && <span>From “{doc.sourceTitle}”</span>}
+          {doc.provider === "mock" && <span>Development draft (no AI used)</span>}
+        </p>
+      </header>
 
       {notice && (
-        <p role="status" className="rounded-md border border-border bg-surface px-3 py-2 text-sm">
+        <p role="status" className="rounded-lg border border-border bg-surface px-4 py-3 text-sm">
           {notice}
           {saveState === "conflict" && (
             <button type="button" onClick={() => void reload()} className="ml-2 underline">Reload</button>
@@ -352,37 +370,16 @@ export function DocumentStudio({ id }: { id: string }) {
         </p>
       )}
       {doc.failureReason && (
-        <p role="alert" className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+        <p role="alert" className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
           {doc.failureReason}
-        </p>
-      )}
-
-      {failedEmpty ? (
-        <div className="rounded-lg border border-border p-5 text-sm">
-          <p>This document couldn&rsquo;t be written.</p>
-          <button type="button" onClick={() => void rewrite(false)} className="mt-3 rounded-md bg-accent-solid px-4 py-2 font-medium text-white">Try again</button>
-        </div>
-      ) : (
-        <div className="relative rounded-lg border border-border">
-          {editor && <EditorToolbar editor={editor} disabled={readOnly} />}
-          <EditorContent editor={editor} />
-          {generating && (
-            <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-background/70 text-sm" role="status">
-              {doc.rewritingSection ? `Rewriting “${doc.rewritingSection}”…` : "Writing your document…"}
-            </div>
-          )}
-        </div>
-      )}
-
-      {!failedEmpty && outline.uncertain > 0 && (
-        <p className="rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">
-          {outline.uncertain} {outline.uncertain === 1 ? "place is" : "places are"} marked <span className="font-medium">not specified</span> or to confirm. CalMasta leaves a gap rather than guess an owner, date or number: fill them in, or check them against the conversation.
         </p>
       )}
 
       {!failedEmpty && (
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" disabled={readOnly} onClick={() => void rewrite(false)} className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-surface disabled:opacity-50">Rewrite with AI</button>
+          <Button size="sm" disabled={readOnly} onClick={() => void rewrite(false)}>
+            <Sparkles aria-hidden className="h-3.5 w-3.5" /> Rewrite with AI
+          </Button>
           {outline.sections.length > 0 && (
             <label className="inline-flex items-center">
               <span className="sr-only">Rewrite one section</span>
@@ -393,74 +390,125 @@ export function DocumentStudio({ id }: { id: string }) {
                   const picked = outline.sections[Number(e.target.value)];
                   if (picked) void rewriteOneSection({ section: picked.heading, occurrence: picked.occurrence }, false);
                 }}
-                className="rounded-md border border-border bg-background px-3 py-1.5 text-sm hover:bg-surface disabled:opacity-50"
+                className="min-h-8 rounded-lg border border-border bg-background px-3 text-xs hover:bg-surface disabled:opacity-50"
               >
                 <option value="">Rewrite a section…</option>
                 {outline.sections.map((sec, i) => <option key={i} value={i}>{sec.heading}</option>)}
               </select>
             </label>
           )}
-          <details className="relative">
-            <summary className="cursor-pointer list-none rounded-md border border-border px-3 py-1.5 text-sm hover:bg-surface">Export ▾</summary>
-            <div className="absolute left-0 z-10 mt-1 w-56 rounded-lg border border-border bg-background p-1 text-sm shadow-lg">
-              <button type="button" onClick={(e) => { void copyText(); e.currentTarget.closest("details")?.removeAttribute("open"); }} className="block w-full rounded-md px-3 py-2 text-left hover:bg-surface">Copy as text</button>
-              <button type="button" onClick={(e) => { exportAs("md"); e.currentTarget.closest("details")?.removeAttribute("open"); }} className="block w-full rounded-md px-3 py-2 text-left hover:bg-surface">Download Markdown (.md)</button>
-              <button type="button" onClick={(e) => { exportAs("txt"); e.currentTarget.closest("details")?.removeAttribute("open"); }} className="block w-full rounded-md px-3 py-2 text-left hover:bg-surface">Download text (.txt)</button>
-              <p className="px-3 py-2 text-xs text-muted">Private: saved to your device only. Nothing is shared.</p>
-            </div>
-          </details>
-          <button type="button" onClick={() => void toggleVersions()} className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-surface">{versions ? "Hide history" : "History"}</button>
-          <button type="button" onClick={() => setConfirm("delete")} className="ml-auto rounded-md px-3 py-1.5 text-sm text-red-700 hover:bg-surface dark:text-red-300">Delete</button>
+          <span className="ml-auto flex items-center gap-2">
+            <Button size="sm" variant="ghost" onClick={() => void toggleVersions()} aria-expanded={!!versions}>
+              <History aria-hidden className="h-3.5 w-3.5" /> {versions ? "Hide history" : "History"}
+            </Button>
+            <ExportMenu onCopy={() => void copyText()} onMarkdown={() => exportAs("md")} onText={() => exportAs("txt")} />
+            <Button size="sm" variant="ghost" onClick={() => setConfirm("delete")} aria-label="Delete document" title="Delete document" className="px-2 text-muted hover:text-danger">
+              <Trash2 aria-hidden className="h-4 w-4" />
+            </Button>
+          </span>
         </div>
       )}
 
+      {failedEmpty ? (
+        <div className="rounded-xl border border-border p-6 text-sm">
+          <p>This document couldn&rsquo;t be written.</p>
+          <Button variant="primary" onClick={() => void rewrite(false)} className="mt-3">Try again</Button>
+        </div>
+      ) : (
+        <div className="relative overflow-hidden rounded-xl border border-border bg-background">
+          {editor && <EditorToolbar editor={editor} disabled={readOnly} />}
+          <EditorContent editor={editor} />
+          {generating && (
+            <div className="absolute inset-0 flex items-center justify-center gap-2 bg-background/70 text-sm" role="status">
+              <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
+              {doc.rewritingSection ? `Rewriting “${doc.rewritingSection}”…` : "Writing your document…"}
+            </div>
+          )}
+        </div>
+      )}
+
+      {!failedEmpty && outline.uncertain > 0 && (
+        <p className="rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
+          {outline.uncertain} {outline.uncertain === 1 ? "place is" : "places are"} marked <span className="font-medium">not specified</span> or to confirm. Mojooba leaves a gap rather than guess an owner, date or number: fill them in, or check them against the conversation.
+        </p>
+      )}
+
       {confirm === "rewrite" && (
-        <div role="alertdialog" aria-label="Confirm rewrite" className="rounded-lg border border-border bg-surface p-4 text-sm">
+        <div role="alertdialog" aria-label="Confirm rewrite" className="rounded-xl border border-border bg-surface p-5 text-sm">
           <p className="font-medium">Replace your edits with a new AI draft?</p>
           <p className="mt-1 text-muted">Your current version is kept in History, so you can restore it.</p>
-          <div className="mt-3 flex gap-2">
-            <button type="button" onClick={() => void rewrite(true)} className="rounded-md bg-accent-solid px-3 py-1.5 font-medium text-white">Replace with new draft</button>
-            <button type="button" onClick={() => setConfirm(null)} className="rounded-md px-3 py-1.5 text-muted hover:text-foreground">Keep my edits</button>
+          <div className="mt-4 flex gap-2">
+            <Button variant="primary" onClick={() => void rewrite(true)}>Replace with new draft</Button>
+            <Button variant="ghost" onClick={() => setConfirm(null)}>Keep my edits</Button>
           </div>
         </div>
       )}
       {typeof confirm === "object" && confirm !== null && (
-        <div role="alertdialog" aria-label="Confirm section rewrite" className="rounded-lg border border-border bg-surface p-4 text-sm">
+        <div role="alertdialog" aria-label="Confirm section rewrite" className="rounded-xl border border-border bg-surface p-5 text-sm">
           <p className="font-medium">Replace your edits to “{confirm.section}”?</p>
           <p className="mt-1 text-muted">Only this section is rewritten; the rest of the document is not touched. Your current version is kept in History, so you can restore it.</p>
-          <div className="mt-3 flex gap-2">
-            <button type="button" onClick={() => void rewriteOneSection(confirm, true)} className="rounded-md bg-accent-solid px-3 py-1.5 font-medium text-white">Rewrite this section</button>
-            <button type="button" onClick={() => setConfirm(null)} className="rounded-md px-3 py-1.5 text-muted hover:text-foreground">Keep my edits</button>
+          <div className="mt-4 flex gap-2">
+            <Button variant="primary" onClick={() => void rewriteOneSection(confirm, true)}>Rewrite this section</Button>
+            <Button variant="ghost" onClick={() => setConfirm(null)}>Keep my edits</Button>
           </div>
         </div>
       )}
       {confirm === "delete" && (
-        <div role="alertdialog" aria-label="Confirm delete" className="rounded-lg border border-border bg-surface p-4 text-sm">
+        <div role="alertdialog" aria-label="Confirm delete" className="rounded-xl border border-border bg-surface p-5 text-sm">
           <p className="font-medium">Delete this document?</p>
           <p className="mt-1 text-muted">This also deletes its history. The recording and transcript are not affected.</p>
-          <div className="mt-3 flex gap-2">
-            <button type="button" onClick={() => void remove()} className="rounded-md bg-red-600 px-3 py-1.5 font-medium text-white">Delete document</button>
-            <button type="button" onClick={() => setConfirm(null)} className="rounded-md px-3 py-1.5 text-muted hover:text-foreground">Cancel</button>
+          <div className="mt-4 flex gap-2">
+            <Button variant="danger" onClick={() => void remove()}>Delete document</Button>
+            <Button variant="ghost" onClick={() => setConfirm(null)}>Cancel</Button>
           </div>
         </div>
       )}
 
       {versions && (
-        <section aria-label="Version history" className="rounded-lg border border-border p-4 text-sm">
-          <h2 className="font-medium">History</h2>
+        <section aria-label="Version history" className="rounded-xl border border-border text-sm">
+          <h2 className="border-b border-border px-5 py-3 font-medium">History</h2>
           {versions.length === 0 ? (
-            <p className="mt-1 text-muted">Nothing here yet. A version is saved whenever your content is about to be replaced.</p>
+            <p className="px-5 py-4 text-muted">Nothing here yet. A version is saved whenever your content is about to be replaced.</p>
           ) : (
-            <ul className="mt-2 space-y-2">
+            <ul className="divide-y divide-border">
               {versions.map((v) => (
-                <li key={v.version} className="flex items-center justify-between gap-3">
+                <li key={v.version} className="flex items-center justify-between gap-3 px-5 py-3">
                   <span>{ORIGIN_LABEL[v.origin]} <span className="text-xs text-muted">· {new Date(v.createdAt).toLocaleString()}</span></span>
-                  <button type="button" disabled={readOnly} onClick={() => void restore(v.version)} className="rounded-md border border-border px-2.5 py-1 text-xs hover:bg-background disabled:opacity-50">Restore</button>
+                  <Button size="sm" disabled={readOnly} onClick={() => void restore(v.version)}>Restore</Button>
                 </li>
               ))}
             </ul>
           )}
         </section>
+      )}
+    </div>
+  );
+}
+
+/** Export stays in the browser: the user's own text goes to their own file. */
+function ExportMenu({ onCopy, onMarkdown, onText }: { onCopy: () => void; onMarkdown: () => void; onText: () => void }) {
+  const [open, setOpen] = useState(false);
+  const panel = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const close = useCallback(() => setOpen(false), []);
+  useDismiss(open, close, panel, trigger);
+  const item = "flex min-h-9 w-full items-center rounded-lg px-3 text-left text-sm transition-colors hover:bg-surface focus-visible:bg-surface";
+  const pick = (fn: () => void) => () => {
+    setOpen(false);
+    fn();
+  };
+  return (
+    <div className="relative">
+      <Button ref={trigger} size="sm" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        Export <ChevronDown aria-hidden className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+      </Button>
+      {open && (
+        <div ref={panel} role="menu" aria-label="Export" className="absolute right-0 top-full z-20 mt-2 w-60 rounded-xl border border-border bg-background p-1 shadow-lg">
+          <button type="button" role="menuitem" onClick={pick(onCopy)} className={item}>Copy as text</button>
+          <button type="button" role="menuitem" onClick={pick(onMarkdown)} className={item}>Download Markdown (.md)</button>
+          <button type="button" role="menuitem" onClick={pick(onText)} className={item}>Download text (.txt)</button>
+          <p className="border-t border-border px-3 py-2 text-xs text-muted">Private: saved to your device only. Nothing is shared.</p>
+        </div>
       )}
     </div>
   );

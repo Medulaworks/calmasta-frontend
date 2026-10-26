@@ -5,12 +5,13 @@ import { useEffect, useState } from "react";
 import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { type PlanSummary, fetchPlan } from "@/lib/plan-client";
+import { PLAN_LABEL, isPaidPlan } from "@/lib/plan-types";
 
 const POLL_MS = 4000;
 const GIVE_UP_MS = 90_000;
 
 /**
- * Where the store sends people after checkout. Paying never switches anything on by itself: Pro (or the hours) start
+ * Where the store sends people after checkout. Paying never switches anything on by itself: the plan (or the hours) start
  * only when the store tells us the payment is complete, so this page watches for that and says plainly if it's slow.
  */
 export function ConfirmingView() {
@@ -26,7 +27,7 @@ export function ConfirmingView() {
         const p = await fetchPlan();
         if (cancelled) return;
         setPlan(p);
-        if (p.plan.plan === "pro" && p.plan.status === "active") return; // done
+        if (isPaidPlan(p.plan.plan) && p.plan.status === "active") return; // done
       } catch {
         /* keep trying until the time runs out */
       }
@@ -44,7 +45,7 @@ export function ConfirmingView() {
     };
   }, []);
 
-  const done = plan?.plan.plan === "pro" && plan.plan.status === "active";
+  const done = !!plan && isPaidPlan(plan.plan.plan) && plan.plan.status === "active";
 
   return (
     <Card className="max-w-2xl">
@@ -52,7 +53,7 @@ export function ConfirmingView() {
         {done ? (
           <>
             <p className="flex items-center gap-2 text-lg font-semibold">
-              <CheckCircle2 aria-hidden className="h-5 w-5 text-success" /> Pro is on
+              <CheckCircle2 aria-hidden className="h-5 w-5 text-success" /> {plan ? PLAN_LABEL[plan.plan.plan] : "Your plan"} is on
             </p>
             <p className="text-muted">The store confirmed your payment. Your new allowance is ready to use.</p>
             <ButtonLink href="/plan" variant="primary">See your plan</ButtonLink>

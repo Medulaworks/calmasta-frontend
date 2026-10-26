@@ -5,7 +5,7 @@ export function StatTile({ label, value, hint, icon }: { label: string; value: R
         <p className="text-sm">{label}</p>
         {icon && <span aria-hidden>{icon}</span>}
       </div>
-      <p className="mt-3 text-3xl font-semibold tracking-tight tabular-nums">{value}</p>
+      <p className="mt-3 text-3xl font-medium tracking-tight tabular-nums">{value}</p>
       {hint && <p className="mt-1 text-xs text-muted">{hint}</p>}
     </div>
   );

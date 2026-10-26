@@ -94,7 +94,7 @@ export function SlotPicker({ load, timeZone, selected, onPick }: { load: (from: 
               <p className="mb-2 text-sm font-medium">{formatDay(byDay.get(day)![0].start, timeZone)}</p>
               <div role="group" aria-label="Times" className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                 {byDay.get(day)!.map((s) => (
-                  <button key={s.start} type="button" aria-pressed={selected === s.start} onClick={() => onPick(s)} className={`rounded-lg border px-2 py-2 text-sm transition-colors ${selected === s.start ? "border-accent-solid bg-accent-solid font-medium text-white" : "border-border hover:bg-surface"}`}>
+                  <button key={s.start} type="button" aria-pressed={selected === s.start} onClick={() => onPick(s)} className={`rounded-lg border px-2 py-2 text-sm transition-colors ${selected === s.start ? "border-accent-solid bg-accent-solid font-medium text-on-accent" : "border-border hover:bg-surface"}`}>
                     {formatTime(s.start, timeZone)}
                   </button>
                 ))}

@@ -24,7 +24,7 @@ export function Confirm({ title, text, action, busy, onConfirm, onCancel }: { ti
       <p className="font-medium">{title}</p>
       <p className="mt-1 text-muted">{text}</p>
       <div className="mt-4 flex gap-2">
-        <button type="button" disabled={busy} onClick={onConfirm} className="rounded-lg bg-danger-solid px-4 py-2 font-medium text-white disabled:opacity-60">{busy ? "Working…" : action}</button>
+        <button type="button" disabled={busy} onClick={onConfirm} className="inline-flex min-h-9 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-danger-solid px-4 text-sm font-medium text-white transition-colors hover:brightness-95 active:brightness-90 disabled:pointer-events-none disabled:opacity-50">{busy ? "Working…" : action}</button>
         <button type="button" disabled={busy} onClick={onCancel} className="rounded-lg px-4 py-2 text-muted hover:text-foreground">Cancel</button>
       </div>
     </div>

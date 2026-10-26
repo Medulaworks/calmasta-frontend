@@ -102,7 +102,7 @@ export function MeetingTypesTab() {
               <p className="text-sm text-muted">Off unless you turn it on. Connecting a calendar never records, and neither does a booking by default.</p>
               <label className="flex items-start gap-2 text-sm">
                 <input type="checkbox" checked={form.captureEnabled} onChange={(e) => setForm({ ...form, captureEnabled: e.target.checked, captureConfirmed: e.target.checked ? form.captureConfirmed : false })} className="mt-0.5 h-4 w-4" />
-                <span><span className="font-medium">Send the CalMasta Assistant to these meetings</span><span className="block text-muted">It joins as a visible participant named “CalMasta Assistant” a couple of minutes before the start, and may need to be admitted. If it can&apos;t join, the booking is unaffected.</span></span>
+                <span><span className="font-medium">Send the Mojooba Assistant to these meetings</span><span className="block text-muted">It joins as a visible participant named “Mojooba Assistant” a couple of minutes before the start, and may need to be admitted. If it can&apos;t join, the booking is unaffected.</span></span>
               </label>
               {form.captureEnabled && (
                 <div className="space-y-3 border-t border-border pt-3">

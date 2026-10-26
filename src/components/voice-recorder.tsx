@@ -1,7 +1,13 @@
 "use client";
 
+import { Mic, Square, Upload, Video } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   MAX_RECORDING_SECONDS,
   checkAudioFile,
@@ -10,11 +16,14 @@ import {
 } from "@/lib/audio";
 import { TEMPLATE_CHOICES, createDocument } from "@/lib/documents-client";
 import { getProfile } from "@/lib/profile-client";
+import { captureStatus, timeAgo } from "@/lib/status";
 import {
+  type CaptureListItem,
   type CaptureView,
   deleteCapture,
   getCapture,
   isTerminal,
+  listCaptures,
   stateLabel,
   uploadAudio,
 } from "@/lib/upload-client";
@@ -69,7 +78,7 @@ export function VoiceRecorder() {
   const supported = useSyncExternalStore(subscribeNone, recordingSupported, () => true);
 
   const [phase, setPhase] = useState<Phase>("idle");
-  const [elapsed, setElapsed] = useState(0);
+  const [dragging, setDragging] = useState(false);  const [elapsed, setElapsed] = useState(0);
   const [selected, setSelected] = useState<Selected | null>(null);
   const [title, setTitle] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -274,7 +283,10 @@ export function VoiceRecorder() {
   function onFileChosen(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = ""; // allow re-choosing the same file
-    if (!file) return;
+    if (file) acceptFile(file);
+  }
+
+  function acceptFile(file: File) {
     const result = checkAudioFile(file);
     if (!result.ok) {
       setError(result.reason);
@@ -294,98 +306,95 @@ export function VoiceRecorder() {
   const recording = phase === "recording";
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <section aria-labelledby="record-heading" className="rounded-lg border border-border p-5">
-        <h2 id="record-heading" className="font-medium">
-          Record a thought
-        </h2>
-        <p className="mt-1 text-sm text-muted">
-          Keep this tab open and in the foreground while recording. Browsers can pause recording
-          when the screen locks or the tab is in the background.
-        </p>
+    <div className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-2">
+        <section aria-labelledby="record-heading" className="flex flex-col rounded-xl border border-border p-6">
+          <span aria-hidden className="grid h-10 w-10 place-items-center rounded-lg bg-accent/10 text-accent">
+            <Mic className="h-5 w-5" />
+          </span>
+          <h2 id="record-heading" className="mt-4 text-base font-medium">
+            Record a thought
+          </h2>
+          <p className="mt-1 text-sm text-muted">
+            Speak for a minute or an hour. Keep this tab open and in the foreground: browsers can pause recording when the screen locks.
+          </p>
 
-        {supported ? (
-          <div className="mt-4 flex items-center gap-4">
-            {recording ? (
-              <button
-                type="button"
-                onClick={stopRecording}
-                className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-              >
-                Stop
-              </button>
+          <div className="mt-auto pt-6">
+            {supported ? (
+              recording ? (
+                <div className="flex flex-wrap items-center gap-4">
+                  <Button variant="danger" size="lg" onClick={stopRecording}>
+                    <Square aria-hidden className="h-3.5 w-3.5 fill-current" /> Stop
+                  </Button>
+                  <p role="timer" aria-live="off" className="flex items-center gap-2 text-sm tabular-nums">
+                    <span aria-hidden className="inline-block h-2 w-2 animate-pulse rounded-full bg-danger-solid" />
+                    Recording {formatDuration(elapsed)}
+                  </p>
+                </div>
+              ) : (
+                <Button variant="primary" size="lg" onClick={startRecording} disabled={phase === "requesting"}>
+                  <Mic aria-hidden className="h-4 w-4" /> {phase === "requesting" ? "Waiting for microphone…" : "Start recording"}
+                </Button>
+              )
             ) : (
-              <button
-                type="button"
-                onClick={startRecording}
-                disabled={phase === "requesting"}
-                className="rounded-md bg-accent-solid px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
-              >
-                {phase === "requesting" ? "Waiting for microphone…" : "Start recording"}
-              </button>
-            )}
-            {recording && (
-              <p role="timer" aria-live="off" className="flex items-center gap-2 font-mono text-sm">
-                <span aria-hidden className="inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-red-600" />
-                Recording {formatDuration(elapsed)}
-              </p>
+              <p className="text-sm text-muted">This browser can&rsquo;t record audio. Upload a file instead.</p>
             )}
           </div>
-        ) : (
-          <p className="mt-4 text-sm text-muted">
-            This browser can&rsquo;t record audio. Upload a file below instead.
-          </p>
-        )}
-      </section>
+        </section>
 
-      <section aria-labelledby="upload-heading" className="rounded-lg border border-border p-5">
-        <h2 id="upload-heading" className="font-medium">
-          Upload audio
-        </h2>
-        <p className="mt-1 text-sm text-muted">MP3, M4A, WAV, WebM, OGG, AAC or FLAC, up to 500 MB.</p>
-        <label className="mt-4 inline-block cursor-pointer rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-surface focus-within:ring-2 focus-within:ring-accent">
-          Choose a file
-          <input
-            type="file"
-            accept="audio/*,.m4a,.mp3,.wav,.webm,.ogg,.aac,.flac"
-            onChange={onFileChosen}
-            disabled={recording}
-            className="sr-only"
-          />
-        </label>
-      </section>
+        <section aria-labelledby="upload-heading" className="flex flex-col rounded-xl border border-border p-6">
+          <span aria-hidden className="grid h-10 w-10 place-items-center rounded-lg bg-accent/10 text-accent">
+            <Upload className="h-5 w-5" />
+          </span>
+          <h2 id="upload-heading" className="mt-4 text-base font-medium">
+            Upload audio
+          </h2>
+          <p className="mt-1 text-sm text-muted">MP3, M4A, WAV, WebM, OGG, AAC or FLAC, up to 500 MB.</p>
+          <label
+            onDragOver={(e) => {
+              if (recording) return;
+              e.preventDefault();
+              setDragging(true);
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragging(false);
+              const file = e.dataTransfer.files?.[0];
+              if (file && !recording) acceptFile(file);
+            }}
+            className={`mt-6 flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed px-4 py-6 text-center transition-colors focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20 ${dragging ? "border-accent bg-accent/5" : "border-border hover:bg-surface"} ${recording ? "pointer-events-none opacity-50" : ""}`}
+          >
+            <span className="text-sm font-medium">Choose a file</span>
+            <span className="text-xs text-muted">or drop it here</span>
+            <input type="file" accept="audio/*,.m4a,.mp3,.wav,.webm,.ogg,.aac,.flac" onChange={onFileChosen} disabled={recording} className="sr-only" />
+          </label>
+        </section>
+      </div>
 
       {error && (
-        <p role="alert" className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+        <p role="alert" className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
           {error}
         </p>
       )}
 
       {selected && (
-        <section aria-labelledby="review-heading" className="space-y-4 rounded-lg border border-border p-5">
-          <h2 id="review-heading" className="font-medium">
+        <section aria-labelledby="review-heading" className="space-y-4 rounded-xl border border-border p-6">
+          <h2 id="review-heading" className="text-base font-medium">
             Review
           </h2>
           <audio controls src={selected.previewUrl} className="w-full" />
           <p className="text-sm text-muted">
-            {selected.source === "recording" ? "Recording" : selected.name} ·{" "}
-            {formatBytes(selected.blob.size)}
+            {selected.source === "recording" ? "Recording" : selected.name} · {formatBytes(selected.blob.size)}
             {selected.durationSeconds !== null && ` · ${formatDuration(selected.durationSeconds)}`}
           </p>
           <label className="block text-sm">
             <span className="font-medium">What is this recording about?</span>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              maxLength={200}
-              placeholder="Optional title"
-              className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2"
-            />
+            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} placeholder="Optional title" className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2" />
           </label>
           {job?.kind === "uploading" && (
             <div role="status">
-              <progress value={job.progress} max={1} className="w-full" aria-label="Upload progress" />
+              <progress value={job.progress} max={1} className="h-1.5 w-full overflow-hidden rounded-full accent-[var(--accent-solid)]" aria-label="Upload progress" />
               <p className="mt-1 text-xs text-muted">Uploading… {Math.round(job.progress * 100)}%</p>
             </div>
           )}
@@ -395,17 +404,17 @@ export function VoiceRecorder() {
             </p>
           )}
           {job?.kind === "failed" && (
-            <p role="alert" className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+            <p role="alert" className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
               {job.message}
             </p>
           )}
           {job?.kind === "done" && (
             <div className="space-y-2">
               <h3 className="text-sm font-medium">Transcript</h3>
-              <ol className="space-y-1 text-sm">
+              <ol className="space-y-1.5 text-sm">
                 {job.capture.transcript.map((seg) => (
                   <li key={seg.id} className="flex gap-3">
-                    <span className="w-12 shrink-0 font-mono text-xs text-muted">{formatDuration(seg.startMs / 1000)}</span>
+                    <span className="w-12 shrink-0 text-xs tabular-nums text-muted">{formatDuration(seg.startMs / 1000)}</span>
                     <span>
                       {seg.speakerId && <span className="mr-2 text-xs text-muted">{seg.speakerId}</span>}
                       {seg.text}
@@ -416,7 +425,7 @@ export function VoiceRecorder() {
             </div>
           )}
           {job?.kind === "done" && (
-            <div className="space-y-2 rounded-md border border-border bg-surface p-3">
+            <div className="space-y-3 rounded-lg border border-border bg-surface p-4">
               <label className="block text-sm">
                 <span className="font-medium">Turn this into a document</span>
                 <select
@@ -425,7 +434,7 @@ export function VoiceRecorder() {
                     templateTouched.current = true;
                     setTemplate(e.target.value);
                   }}
-                  className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2"
+                  className="mt-1.5 block w-full rounded-lg border border-border bg-background px-3 py-2"
                 >
                   {TEMPLATE_CHOICES.map((t) => (
                     <option key={t.id} value={t.id}>
@@ -434,37 +443,97 @@ export function VoiceRecorder() {
                   ))}
                 </select>
               </label>
-              <button
-                type="button"
-                onClick={makeDocument}
-                disabled={creating}
-                className="rounded-md bg-accent-solid px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
-              >
+              <Button variant="primary" onClick={makeDocument} disabled={creating}>
                 {creating ? "Starting…" : "Create document"}
-              </button>
+              </Button>
               <p className="text-xs text-muted">You can edit it freely afterwards. Nothing is sent anywhere.</p>
             </div>
           )}
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={submit}
-              disabled={job?.kind === "uploading" || job?.kind === "processing" || job?.kind === "done"}
-              className="rounded-md bg-accent-solid px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
-            >
+          <div className="flex items-center gap-2">
+            <Button variant="primary" onClick={submit} disabled={job?.kind === "uploading" || job?.kind === "processing" || job?.kind === "done"}>
               {job?.kind === "failed" ? "Try again" : "Upload and transcribe"}
-            </button>
-            <button
-              type="button"
-              onClick={discardEverything}
-              disabled={job?.kind === "uploading"}
-              className="rounded-md px-3 py-2 text-sm text-muted hover:text-foreground disabled:opacity-50"
-            >
+            </Button>
+            <Button variant="ghost" onClick={discardEverything} disabled={job?.kind === "uploading"}>
               {job?.kind === "done" ? "Delete" : "Discard"}
-            </button>
+            </Button>
           </div>
         </section>
       )}
+
+      <RecentRecordings refreshKey={job?.kind === "done" ? job.captureId : ""} />
     </div>
+  );
+}
+
+/** The last few recordings and meetings, so Capture is also where you see what you captured. */
+function RecentRecordings({ refreshKey }: { refreshKey: string }) {
+  const [items, setItems] = useState<CaptureListItem[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    listCaptures(6, "recordings").then(
+      (c) => {
+        if (cancelled) return;
+        setItems(c);
+        setFailed(false);
+      },
+      () => !cancelled && setFailed(true),
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshKey]);
+
+  return (
+    <Card>
+      <CardHeader
+        title="Recent recordings"
+        id="recent-recordings"
+        action={
+          <Link href="/library?tab=recordings" className="text-xs text-muted hover:text-foreground">
+            View all
+          </Link>
+        }
+      />
+      {failed && items === null ? (
+        <p role="alert" className="px-5 py-6 text-sm text-danger">Couldn&rsquo;t load your recordings just now.</p>
+      ) : items === null ? (
+        <ul aria-hidden className="divide-y divide-border">
+          {[0, 1, 2].map((i) => (
+            <li key={i} className="flex items-center gap-3 px-5 py-3">
+              <span className="h-9 w-9 animate-pulse rounded-lg bg-border" />
+              <span className="h-3 w-1/3 animate-pulse rounded bg-border" />
+            </li>
+          ))}
+        </ul>
+      ) : items.length === 0 ? (
+        <EmptyState icon={<Mic />} title="Nothing recorded yet" body="Your recordings and captured meetings will be listed here." />
+      ) : (
+        <ul aria-labelledby="recent-recordings" className="divide-y divide-border">
+          {items.map((c) => {
+            const st = captureStatus({ source: c.source, state: c.state, status: c.status });
+            const Icon = c.source === "meeting_url" ? Video : Mic;
+            return (
+              <li key={c.id}>
+                <Link href={`/captures/${c.id}`} className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-surface">
+                  <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-surface text-muted">
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium">{c.title}</span>
+                    <span className="block truncate text-xs text-muted">
+                      {c.source === "meeting_url" ? "Meeting" : c.source === "voice_recording" ? "Recorded in browser" : "Upload"} · {timeAgo(c.createdAt)}
+                    </span>
+                  </span>
+                  <Badge tone={st.tone} active={st.active}>
+                    {st.label}
+                  </Badge>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Card>
   );
 }

@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { BookingAdmin } from "@/components/booking/booking-admin";
 import { PageHeader } from "@/components/ui/page-header";
 
-export const metadata = { title: "Booking · CalMasta" };
+export const metadata = { title: "Booking · Mojooba" };
 
 export default function BookingPage() {
   return (

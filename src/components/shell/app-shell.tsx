@@ -1,15 +1,15 @@
 "use client";
 
-import { CalendarCheck, CalendarDays, Gauge, House, Library, LogOut, Mic, Search, Settings, ShieldCheck } from "lucide-react";
+import { CalendarCheck, CalendarDays, Gauge, House, Library, Mic, Settings, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { signOut } from "@/lib/auth-client";
 import { ACCOUNT_CHANGED, type DeletionView, type PlanSummary, fetchDeletion, fetchPlan } from "@/lib/plan-client";
 import { ProfileError, type ProfileView, getProfile } from "@/lib/profile-client";
-import { ROLES } from "@/lib/roles";
-import { AccountBanners, AllowanceMini } from "./account-banners";
+import { AccountBanners, SidebarPlanCard } from "./account-banners";
+import { Brand } from "@/components/ui/brand";
 import { ProfileProvider } from "./profile-context";
+import { TopBar } from "./top-bar";
 
 // Capture has two tabs (Voice Inbox, Meeting Bot) that live at /voice and /capture; the nav item covers both.
 const NAV: readonly { href: string; label: string; Icon: typeof Mic; also?: readonly string[] }[] = [
@@ -20,88 +20,50 @@ const NAV: readonly { href: string; label: string; Icon: typeof Mic; also?: read
   { href: "/booking", label: "Booking", Icon: CalendarCheck },
 ];
 
-function NavLink({ href, label, Icon, also = [], pathname, compact = false }: { href: string; label: string; Icon: typeof Mic; also?: readonly string[]; pathname: string; compact?: boolean }) {
+function NavLink({ href, label, Icon, also = [], pathname, tone = "page" }: { href: string; label: string; Icon: typeof Mic; also?: readonly string[]; pathname: string; tone?: "page" | "sidebar" }) {
   const active = [href, ...also].some((base) => pathname === base || pathname.startsWith(`${base}/`));
   return (
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
-      className={`flex items-center gap-3 whitespace-nowrap rounded-lg px-3 text-sm transition-colors ${compact ? "py-3" : "py-2"} ${
-        active ? "bg-accent/10 font-medium text-accent" : "text-muted hover:bg-surface hover:text-foreground"
+      className={`group relative flex h-9 items-center gap-3 whitespace-nowrap rounded-lg px-3 text-sm transition-colors ${tone === "sidebar" ? "sc:md:justify-center sc:md:px-0" : ""} ${
+        tone === "sidebar"
+          ? active ? "bg-sidebar-active font-medium text-sidebar-active-fg" : "text-sidebar-muted hover:bg-sidebar-active/60 hover:text-sidebar-fg"
+          : active ? "bg-accent/10 font-medium text-accent" : "text-muted hover:bg-surface hover:text-foreground"
       }`}
     >
-      <Icon aria-hidden className="h-4 w-4 shrink-0" />
-      {label}
+      <Icon aria-hidden className="h-[18px] w-[18px] shrink-0" />
+      <span className={tone === "sidebar" ? "sc:md:sr-only" : ""}>{label}</span>
+      {tone === "sidebar" && (
+        // Names for the icon-only rail, shown on hover or keyboard focus.
+        <span aria-hidden className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -translate-y-1/2 whitespace-nowrap rounded-md bg-foreground px-2 py-1 text-xs font-medium text-background shadow-lg sc:md:group-hover:block sc:md:group-focus-visible:block">{label}</span>
+      )}
     </Link>
   );
 }
 
-function UserCard({ profile }: { profile: ProfileView | null }) {
-  const label = profile?.name?.trim() || profile?.email || "Not signed in";
-  const sub = profile?.name?.trim() ? profile.email : ROLES.find((r) => r.id === profile?.role)?.label;
+/** What the page area shows until the profile is known: the shape of a page, not a blank. */
+function PageSkeleton() {
   return (
-    <div className="flex items-center gap-3 rounded-lg px-3 py-2">
-      <span aria-hidden className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-accent/15 text-sm font-semibold uppercase text-accent">
-        {label[0]}
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium" title={label}>
-          {label}
-        </p>
-        {sub && <p className="truncate text-xs text-muted">{sub}</p>}
+    <div role="status" aria-label="Loading" aria-busy="true" className="space-y-6">
+      <div className="space-y-2" aria-hidden>
+        <div className="h-6 w-48 animate-pulse rounded bg-border" />
+        <div className="h-3.5 w-80 max-w-full animate-pulse rounded bg-border" />
       </div>
-      {profile && (
-        <button
-          type="button"
-          onClick={() => void signOut()}
-          aria-label="Sign out"
-          title="Sign out"
-          className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted transition-colors hover:bg-surface hover:text-foreground"
-        >
-          <LogOut aria-hidden className="h-4 w-4" />
-        </button>
-      )}
+      <div aria-hidden className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="h-28 animate-pulse rounded-xl border border-border bg-surface" />
+        ))}
+      </div>
+      <div aria-hidden className="h-64 animate-pulse rounded-xl border border-border bg-surface" />
     </div>
   );
 }
 
-/** The way into Library search from anywhere: type, press Enter, land on the results. */
-function SearchEntry() {
-  const router = useRouter();
-  const [q, setQ] = useState("");
+function HomeLink() {
   return (
-    <form
-      role="search"
-      aria-label="Search your library"
-      onSubmit={(e) => {
-        e.preventDefault();
-        const text = q.trim();
-        router.push(text ? `/library?q=${encodeURIComponent(text)}` : "/library");
-        setQ("");
-      }}
-      className="relative"
-    >
-      <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-      <input
-        type="search"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        maxLength={100}
-        aria-label="Search your library"
-        placeholder="Search library"
-        className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm placeholder:text-muted"
-      />
-    </form>
-  );
-}
-
-function Brand() {
-  return (
-    <Link href="/dashboard" className="flex items-center gap-2.5 text-base font-semibold tracking-tight">
-      <span aria-hidden className="grid h-7 w-7 place-items-center rounded-lg bg-accent-solid text-sm font-bold text-white">
-        C
-      </span>
-      CalMasta
+    <Link href="/dashboard" aria-label="Mojooba home" className="text-lg text-sidebar-fg">
+      <Brand size={32} tile="paper" labelClassName="sc:md:hidden" />
     </Link>
   );
 }
@@ -168,64 +130,45 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </a>
       <div className="flex min-h-screen flex-col md:flex-row">
         {/* Desktop sidebar */}
-        <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-surface/40 p-4 md:sticky md:top-0 md:flex md:h-screen">
-          <div className="px-3 py-2">
-            <Brand />
+        <aside id="sidebar" className="hidden w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-fg transition-[width] duration-200 sc:md:w-[4.5rem] md:sticky md:top-0 md:flex md:h-screen">
+          {/* Same height as the top bar, so the two line up. */}
+          <div className="flex h-14 shrink-0 items-center border-b border-sidebar-border px-5 sc:md:justify-center sc:md:px-0">
+            <HomeLink />
           </div>
-          <div className="mt-4">
-            <SearchEntry />
-          </div>
-          <nav aria-label="Primary" className="mt-4 flex flex-col gap-1">
+          <nav aria-label="Primary" className="flex flex-col gap-0.5 p-3">
             {NAV.map((n) => (
-              <NavLink key={n.href} {...n} pathname={pathname} />
+              <NavLink key={n.href} {...n} pathname={pathname} tone="sidebar" />
             ))}
           </nav>
-          <div className="mt-auto space-y-1 border-t border-border pt-3">
-            <AllowanceMini plan={account.plan} />
-            <NavLink href="/plan" label="Plan and usage" Icon={Gauge} pathname={pathname} />
-            <NavLink href="/settings" label="Settings" Icon={Settings} pathname={pathname} />
-            {state.profile?.isStaff && <NavLink href="/admin" label="Staff area" Icon={ShieldCheck} pathname={pathname} />}
-            <UserCard profile={state.profile} />
+          <div className="mt-auto space-y-0.5 border-t border-sidebar-border p-3">
+            <SidebarPlanCard plan={account.plan} />
+            <NavLink href="/plan" label="Plan and usage" Icon={Gauge} pathname={pathname} tone="sidebar" />
+            <NavLink href="/settings" label="Settings" Icon={Settings} pathname={pathname} tone="sidebar" />
+            {state.profile?.isStaff && <NavLink href="/admin" label="Staff area" Icon={ShieldCheck} pathname={pathname} tone="sidebar" />}
           </div>
         </aside>
 
-        {/* Mobile top bar */}
-        <header className="border-b border-border md:hidden">
-          <div className="flex items-center justify-between px-4 py-3">
-            <Brand />
-            <div className="flex items-center gap-2">
-              <Link href="/library" aria-label="Search your library" className="grid h-9 w-9 place-items-center rounded-full text-muted hover:bg-surface hover:text-foreground">
-                <Search aria-hidden className="h-4 w-4" />
-              </Link>
-              <Link href="/settings" aria-label="Settings" className="grid h-9 w-9 place-items-center rounded-full bg-accent/15 text-sm font-semibold uppercase text-accent">
-                {(state.profile?.name?.trim() || state.profile?.email || "?")[0]}
-              </Link>
-            </div>
-          </div>
-          <nav aria-label="Primary" className="flex gap-1 overflow-x-auto px-3 pb-2">
+        <div className="flex min-w-0 flex-1 flex-col">
+          <TopBar profile={state.profile} plan={account.plan} loading={!state.ready} />
+          <nav aria-label="Primary" className="flex gap-1 overflow-x-auto border-b border-border px-3 py-2 md:hidden">
             {NAV.map((n) => (
-              <NavLink key={n.href} {...n} pathname={pathname} compact />
+              <NavLink key={n.href} {...n} pathname={pathname} />
             ))}
-            <NavLink href="/plan" label="Plan" Icon={Gauge} pathname={pathname} compact />
-            {state.profile?.isStaff && <NavLink href="/admin" label="Staff" Icon={ShieldCheck} pathname={pathname} compact />}
+            <NavLink href="/plan" label="Plan" Icon={Gauge} pathname={pathname} />
           </nav>
-        </header>
 
         <main id="main" tabIndex={-1} className="min-w-0 flex-1 outline-none">
-          <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 md:px-10 md:py-10">
+          <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 md:px-8 md:py-8">
             {/* The page is always rendered (Next validates every segment for instant navigation) but stays hidden until
                 the profile is known, so nobody sees a page flash before the first-time redirect to /welcome. */}
-            {!state.ready && (
-              <p role="status" className="text-sm text-muted">
-                Loading…
-              </p>
-            )}
+            {!state.ready && <PageSkeleton />}
             <div hidden={!state.ready}>
               <AccountBanners plan={account.plan} deletion={account.deletion} hide={pathname.startsWith("/plan/confirming") ? ["pending"] : []} />
               {children}
             </div>
           </div>
         </main>
+        </div>
       </div>
     </ProfileProvider>
   );

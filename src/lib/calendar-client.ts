@@ -24,6 +24,8 @@ export interface AgendaEvent {
   joinUrl: string | null;
   capture: { id: string; status: string } | null;
   bookingId: string | null;
+  attendees: Array<{ name: string | null; email: string; status: "accepted" | "declined" | "tentative" | "pending" | null; self: boolean }>;
+  organizerSelf: boolean;
 }
 
 export interface Agenda {

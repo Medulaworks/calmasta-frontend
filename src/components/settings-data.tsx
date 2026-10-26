@@ -84,24 +84,24 @@ export function DataPrivacyCard() {
       <CardHeader title="Data and privacy" />
       <div className="space-y-4 p-5 text-sm">
         <p>
-          Your original audio is kept for <strong>{days} {days === 1 ? "day" : "days"}</strong> after it has been processed, then removed. Transcripts and documents stay until you delete them.
+          Your original recordings (audio, and video of meetings you chose to record) are kept for <strong>{days} {days === 1 ? "day" : "days"}</strong> after it has been processed, then removed. Transcripts and documents stay until you delete them.
         </p>
         <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-4 has-[:checked]:border-accent has-[:checked]:bg-accent/5">
           <input type="checkbox" checked={profile.outputsOnly} disabled={busy} onChange={(e) => void toggle(e.target.checked)} className="mt-1 h-4 w-4 accent-[var(--accent-solid,#2563eb)]" />
           <span>
             <span className="font-medium">Outputs only</span>
-            <span className="mt-0.5 block text-muted">Remove the original audio as soon as it has been transcribed. You keep the transcript and any documents, but you won&rsquo;t be able to play the recording back. This applies to recordings from now on.</span>
+            <span className="mt-0.5 block text-muted">Remove the original recording as soon as it has been transcribed. You keep the transcript and any documents, but you won&rsquo;t be able to play the recording back, and meeting video can&rsquo;t be recorded. This applies to recordings from now on.</span>
           </span>
         </label>
         {error && <p role="alert" className="text-danger">{error}</p>}
-        <p className="text-xs text-muted">Removing audio can&rsquo;t be undone. Deleting your account removes everything, as described below.</p>
+        <p className="text-xs text-muted">Removing recordings can&rsquo;t be undone. Deleting your account removes everything, as described below.</p>
       </div>
     </Card>
   );
 }
 
 const WILL_REMOVE = [
-  "Your recordings, including the original audio files",
+  "Your recordings, including the original audio and video files",
   "Transcripts, documents and action items",
   "Your booking pages, meeting types and bookings (upcoming guests are told their booking was cancelled)",
   "Connected calendars and any meeting assistants that haven't joined yet",

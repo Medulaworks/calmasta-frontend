@@ -49,9 +49,7 @@ export function ResourceBoundary<T>({ resource, children }: { resource: Resource
   }
   if (loading || !data) {
     return (
-      <p role="status" className="text-sm text-muted">
-        Loading…
-      </p>
+      <div role="status" aria-label="Loading" aria-busy="true" className="h-48 animate-pulse rounded-xl border border-border bg-surface" />
     );
   }
   return <>{children(data)}</>;
@@ -65,14 +63,14 @@ export function DataTable({ children, label, narrow = false }: { children: React
     </div>
   );
 }
-export const Th = ({ children }: { children?: React.ReactNode }) => <th scope="col" className="whitespace-nowrap border-b border-border bg-surface/50 px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-muted">{children}</th>;
+export const Th = ({ children }: { children?: React.ReactNode }) => <th scope="col" className="whitespace-nowrap border-b border-border bg-surface/50 px-4 py-2 text-xs font-medium text-muted">{children}</th>;
 export const Td = ({ children, className = "" }: { children?: React.ReactNode; className?: string }) => <td className={`border-b border-border px-4 py-3 align-top last:border-b-0 ${className}`}>{children}</td>;
 
 export function Metric({ label, value, hint, tone }: { label: string; value: React.ReactNode; hint?: string; tone?: "danger" | "warning" }) {
   return (
     <div className="rounded-xl border border-border bg-background p-4">
       <p className="text-xs text-muted">{label}</p>
-      <p className={`mt-1 text-2xl font-semibold tabular-nums ${tone === "danger" ? "text-danger" : tone === "warning" ? "text-warning" : ""}`}>{value}</p>
+      <p className={`mt-1 text-2xl font-medium tabular-nums ${tone === "danger" ? "text-danger" : tone === "warning" ? "text-warning" : ""}`}>{value}</p>
       {hint && <p className="mt-0.5 text-xs text-muted">{hint}</p>}
     </div>
   );

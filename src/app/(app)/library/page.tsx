@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { LibraryList } from "@/components/library-list";
 import { PageHeader } from "@/components/ui/page-header";
 
-export const metadata = { title: "Library · CalMasta" };
+export const metadata = { title: "Library · Mojooba" };
 
 export default function LibraryPage() {
   return (

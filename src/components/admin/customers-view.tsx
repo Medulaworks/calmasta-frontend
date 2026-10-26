@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { Search, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { type Json, adminPost, fmtUtc, shortId } from "@/lib/admin-client";
@@ -27,11 +29,12 @@ export function CustomerSearch({ basePath }: { basePath: string }) {
       >
         <label className="flex-1">
           <span className="sr-only">Email, name or customer id</span>
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Email, name or customer id" maxLength={100} className="block w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Email, name or customer id" maxLength={100} className="block w-full rounded-lg border border-border bg-background px-3 text-sm" />
         </label>
-        <button type="submit" className="rounded-lg bg-accent-solid px-4 py-2 text-sm font-medium text-white hover:opacity-90">Search</button>
+        <Button type="submit" variant="primary"><Search aria-hidden className="h-4 w-4" /> Search</Button>
       </form>
       {submitted.trim().length === 1 && <p className="text-sm text-muted">Type at least two characters.</p>}
+      {submitted.trim().length === 0 && <Card><EmptyState icon={<Users />} title="Find an account" body="Search by email, name or customer id. Looking at an account is recorded in the audit trail, so there is no list of everyone." /></Card>}
       {submitted.trim().length >= 2 && (
         <ResourceBoundary resource={res}>
           {({ customers }) =>
@@ -113,10 +116,10 @@ export function CustomerDetail({ id }: { id: string }) {
               <div className="flex flex-wrap gap-2">
                 <button type="button" disabled={!!c.deletion} onClick={() => setAction("grant")} className="rounded-lg border border-border px-4 py-2 font-medium hover:bg-surface disabled:opacity-50">Add minutes…</button>
                 <button type="button" disabled={!!c.deletion} onClick={() => setAction("correct")} className="rounded-lg border border-border px-4 py-2 font-medium hover:bg-surface disabled:opacity-50">Take minutes back…</button>
-                {c.plan.source === "staff" && c.plan.plan === "pro" ? (
+                {c.plan.source === "staff" && c.plan.plan !== "free" ? (
                   <button type="button" onClick={() => setAction("clear_pro")} className="rounded-lg border border-danger/40 px-4 py-2 font-medium text-danger hover:bg-danger/10">End staff Pro grant…</button>
                 ) : (
-                  <button type="button" disabled={!!c.deletion || (c.plan.source !== "staff" && c.plan.plan === "pro")} onClick={() => setAction("grant_pro")} className="rounded-lg border border-border px-4 py-2 font-medium hover:bg-surface disabled:opacity-50" title={c.plan.plan === "pro" && c.plan.source !== "staff" ? "Pro comes from the store for this customer" : undefined}>Grant Pro until a date…</button>
+                  <button type="button" disabled={!!c.deletion || (c.plan.source !== "staff" && c.plan.plan !== "free")} onClick={() => setAction("grant_pro")} className="rounded-lg border border-border px-4 py-2 font-medium hover:bg-surface disabled:opacity-50" title={c.plan.plan !== "free" && c.plan.source !== "staff" ? "This plan comes from the store for this customer" : undefined}>Grant Pro until a date…</button>
                 )}
               </div>
               <h3 className="pt-2 font-medium">Recent grants and corrections</h3>

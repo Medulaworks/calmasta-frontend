@@ -9,6 +9,8 @@ export interface ProfileView {
   outputsOnly: boolean;
   audioRetentionDays: number;
   isStaff: boolean;
+  avatarUrl: string | null;
+  passwordUrl: string | null;
 }
 
 export class ProfileError extends Error {

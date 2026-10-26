@@ -14,7 +14,7 @@ export function CaptureTabs({ active }: { active: (typeof TABS)[number]["id"] })
           key={t.id}
           href={t.href}
           aria-current={t.id === active ? "page" : undefined}
-          className={`-mb-px border-b-2 px-1 pb-2.5 pt-1 text-sm transition-colors ${
+          className={`-mb-px border-b-2 px-0.5 pb-3 pt-1 text-sm transition-colors ${
             t.id === active ? "border-accent-solid font-medium text-foreground" : "border-transparent text-muted hover:text-foreground"
           }`}
         >

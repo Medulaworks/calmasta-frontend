@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { ManageBooking } from "@/components/booking/manage-booking";
 
-export const metadata = { title: "Your booking · CalMasta" };
+export const metadata = { title: "Your booking · Mojooba" };
 
 async function Manage(props: PageProps<"/manage/[token]">) {
   const { token } = await props.params;

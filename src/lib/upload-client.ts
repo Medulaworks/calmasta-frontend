@@ -51,6 +51,13 @@ export interface CaptureView {
   audio: { url: string; contentType: string; sizeBytes: number } | null;
   /** "unavailable" = the file is gone (removed or expired); the transcript and documents remain. */
   audioStatus: "available" | "unavailable" | "none";
+  /** Whether video was asked for on this meeting. */
+  recordVideo: boolean;
+  /** A short-lived link to watch the meeting; null until it is saved (or if it has been removed). */
+  video: { url: string; contentType: string; sizeBytes: number } | null;
+  /** none: not asked for. requested/processing: on its way. ready. failed (see videoFailure). unavailable: removed, as the privacy settings say. */
+  videoStatus: "none" | "requested" | "processing" | "ready" | "failed" | "unavailable";
+  videoFailure: string | null;
 }
 
 export class ApiError extends Error {
@@ -127,14 +134,19 @@ export interface CaptureListItem {
   createdAt: string;
 }
 
-export const listCaptures = (limit?: number) =>
-  api<{ captures: CaptureListItem[] }>(limit ? `/api/captures?limit=${limit}` : "/api/captures").then((r) => r.captures);
+export const listCaptures = (limit?: number, kind?: "meetings" | "recordings") => {
+  const p = new URLSearchParams();
+  if (limit) p.set("limit", String(limit));
+  if (kind) p.set("kind", kind);
+  const qs = p.toString();
+  return api<{ captures: CaptureListItem[] }>(qs ? `/api/captures?${qs}` : "/api/captures").then((r) => r.captures);
+};
 
-export const requestMeetingCapture = (meetingUrl: string, consentConfirmed: boolean) =>
+export const requestMeetingCapture = (meetingUrl: string, consentConfirmed: boolean, title?: string, recordVideo = false) =>
   api<{ captureId: string; duplicate: boolean }>("/api/captures", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ meetingUrl, consentConfirmed }),
+    body: JSON.stringify({ meetingUrl, consentConfirmed, ...(title?.trim() ? { title: title.trim() } : {}), ...(recordVideo ? { recordVideo: true } : {}) }),
   });
 
 export const cancelMeetingCapture = (id: string) => api<{ state: string }>(`/api/captures/${id}/cancel`, { method: "POST" });
@@ -206,6 +218,10 @@ export const retryMeeting = (id: string, consentConfirmed: boolean) =>
   });
 
 /** Development only: pretend the meeting provider reported this status. */
+/** Development only: pretend the meeting provider says the video is ready (the worker then fetches it). */
+export const simulateVideoReady = (id: string) =>
+  api<{ queued: boolean }>(`/api/dev/captures/${id}/simulate`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ media: "video" }) });
+
 export const simulateMeetingStatus = (id: string, status: string) =>
   api<{ applied: boolean }>(`/api/dev/captures/${id}/simulate`, {
     method: "POST",

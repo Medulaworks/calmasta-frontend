@@ -34,7 +34,7 @@ function Item({ item, children }: { item: ActionItemView; children: React.ReactN
 
 /**
  * Action items found in the conversation. They are suggestions: a person confirms, dismisses or finishes each one.
- * CalMasta does not guess an owner or a date, and nothing here is sent to anyone.
+ * Mojooba does not guess an owner or a date, and nothing here is sent to anyone.
  */
 export function ActionsPanel({ cap, onChanged }: { cap: CaptureView; onChanged: () => void }) {
   const { state, error, items } = cap.actions;
@@ -94,7 +94,7 @@ export function ActionsPanel({ cap, onChanged }: { cap: CaptureView; onChanged: 
                   ? "Available once the transcript is ready."
                   : state === "ready"
                     ? "Nothing in this conversation sounded like something someone agreed to do."
-                    : "CalMasta can look through the transcript for things people said they would do. They are only suggestions: you decide what to keep."
+                    : "Mojooba can look through the transcript for things people said they would do. They are only suggestions: you decide what to keep."
               }
               action={ready ? finder(state === "ready" ? "Look again" : "Find action items") : undefined}
             />
@@ -105,7 +105,7 @@ export function ActionsPanel({ cap, onChanged }: { cap: CaptureView; onChanged: 
           <Card>
             <CardHeader title="To review" action={finder("Look again")} />
             <p className="border-b border-border px-5 py-3 text-xs text-muted">
-              Suggestions from the transcript, as it was said. CalMasta does not guess who owns an item or when it is due, and nothing is sent to anyone.
+              Suggestions from the transcript, as it was said. Mojooba does not guess who owns an item or when it is due, and nothing is sent to anyone.
             </p>
             {by("suggested").length === 0 ? (
               <p className="px-5 py-6 text-sm text-muted">Nothing waiting for your review.</p>
@@ -150,7 +150,7 @@ export function ActionsPanel({ cap, onChanged }: { cap: CaptureView; onChanged: 
 
           {by("dismissed").length > 0 && (
             <details className="rounded-xl border border-border">
-              <summary className="cursor-pointer px-5 py-3.5 text-sm font-medium">Dismissed ({by("dismissed").length})</summary>
+              <summary className="cursor-pointer px-5 py-3 text-sm font-medium">Dismissed ({by("dismissed").length})</summary>
               <ul className="divide-y divide-border border-t border-border">
                 {by("dismissed").map((i) => (
                   <Item key={i.id} item={i}>

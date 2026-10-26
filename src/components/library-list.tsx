@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Highlight } from "@/components/ui/highlight";
 import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Tabs, tabId, tabPanelId } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/ui/empty-state";
 import { type DocumentListItem, listDocuments, templateLabel } from "@/lib/documents-client";
 import { captureStatus, documentStatus, timeAgo } from "@/lib/status";
@@ -20,7 +21,7 @@ function Skeleton() {
   return (
     <ul className="divide-y divide-border" aria-hidden>
       {[0, 1, 2, 3].map((i) => (
-        <li key={i} className="flex items-center gap-3 px-5 py-3.5">
+        <li key={i} className="flex items-center gap-3 px-5 py-3">
           <span className="h-9 w-9 animate-pulse rounded-lg bg-border" />
           <span className="flex-1 space-y-2">
             <span className="block h-3 w-1/2 animate-pulse rounded bg-border" />
@@ -59,7 +60,7 @@ function ResultRow({ r, q }: { r: LibraryResult; q: string }) {
   const Icon = r.kind === "document" ? FileText : r.kind === "meeting" ? Video : Mic;
   return (
     <li>
-      <Link href={r.href} className="flex items-start gap-3 px-5 py-3.5 transition-colors hover:bg-surface">
+      <Link href={r.href} className="flex items-start gap-3 px-5 py-3 transition-colors hover:bg-surface">
         <span aria-hidden className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-surface text-muted"><Icon className="h-4 w-4" /></span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-medium"><Highlight text={r.title} query={q} /></span>
@@ -138,7 +139,7 @@ export function LibraryList() {
     { id: "recordings", label: "Recordings", count: caps?.length ?? null },
   ];
 
-  const control = "rounded-lg border border-border bg-background px-3 py-2 text-sm";
+  const control = "h-9 rounded-lg border border-border bg-background px-3 text-sm";
   const searchBar = (
     <form role="search" aria-label="Search your library" onSubmit={(e) => e.preventDefault()} className="space-y-3">
       <div className="flex flex-col gap-2 sm:flex-row">
@@ -167,7 +168,7 @@ export function LibraryList() {
           <button type="button" onClick={() => {
               setTyped(null);
               router.replace(urlFor(EMPTY_QUERY, tab), { scroll: false });
-            }} className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 hover:bg-surface hover:text-foreground">
+            }} className="inline-flex h-9 items-center gap-1 rounded-lg px-2 hover:bg-surface hover:text-foreground">
             <X aria-hidden className="h-4 w-4" /> Clear
           </button>
         )}
@@ -206,21 +207,12 @@ export function LibraryList() {
   return (
     <div className="space-y-4">
       {searchBar}
-      <div role="tablist" aria-label="Library" className="flex gap-1 border-b border-border">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            role="tab"
-            type="button"
-            aria-selected={tab === t.id}
-            onClick={() => router.replace(t.id === "documents" ? "/library" : "/library?tab=recordings")}
-            className={`-mb-px border-b-2 px-4 py-2.5 text-sm transition-colors ${tab === t.id ? "border-accent font-medium text-foreground" : "border-transparent text-muted hover:text-foreground"}`}
-          >
-            {t.label}
-            {t.count !== null && <span className="ml-2 rounded-full bg-surface px-2 py-0.5 text-xs text-muted">{t.count}</span>}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        label="Library"
+        items={tabs.map((t) => ({ id: t.id, label: t.label, count: t.count ?? undefined }))}
+        active={tab}
+        onChange={(id) => router.replace(id === "documents" ? "/library" : "/library?tab=recordings")}
+      />
 
       {error && <p role="alert" className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">{error}</p>}
 
@@ -231,12 +223,12 @@ export function LibraryList() {
           ) : docs.length === 0 ? (
             <EmptyState icon={<FileText className="h-5 w-5" />} title="No documents yet" body="Open a recording and choose a template to write your first document." action={<ButtonLink href="/voice" variant="primary">Record a thought</ButtonLink>} />
           ) : (
-            <ul className="divide-y divide-border" role="tabpanel">
+            <ul className="divide-y divide-border" role="tabpanel" id={tabPanelId("documents")} aria-labelledby={tabId("documents")}>
               {docs.map((d) => {
                 const st = documentStatus({ status: d.status, failureReason: d.failureReason, editedByUser: d.editedByUser });
                 return (
                   <li key={d.id}>
-                    <Link href={`/library/${d.id}`} className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-surface">
+                    <Link href={`/library/${d.id}`} className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-surface">
                       <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-surface text-muted"><FileText className="h-4 w-4" /></span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium">{d.title}</span>
@@ -254,13 +246,13 @@ export function LibraryList() {
         ) : caps.length === 0 ? (
           <EmptyState icon={<Mic className="h-5 w-5" />} title="No recordings yet" body="Record a thought, upload audio or capture a meeting." action={<ButtonLink href="/voice" variant="primary">Record a thought</ButtonLink>} />
         ) : (
-          <ul className="divide-y divide-border" role="tabpanel">
+          <ul className="divide-y divide-border" role="tabpanel" id={tabPanelId("recordings")} aria-labelledby={tabId("recordings")}>
             {caps.map((c) => {
               const st = captureStatus({ source: c.source, state: c.state, status: c.status });
               const Icon = c.source === "meeting_url" ? Video : Mic;
               return (
                 <li key={c.id}>
-                  <Link href={`/captures/${c.id}`} className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-surface">
+                  <Link href={`/captures/${c.id}`} className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-surface">
                     <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-surface text-muted"><Icon className="h-4 w-4" /></span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium">{c.title}</span>

@@ -30,7 +30,7 @@ export function Tabs<T extends string>({ label, items, active, onChange }: { lab
   }
 
   return (
-    <div role="tablist" aria-label={label} className="flex gap-5 border-b border-border sm:gap-6">
+    <div role="tablist" aria-label={label} className="flex gap-6 border-b border-border">
       {items.map((t, i) => {
         const selected = t.id === active;
         return (
@@ -47,12 +47,12 @@ export function Tabs<T extends string>({ label, items, active, onChange }: { lab
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(t.id)}
             onKeyDown={(e) => onKeyDown(e, i)}
-            className={`-mb-px flex items-center gap-2 whitespace-nowrap border-b-2 px-1 pb-2.5 pt-1 text-sm transition-colors ${
+            className={`-mb-px flex items-center gap-2 whitespace-nowrap border-b-2 px-0.5 pb-3 pt-1 text-sm transition-colors ${
               selected ? "border-accent-solid font-medium text-foreground" : "border-transparent text-muted hover:text-foreground"
             }`}
           >
             {t.label}
-            {t.count !== undefined && <span className="text-xs text-muted">{t.count}</span>}
+            {t.count !== undefined && <span className="rounded-full bg-surface px-1.5 text-xs tabular-nums text-muted">{t.count}</span>}
           </button>
         );
       })}

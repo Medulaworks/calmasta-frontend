@@ -99,7 +99,7 @@ export function ManageBooking({ token }: { token: string }) {
           <p className="font-medium">Cancel this booking?</p>
           <p className="mt-1 text-muted">The time will be given back. You can book again whenever you like.</p>
           <div className="mt-4 flex gap-2">
-            <button type="button" disabled={busy} onClick={() => void cancel()} className="rounded-lg bg-danger-solid px-4 py-2 font-medium text-white disabled:opacity-60">{busy ? "Cancelling…" : "Yes, cancel it"}</button>
+            <button type="button" disabled={busy} onClick={() => void cancel()} className="inline-flex min-h-9 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-danger-solid px-4 text-sm font-medium text-white transition-colors hover:brightness-95 active:brightness-90 disabled:pointer-events-none disabled:opacity-50">{busy ? "Cancelling…" : "Yes, cancel it"}</button>
             <button type="button" disabled={busy} onClick={() => setMode("view")} className="rounded-lg px-4 py-2 text-muted hover:text-foreground">Keep it</button>
           </div>
         </div>
@@ -117,12 +117,12 @@ export function ManageBooking({ token }: { token: string }) {
           <SlotPicker load={load} timeZone={timeZone} selected={slot?.start ?? null} onPick={setSlot} />
           {slot && <p className="text-sm">New time: <span className="font-medium">{formatDay(slot.start, timeZone)}, {formatTime(slot.start, timeZone)}</span></p>}
           <div className="flex gap-2">
-            <button type="button" disabled={!slot || busy} onClick={() => void move()} className="rounded-lg bg-accent-solid px-4 py-2 text-sm font-medium text-white disabled:opacity-50">{busy ? "Checking availability…" : "Confirm new time"}</button>
+            <button type="button" disabled={!slot || busy} onClick={() => void move()} className="inline-flex min-h-9 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-accent-solid px-4 text-sm font-medium text-on-accent transition-colors hover:brightness-95 active:brightness-90 disabled:pointer-events-none disabled:opacity-50">{busy ? "Checking availability…" : "Confirm new time"}</button>
             <button type="button" disabled={busy} onClick={() => { setMode("view"); setSlot(null); setError(null); }} className="rounded-lg px-4 py-2 text-sm text-muted hover:text-foreground">Back</button>
           </div>
         </section>
       )}
-      <p className="text-xs text-muted">Booked through CalMasta. <Link href="/" className="underline">What is CalMasta?</Link></p>
+      <p className="text-xs text-muted">Booked through Mojooba. <Link href="/" className="underline">What is Mojooba?</Link></p>
     </div>
   );
 }

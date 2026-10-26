@@ -7,12 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { MEETING_OUTCOMES, MEETING_STEPS, RETRYABLE } from "@/lib/meeting-status";
 import { timeAgo } from "@/lib/status";
-import { type CaptureView, retryMeeting, simulateMeetingStatus } from "@/lib/upload-client";
+import { type CaptureView, retryMeeting, simulateMeetingStatus, simulateVideoReady } from "@/lib/upload-client";
 
 const label = (status: string) => MEETING_STEPS.find((s) => s.status === status)?.label ?? MEETING_OUTCOMES[status]?.title ?? status;
 const time = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-/** What the CalMasta Assistant is doing in this meeting, in plain words. Waiting is never shown as recording. */
+/** What the Mojooba Assistant is doing in this meeting, in plain words. Waiting is never shown as recording. */
 export function MeetingPanel({ cap, devTools, onChanged }: { cap: CaptureView; devTools: boolean; onChanged: () => void }) {
   const router = useRouter();
   const [consent, setConsent] = useState(false);
@@ -36,6 +36,15 @@ export function MeetingPanel({ cap, devTools, onChanged }: { cap: CaptureView; d
       setBusy(false);
     }
   }
+  async function simulateVideo() {
+    setError(null);
+    try {
+      await simulateVideoReady(cap.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not simulate that.");
+    }
+    onChanged();
+  }
   async function simulate(status: string) {
     setError(null);
     try {
@@ -54,7 +63,7 @@ export function MeetingPanel({ cap, devTools, onChanged }: { cap: CaptureView; d
           <div className="flex items-start gap-3">
             <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-surface text-muted"><Video className="h-4 w-4" /></span>
             <div>
-              <p className="font-medium">CalMasta Assistant</p>
+              <p className="font-medium">Mojooba Assistant</p>
               <p className="text-muted">Joins as a visible participant, named so everyone can see it. It cannot get in unless the host lets it.</p>
             </div>
           </div>
@@ -107,7 +116,7 @@ export function MeetingPanel({ cap, devTools, onChanged }: { cap: CaptureView; d
               <p className="font-medium">Send the assistant again?</p>
               <label className="flex items-start gap-3">
                 <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 h-4 w-4" />
-                <span className="text-muted">I have the right to record this meeting and will tell its participants. The CalMasta Assistant may need the host to admit it again.</span>
+                <span className="text-muted">I have the right to record this meeting and will tell its participants. The Mojooba Assistant may need the host to admit it again.</span>
               </label>
               <Button variant="primary" disabled={!consent || busy} onClick={() => void sendAgain()}>{busy ? "Sending…" : "Send assistant again"}</Button>
             </div>
@@ -116,7 +125,7 @@ export function MeetingPanel({ cap, devTools, onChanged }: { cap: CaptureView; d
         </div>
       </Card>
 
-      {devTools && !outcome && (
+      {devTools && (!outcome || cap.recordVideo) && (
         <Card>
           <CardHeader title="Development only" />
           <div className="space-y-3 p-5 text-sm">
@@ -126,6 +135,12 @@ export function MeetingPanel({ cap, devTools, onChanged }: { cap: CaptureView; d
                 <Button key={s} variant="secondary" onClick={() => void simulate(s)}>{label(s)}</Button>
               ))}
             </div>
+            {cap.recordVideo && (
+              <div className="space-y-2 border-t border-border pt-3">
+                <p className="text-muted">This meeting asked for video. Pretend the provider says it is ready (the worker, <code>npm run worker</code>, then fetches the sample recording):</p>
+                <Button variant="secondary" onClick={() => void simulateVideo()}>Video is ready</Button>
+              </div>
+            )}
           </div>
         </Card>
       )}

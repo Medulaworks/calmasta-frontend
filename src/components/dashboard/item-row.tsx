@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import type { DashboardItem } from "@/lib/dashboard-client";
 import { captureStatus, documentStatus, timeAgo } from "@/lib/status";
+import { PLATFORM_LABELS } from "@/lib/upload-client";
 
 const KIND_LABEL = { recording: "Recording", meeting: "Meeting", document: "Document" } as const;
 const ICONS = { recording: Mic, meeting: Video, document: FileText } as const;
@@ -26,7 +27,7 @@ export function ItemRow({ item, showReason = false }: { item: DashboardItem; sho
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-medium">{item.title}</span>
           <span className="block truncate text-xs text-muted">
-            {showReason && item.failureReason ? item.failureReason : `${KIND_LABEL[item.kind]} · ${timeAgo(item.at)}`}
+            {showReason && item.failureReason ? item.failureReason : `${item.kind === "meeting" && item.platform && PLATFORM_LABELS[item.platform] ? PLATFORM_LABELS[item.platform] : KIND_LABEL[item.kind]} · ${timeAgo(item.at)}`}
           </span>
         </span>
         <Badge tone={status.tone} active={status.active}>

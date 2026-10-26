@@ -1,4 +1,4 @@
-// Calmaster-owned domain model (blueprint §14). Provider IDs are references,
+// Mojooba-owned domain model (blueprint §14). Provider IDs are references,
 // never primary keys. Keep these types provider-neutral.
 
 export type Id = string;
