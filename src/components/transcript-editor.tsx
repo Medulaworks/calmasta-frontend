@@ -1,5 +1,7 @@
 "use client";
 
+import { updateTranscriptDraft,pendingTranscriptDrafts } from "@/lib/transcript-drafts";
+
 import { Mic, Pencil, TriangleAlert, Video } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -18,7 +20,7 @@ const AUTOSAVE_MS = 1200;
  * Edits autosave. Only the lines that changed are sent, together with the version the user was looking at,
  * so a save made from a stale copy is refused (never silently overwriting) and the user's text stays on screen.
  */
-export function TranscriptEditor({ cap, statusLabel, active, onChanged }: { cap: CaptureView; statusLabel: string; active: boolean; onChanged: () => void }) {
+export function TranscriptEditor({ cap, statusLabel, active, onChanged, loadCapture = getCapture, saveChanges = saveTranscript }: { cap: CaptureView; statusLabel: string; active: boolean; onChanged: () => void; loadCapture?: typeof getCapture; saveChanges?: typeof saveTranscript }) {
   const ready = cap.state === "ready_to_review" || cap.state === "completed";
   const hasLines = ready && cap.transcript.length > 0;
 
@@ -28,6 +30,9 @@ export function TranscriptEditor({ cap, statusLabel, active, onChanged }: { cap:
   const [save, setSave] = useState<SaveState>("saved");
   const [message, setMessage] = useState<string | null>(null);
 
+  const inFlight = useRef(false);
+  const acknowledged = useRef<{lines:Record<string,string>;names:Record<string,string>}>({lines:{},names:{}});
+  const submitted = useRef<{lines:Record<string,string>;names:Record<string,string>}>({lines:{},names:{}});
   const baseVersion = useRef(cap.transcriptVersion ?? 0);
   // The newest values, for callbacks that outlive a render (timers, the unload warning).
   const latest = useRef({ drafts, nameDrafts, save });
@@ -45,6 +50,7 @@ export function TranscriptEditor({ cap, statusLabel, active, onChanged }: { cap:
   useEffect(() => {
     const { drafts: d, nameDrafts: n, save: s } = latest.current;
     if (s !== "saving" && s !== "conflict" && Object.keys(d).length === 0 && Object.keys(n).length === 0) baseVersion.current = cap.transcriptVersion ?? 0;
+    if(!inFlight.current && cap.transcriptVersion!==null && cap.transcriptVersion>=baseVersion.current)acknowledged.current={lines:{},names:{}};
   }, [cap.transcriptVersion]);
 
   const speakers = useMemo(() => [...new Set(cap.transcript.map((s) => s.speakerId).filter((x): x is string => !!x))], [cap.transcript]);
@@ -52,6 +58,7 @@ export function TranscriptEditor({ cap, statusLabel, active, onChanged }: { cap:
   const blank = (id: string) => id in drafts && drafts[id].trim() === "";
 
   const doSave = useCallback(async () => {
+    if(inFlight.current)return false;
     const { drafts: d, nameDrafts: n } = latest.current;
     const segments = Object.entries(d).filter(([, text]) => text.trim() !== "").map(([id, text]) => ({ id, text }));
     const speakersToSend = { ...n };
@@ -59,15 +66,20 @@ export function TranscriptEditor({ cap, statusLabel, active, onChanged }: { cap:
       setSave(Object.keys(d).length ? "dirty" : "saved"); // only blank lines left: wait for the user to fix them
       return true;
     }
+    submitted.current={lines:Object.fromEntries(segments.map(s=>[s.id,s.text])),names:speakersToSend};
+    inFlight.current=true;
     setSave("saving");
     setMessage(null);
     try {
-      const res = await saveTranscript(cap.id, { baseVersion: baseVersion.current, segments, speakers: speakersToSend });
+      const res = await saveChanges(cap.id, { baseVersion: baseVersion.current, segments, speakers: speakersToSend });
       baseVersion.current = res.version;
+      const savedLines=Object.fromEntries(segments.map(s=>[s.id,s.text]));
+      acknowledged.current={lines:{...acknowledged.current.lines,...savedLines},names:{...acknowledged.current.names,...speakersToSend}};
       // Forget only what was just saved; anything typed while the request ran stays pending.
-      setDrafts((cur) => Object.fromEntries(Object.entries(cur).filter(([id, text]) => !segments.some((s) => s.id === id && s.text === text))));
-      setNameDrafts((cur) => Object.fromEntries(Object.entries(cur).filter(([label, name]) => speakersToSend[label] !== name)));
-      setSave("saved");
+      setDrafts((cur) => pendingTranscriptDrafts(cur,savedLines));
+      setNameDrafts((cur) => pendingTranscriptDrafts(cur,speakersToSend));
+      const stillDirty=Object.entries(latest.current.drafts).some(([id,text])=>!segments.some(s=>s.id===id&&s.text===text))||Object.entries(latest.current.nameDrafts).some(([label,name])=>speakersToSend[label]!==name);
+      setSave(stillDirty?"dirty":"saved");
       onChanged();
       return true;
     } catch (err) {
@@ -77,8 +89,8 @@ export function TranscriptEditor({ cap, statusLabel, active, onChanged }: { cap:
         setMessage(err instanceof Error ? err.message : "Could not save your changes.");
       }
       return false;
-    }
-  }, [cap.id, onChanged]);
+    } finally {inFlight.current=false;submitted.current={lines:{},names:{}};}
+  }, [cap.id, onChanged, saveChanges]);
 
   const pending = Object.keys(drafts).length > 0 || Object.keys(nameDrafts).length > 0;
   // Autosave shortly after the last keystroke.
@@ -100,15 +112,14 @@ export function TranscriptEditor({ cap, statusLabel, active, onChanged }: { cap:
 
   // Typing makes the state "dirty" (which arms the autosave) unless a save or a problem is already being dealt with.
   const markDirty = () => setSave((s) => (s === "saving" || s === "error" || s === "conflict" ? s : "dirty"));
-  const without = (o: Record<string, string>, key: string) => Object.fromEntries(Object.entries(o).filter(([k]) => k !== key));
 
   function setLine(id: string, original: string, value: string) {
-    setDrafts((d) => (value === original ? without(d, id) : { ...d, [id]: value }));
+    setDrafts((d) => updateTranscriptDraft(d,id,value,original,acknowledged.current.lines,submitted.current.lines));
     markDirty();
   }
   function setName(label: string, value: string) {
     const current = cap.speakerNames[label] ?? "";
-    setNameDrafts((d) => (value === current ? without(d, label) : { ...d, [label]: value }));
+    setNameDrafts((d) => updateTranscriptDraft(d,label,value,current,acknowledged.current.names,submitted.current.names));
     markDirty();
   }
 
@@ -122,14 +133,14 @@ export function TranscriptEditor({ cap, statusLabel, active, onChanged }: { cap:
     setSave("saved");
     setMessage(null);
     baseVersion.current = -1; // re-read below
-    void getCapture(cap.id).then((c) => {
+    void loadCapture(cap.id).then((c) => {
       baseVersion.current = c.transcriptVersion ?? 0;
       onChanged();
-    });
+    }).catch(err=>{setSave("error");setMessage(err instanceof Error?err.message:"Could not reload the transcript.");});
   }
   async function keepMine() {
     try {
-      const fresh = await getCapture(cap.id);
+      const fresh = await loadCapture(cap.id);
       baseVersion.current = fresh.transcriptVersion ?? 0;
       setSave("dirty");
       await doSave();
@@ -147,7 +158,7 @@ export function TranscriptEditor({ cap, statusLabel, active, onChanged }: { cap:
         {active ? (
           <EmptyState icon={<Mic className="h-5 w-5" />} title={`${statusLabel}…`} body="This page updates by itself." />
         ) : cap.source === "meeting_url" && cap.state !== "failed" ? (
-          <EmptyState icon={<Video className="h-5 w-5" />} title="No transcript yet" body="Meeting transcripts appear here once the meeting has ended and a capture provider is connected." />
+          <EmptyState icon={<Video className="h-5 w-5" />} title="No transcript yet" body="A transcript will appear here after the recording has been processed." />
         ) : (
           <EmptyState title="No transcript" body="There is nothing to show for this recording." />
         )}

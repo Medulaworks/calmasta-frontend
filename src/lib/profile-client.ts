@@ -3,7 +3,8 @@ export interface ProfileView {
   emailVerified: boolean;
   name: string | null;
   timezone: string;
-  role: string | null;
+  role: string | null; // Profession; never a workspace permission.
+  workspaceRole: "owner" | "member";
   onboarded: boolean;
   defaultTemplate: string;
   outputsOnly: boolean;
@@ -29,11 +30,15 @@ async function request(init?: RequestInit): Promise<ProfileView> {
     throw new ProfileError(
       res.status,
       res.status === 401
-        ? "You're not signed in. Sign-in isn't set up yet; for local development set DEV_AUTH_EMAIL."
+        ? "Your session ended. Please sign in again."
         : (body.error ?? "Something went wrong. Please try again."),
     );
   }
-  return body as ProfileView;
+  return {
+    ...body,
+    avatarUrl: body.avatarUrl ?? null,
+    passwordUrl: body.passwordUrl ?? null,
+  } as ProfileView;
 }
 
 export const getProfile = () => request();

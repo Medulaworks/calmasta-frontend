@@ -2,8 +2,8 @@
 // (authoritative). The server must still validate real content, size and
 // duration — a client-side check is only a convenience (blueprint §8).
 
-export const MAX_UPLOAD_BYTES = 500 * 1024 * 1024;
-export const MAX_RECORDING_SECONDS = 2 * 60 * 60;
+export const MAX_UPLOAD_BYTES = 25_000_000;
+export const MAX_RECORDING_SECONDS = 3600;
 
 const ALLOWED_TYPES = new Set([
   "audio/mpeg",
@@ -11,24 +11,22 @@ const ALLOWED_TYPES = new Set([
   "audio/mp4",
   "audio/x-m4a",
   "audio/m4a",
-  "audio/aac",
   "audio/wav",
   "audio/x-wav",
   "audio/webm",
   "audio/ogg",
-  "audio/flac",
 ]);
 
-const ALLOWED_EXTENSIONS = new Set(["mp3", "m4a", "mp4", "aac", "wav", "webm", "ogg", "flac"]);
+const ALLOWED_EXTENSIONS = new Set(["mp3", "m4a", "mp4", "wav", "webm", "ogg"]);
 
 export type AudioCheck = { ok: true } | { ok: false; reason: string };
 
-export function checkAudioFile(file: { name: string; type: string; size: number }): AudioCheck {
+export function checkAudioFile(file: { name: string; type: string; size: number },maxBytes=MAX_UPLOAD_BYTES): AudioCheck {
   if (file.size === 0) return { ok: false, reason: "This file is empty." };
-  if (file.size > MAX_UPLOAD_BYTES) {
+  if (file.size > maxBytes) {
     return {
       ok: false,
-      reason: `This file is larger than ${Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)} MB.`,
+      reason: `This file is larger than ${Math.round(maxBytes / 1024 / 1024)} MB.`,
     };
   }
   const baseType = file.type.split(";")[0].trim().toLowerCase();
@@ -36,7 +34,7 @@ export function checkAudioFile(file: { name: string; type: string; size: number 
   // Some browsers report an empty type for m4a/flac; accept a known extension then.
   const typeOk = ALLOWED_TYPES.has(baseType) || (baseType === "" && ALLOWED_EXTENSIONS.has(ext));
   if (!typeOk) {
-    return { ok: false, reason: "Unsupported file type. Use MP3, M4A, WAV, WebM, OGG, AAC or FLAC." };
+    return { ok: false, reason: "Unsupported file type. Use MP3, M4A, PCM WAV, WebM or Ogg." };
   }
   return { ok: true };
 }

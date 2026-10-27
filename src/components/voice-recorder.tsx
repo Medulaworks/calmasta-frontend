@@ -2,7 +2,6 @@
 
 import { Mic, Square, Upload, Video } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,13 +13,11 @@ import {
   formatBytes,
   formatDuration,
 } from "@/lib/audio";
-import { TEMPLATE_CHOICES, createDocument } from "@/lib/documents-client";
-import { getProfile } from "@/lib/profile-client";
+import {useCapturePolicy} from "@/hooks/use-capture-policy";
 import { captureStatus, timeAgo } from "@/lib/status";
 import {
   type CaptureListItem,
   type CaptureView,
-  deleteCapture,
   getCapture,
   isTerminal,
   listCaptures,
@@ -71,10 +68,9 @@ function describeMicError(err: unknown): string {
 }
 
 export function VoiceRecorder() {
-  const router = useRouter();
-  const [template, setTemplate] = useState<string>(TEMPLATE_CHOICES[1].id);
-  const [creating, setCreating] = useState(false);
-  const templateTouched = useRef(false);
+  const {policy,policyError}=useCapturePolicy();
+  const [consent,setConsent]=useState(false);
+  const maxSeconds=policy?.maxUploadDurationSeconds??MAX_RECORDING_SECONDS;
   const supported = useSyncExternalStore(subscribeNone, recordingSupported, () => true);
 
   const [phase, setPhase] = useState<Phase>("idle");
@@ -118,26 +114,12 @@ export function VoiceRecorder() {
     const id = setInterval(() => {
       const seconds = (Date.now() - startedAtRef.current) / 1000;
       setElapsed(seconds);
-      if (seconds >= MAX_RECORDING_SECONDS) {
+      if (seconds >= Math.max(1,maxSeconds-1)) {
         if (recorderRef.current?.state === "recording") recorderRef.current.stop();
       }
     }, 250);
     return () => clearInterval(id);
-  }, [phase]);
-
-  // Pre-select the template that suits the user's role, unless they've already picked one themselves.
-  useEffect(() => {
-    let cancelled = false;
-    getProfile().then(
-      (p) => {
-        if (!cancelled && !templateTouched.current) setTemplate(p.defaultTemplate);
-      },
-      () => {},
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  }, [phase,maxSeconds]);
 
   // Poll processing status until the item reaches a resting state.
   const processingId = job?.kind === "processing" ? job.captureId : null;
@@ -149,7 +131,7 @@ export function VoiceRecorder() {
       try {
         const capture = await getCapture(processingId!);
         if (stopped) return;
-        if (capture.state === "failed") {
+        if (["failed","reconciliation_required","transcription_failed","cancelled","host_denied","admission_timeout"].includes(capture.state)) {
           setJob({ kind: "failed", captureId: processingId, message: capture.failureReason ?? "Processing failed." });
         } else if (isTerminal(capture.state)) {
           setJob({ kind: "done", captureId: processingId!, capture });
@@ -170,12 +152,12 @@ export function VoiceRecorder() {
   }, [processingId]);
 
   async function submit() {
-    if (!selected) return;
+    if (!selected || !consent) return;
     setError(null);
     setJob({ kind: "uploading", progress: 0 });
     try {
       const captureId = await uploadAudio(
-        { blob: selected.blob, filename: selected.name, title, source: selected.source === "recording" ? "voice_recording" : "audio_upload" },
+        { blob: selected.blob, filename: selected.name, title, source: selected.source === "recording" ? "voice_recording" : "audio_upload",consent },
         (progress) => setJob({ kind: "uploading", progress }),
       );
       setJob({ kind: "processing", captureId, capture: null });
@@ -185,26 +167,7 @@ export function VoiceRecorder() {
     }
   }
 
-  async function makeDocument() {
-    if (job?.kind !== "done") return;
-    setError(null);
-    setCreating(true);
-    try {
-      const { documentId } = await createDocument(job.captureId, template);
-      router.push(`/library/${documentId}`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not start the document.");
-      setCreating(false);
-    }
-  }
-
-  async function discardEverything() {
-    const id = job && "captureId" in job ? job.captureId : null;
-    setJob(null);
-    setSelected(null);
-    setTitle("");
-    if (id) await deleteCapture(id).catch(() => {});
-  }
+  function discardEverything(){setJob(null);setSelected(null);setTitle("");setConsent(false);}
 
   async function startRecording() {
     setError(null);
@@ -257,6 +220,7 @@ export function VoiceRecorder() {
         return;
       }
       const ext = type.includes("mp4") ? "m4a" : type.includes("ogg") ? "ogg" : "webm";
+      setConsent(false);
       setSelected({
         blob,
         name: `recording.${ext}`,
@@ -287,13 +251,14 @@ export function VoiceRecorder() {
   }
 
   function acceptFile(file: File) {
-    const result = checkAudioFile(file);
+    const result = checkAudioFile(file,policy?.maxUploadBytes);
     if (!result.ok) {
       setError(result.reason);
       return;
     }
     setError(null);
     if (!title) setTitle(file.name.replace(/\.[^.]+$/, ""));
+    setConsent(false);
     setSelected({
       blob: file,
       name: file.name,
@@ -316,7 +281,7 @@ export function VoiceRecorder() {
             Record a thought
           </h2>
           <p className="mt-1 text-sm text-muted">
-            Speak for a minute or an hour. Keep this tab open and in the foreground: browsers can pause recording when the screen locks.
+            Record up to {formatDuration(maxSeconds)}. Keep this tab open and in the foreground: browsers can pause recording when the screen locks.
           </p>
 
           <div className="mt-auto pt-6">
@@ -332,7 +297,7 @@ export function VoiceRecorder() {
                   </p>
                 </div>
               ) : (
-                <Button variant="primary" size="lg" onClick={startRecording} disabled={phase === "requesting"}>
+                <Button variant="primary" size="lg" onClick={startRecording} disabled={phase === "requesting" || !policy?.uploadEnabled}>
                   <Mic aria-hidden className="h-4 w-4" /> {phase === "requesting" ? "Waiting for microphone…" : "Start recording"}
                 </Button>
               )
@@ -349,7 +314,7 @@ export function VoiceRecorder() {
           <h2 id="upload-heading" className="mt-4 text-base font-medium">
             Upload audio
           </h2>
-          <p className="mt-1 text-sm text-muted">MP3, M4A, WAV, WebM, OGG, AAC or FLAC, up to 500 MB.</p>
+          <p className="mt-1 text-sm text-muted">MP3, M4A, PCM WAV, WebM or Ogg, up to {formatBytes(policy?.maxUploadBytes??25000000)}.</p>
           <label
             onDragOver={(e) => {
               if (recording) return;
@@ -367,7 +332,7 @@ export function VoiceRecorder() {
           >
             <span className="text-sm font-medium">Choose a file</span>
             <span className="text-xs text-muted">or drop it here</span>
-            <input type="file" accept="audio/*,.m4a,.mp3,.wav,.webm,.ogg,.aac,.flac" onChange={onFileChosen} disabled={recording} className="sr-only" />
+            <input type="file" accept="audio/wav,audio/mpeg,audio/mp4,audio/webm,audio/ogg,.m4a,.mp3,.wav,.webm,.ogg" onChange={onFileChosen} disabled={recording} className="sr-only" />
           </label>
         </section>
       </div>
@@ -424,37 +389,16 @@ export function VoiceRecorder() {
               </ol>
             </div>
           )}
-          {job?.kind === "done" && (
-            <div className="space-y-3 rounded-lg border border-border bg-surface p-4">
-              <label className="block text-sm">
-                <span className="font-medium">Turn this into a document</span>
-                <select
-                  value={template}
-                  onChange={(e) => {
-                    templateTouched.current = true;
-                    setTemplate(e.target.value);
-                  }}
-                  className="mt-1.5 block w-full rounded-lg border border-border bg-background px-3 py-2"
-                >
-                  {TEMPLATE_CHOICES.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <Button variant="primary" onClick={makeDocument} disabled={creating}>
-                {creating ? "Starting…" : "Create document"}
-              </Button>
-              <p className="text-xs text-muted">You can edit it freely afterwards. Nothing is sent anywhere.</p>
-            </div>
-          )}
+          {job&&"captureId" in job&&job.captureId&&<Link href={`/library/recordings/${job.captureId}`} className="block text-sm font-medium text-accent">Review recording and transcript</Link>}
+          <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)}/>I have the right to upload and transcribe this recording.</label>
+          {(!policy||!policy.uploadEnabled)&&<p role="status" className="text-sm text-muted">{policyError??(policy?"Uploading is not enabled for this account yet.":"Loading capture limits…")}</p>}
+          {job?.kind==="processing"&&policy&&!policy.liveProcessingEnabled&&<p className="text-sm text-muted">Your recording is saved. Processing is currently paused.</p>}
           <div className="flex items-center gap-2">
-            <Button variant="primary" onClick={submit} disabled={job?.kind === "uploading" || job?.kind === "processing" || job?.kind === "done"}>
+            <Button variant="primary" onClick={submit} disabled={!consent || !policy?.uploadEnabled || job?.kind === "uploading" || job?.kind === "processing" || job?.kind === "done"}>
               {job?.kind === "failed" ? "Try again" : "Upload and transcribe"}
             </Button>
             <Button variant="ghost" onClick={discardEverything} disabled={job?.kind === "uploading"}>
-              {job?.kind === "done" ? "Delete" : "Discard"}
+              Clear selection
             </Button>
           </div>
         </section>

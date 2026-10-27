@@ -1,15 +1,11 @@
-/** Ends the session and follows the server's instruction to where the browser goes next (the provider's logout, then /login). */
+/** Delete the application session before following provider logout. */
 export async function signOut(everywhere = false): Promise<void> {
-  let redirectTo = "/login";
-  try {
-    const res = await fetch("/api/auth/logout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ all: everywhere }),
-    });
-    if (res.ok) redirectTo = ((await res.json()) as { redirectTo?: string }).redirectTo ?? "/login";
-  } catch {
-    /* even if the request failed, leave the app: the cookie is HttpOnly so the server is the only one who can clear it */
-  }
-  window.location.assign(redirectTo);
+  const response = await fetch("/api/auth/logout", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ all: everywhere }),
+  });
+  if (!response.ok) throw new Error("Could not sign out. Please try again.");
+  const body = await response.json() as { redirectTo?: string };
+  if (!body.redirectTo) throw new Error("Sign-out redirect is unavailable. Please try again.");
+  window.location.assign(body.redirectTo);
 }

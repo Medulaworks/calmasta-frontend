@@ -1,11 +1,11 @@
 import { Suspense } from "react";
-import { CaptureDetail } from "@/components/capture-detail";
+import { LibraryRecording } from "@/components/library-recording";
 
 export const metadata = { title: "Recording · Mojooba" };
 
 async function Detail(props: PageProps<"/captures/[id]">) {
   const { id } = await props.params;
-  return <CaptureDetail id={id} devTools={process.env.NODE_ENV !== "production"} />;
+  return <LibraryRecording key={id} id={id} />;
 }
 
 export default function CapturePage(props: PageProps<"/captures/[id]">) {

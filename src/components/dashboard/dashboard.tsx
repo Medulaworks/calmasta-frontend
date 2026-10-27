@@ -15,6 +15,7 @@ import { PLAN_LABEL } from "@/lib/plan-types";
 import { formatMinutes, greeting, timeAgo } from "@/lib/status";
 import { browserTimeZone, formatDay } from "@/lib/tz";
 import { ItemRow, ItemRowSkeleton } from "./item-row";
+import { QuotaCard } from "./quota-card";
 import { UpcomingMeetings } from "./upcoming-meetings";
 
 const noSubscribe = () => () => {};
@@ -177,8 +178,7 @@ export function Dashboard() {
         .filter((r, i, all) => all.findIndex((x) => x.id === r.id && x.kind === r.kind) === i)
         .slice(0, 5)
     : null;
-  const gettingStartedShows = !!data && !(data.progress.hasRecording && data.progress.hasDocument && data.progress.hasMeetingCapture);
-  const side = !!data && (data.actionItems.length > 0 || gettingStartedShows);
+  const side = true;
   const first = (profile?.name?.trim() || "").split(/\s+/)[0];
   const today = hour >= 0 ? formatDay(new Date(), timeZone) : "";
 
@@ -264,12 +264,11 @@ export function Dashboard() {
           />
         </div>
 
-        {side && data && (
-          <div className="min-w-0 space-y-6">
-            {data.actionItems.length > 0 && <ActionItems d={data} />}
-            <GettingStarted d={data} />
-          </div>
-        )}
+        <div className="min-w-0 space-y-6">
+          <QuotaCard />
+          {data && data.actionItems.length > 0 && <ActionItems d={data} />}
+          {data && <GettingStarted d={data} />}
+        </div>
       </div>
     </div>
   );

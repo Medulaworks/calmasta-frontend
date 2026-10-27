@@ -58,6 +58,8 @@ export interface CaptureView {
   /** none: not asked for. requested/processing: on its way. ready. failed (see videoFailure). unavailable: removed, as the privacy settings say. */
   videoStatus: "none" | "requested" | "processing" | "ready" | "failed" | "unavailable";
   videoFailure: string | null;
+  cancelRequestedAt?:string|null;
+  maxDurationSeconds?:number|null;
 }
 
 export class ApiError extends Error {
@@ -71,56 +73,42 @@ export class ApiError extends Error {
   }
 }
 
-export async function api<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, init);
-  if (res.status === 204) return undefined as T;
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const message =
-      res.status === 401
-        ? "You're not signed in. Sign-in isn't set up yet; for local development set DEV_AUTH_EMAIL."
-        : ((body as { error?: string }).error ?? "Something went wrong. Please try again.");
-    throw new ApiError(res.status, message, (body as { code?: string }).code);
-  }
-  return body as T;
+const messages:Record<string,string>={quota_not_configured:"Capture is not enabled for this account yet.",quota_exceeded:"Your recording allowance is used up.",spend_guard_exceeded:"Processing is temporarily unavailable. Try again later.",usage_reconciliation_required:"Processing needs attention before more work can start.",invalid_audio:"The recording could not be validated. Check its format and file contents.",audio_too_long:"The recording exceeds the configured duration limit.",upload_too_large:"The file exceeds the upload size limit.",upload_expired:"This upload expired. Choose the file again.",audio_unavailable:"The audio has expired or was removed. Your transcript remains available.",storage_unavailable:"Audio storage is temporarily unavailable. Please try again.",meeting_cost_not_configured:"Meeting capture is not available yet.",capture_not_retryable:"This meeting cannot be retried yet.",provider_outcome_unknown:"Processing needs attention. A second request will not be sent automatically.",version_conflict:"This transcript was changed elsewhere. Your changes are still here."};
+export async function api<T>(url:string,init?:RequestInit):Promise<T>{
+ const res=await fetch(url,{cache:"no-store",...init});if(res.status===204)return undefined as T;const body=await res.json().catch(()=>({}));
+ if(!res.ok)throw new ApiError(res.status,res.status===401?"Your session ended. Please sign in again.":messages[body.code]??body.error??"Something went wrong. Please try again.",body.code);return body as T;
 }
-
-function putWithProgress(url: string, blob: Blob, contentType: string, onProgress: (fraction: number) => void) {
-  return new Promise<void>((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open("PUT", url);
-    xhr.setRequestHeader("Content-Type", contentType);
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) onProgress(e.loaded / e.total);
-    };
-    xhr.onload = () =>
-      xhr.status >= 200 && xhr.status < 300
-        ? resolve()
-        : reject(new ApiError(xhr.status, xhr.status === 413 ? "The file is too large." : "The upload failed. Please try again."));
-    xhr.onerror = () => reject(new ApiError(0, "The upload was interrupted. Check your connection and try again."));
-    xhr.send(blob);
-  });
-}
-
-export async function uploadAudio(
-  input: { blob: Blob; filename: string; title: string; source: "voice_recording" | "audio_upload" },
-  onProgress: (fraction: number) => void,
-): Promise<string> {
-  const contentType = input.blob.type || "application/octet-stream";
-  const { captureId, uploadUrl } = await api<{ captureId: string; uploadUrl: string }>("/api/uploads", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      filename: input.filename,
-      contentType: input.blob.type, // the server validates the browser-reported type (may be empty for some m4a files)
-      sizeBytes: input.blob.size,
-      title: input.title,
-      source: input.source,
-    }),
-  });
-  await putWithProgress(uploadUrl, input.blob, contentType, onProgress);
-  await api(`/api/uploads/${captureId}/complete`, { method: "POST" });
-  return captureId;
+export interface CapturePolicy {maxUploadBytes:number;maxUploadDurationSeconds:number;maxMeetingDurationSeconds:number;supportedAudioTypes:string[];uploadEnabled:boolean;meetingEnabled:boolean;videoEnabled:boolean;liveProcessingEnabled:boolean;botName:string;}
+export const getCapturePolicy=(signal?:AbortSignal)=>api<CapturePolicy>("/api/uploads/policy",{signal});
+export interface PrivateAudio {url:string;expiresAt:string;contentType:string;sizeBytes:number;}
+export const getPrivateAudio=(id:string)=>api<PrivateAudio>(`/api/captures/${encodeURIComponent(id)}/audio`);
+function putWithProgress(url:string,blob:Blob,headers:Record<string,string>,onProgress:(fraction:number)=>void){return new Promise<void>((resolve,reject)=>{
+ const xhr=new XMLHttpRequest();xhr.open("PUT",url);xhr.timeout=120000;
+ // Browsers set Content-Length from the Blob; JavaScript is forbidden to set it.
+ for(const [name,value] of Object.entries(headers)){if(name.toLowerCase()==="content-length"){if(Number(value)!==blob.size){reject(new Error("Upload size mismatch."));return;}}else xhr.setRequestHeader(name,value);}
+ xhr.upload.onprogress=e=>{if(e.lengthComputable)onProgress(e.loaded/e.total);};
+ xhr.onload=()=>xhr.status>=200&&xhr.status<300||xhr.status===412?resolve():reject(new ApiError(xhr.status,"The upload failed. Please try again."));
+ xhr.onerror=xhr.ontimeout=xhr.onabort=()=>reject(new ApiError(0,"The upload was interrupted. Check your connection and try again."));xhr.send(blob);
+});}
+export function audioContentType(type:string,filename:string){const base=type.split(";")[0].trim().toLowerCase();const aliases:Record<string,string>={"audio/mp3":"audio/mpeg","audio/x-wav":"audio/wav","audio/x-m4a":"audio/mp4","audio/m4a":"audio/mp4"};if(base)return aliases[base]??base;return ({mp3:"audio/mpeg",wav:"audio/wav",m4a:"audio/mp4",mp4:"audio/mp4",webm:"audio/webm",ogg:"audio/ogg"} as Record<string,string>)[filename.split(".").pop()?.toLowerCase()??""]??"";}
+type UploadIntent={id:string;captureId:string;state:string;upload?:{url:string;headers:Record<string,string>}};
+type Attempt={key:string;completeKey:string;title:string;intent?:UploadIntent;uploaded:boolean;pending?:Promise<string>};
+const uploads=new WeakMap<Blob,Attempt>();
+export async function uploadAudio(input:{blob:Blob;filename:string;title:string;source:"voice_recording"|"audio_upload";consent:boolean},onProgress:(fraction:number)=>void):Promise<string>{
+ if(input.consent!==true)throw new Error("Confirm that you have the right to upload and transcribe this recording.");
+ let attempt=uploads.get(input.blob);const title=input.title.trim();if(attempt&&attempt.title!==title)throw new Error("Keep the same title when retrying this upload, or choose the file again.");
+ if(!attempt){attempt={key:crypto.randomUUID(),completeKey:crypto.randomUUID(),title,uploaded:false};uploads.set(input.blob,attempt);}if(attempt.pending)return attempt.pending;
+ const current=attempt;
+ current.pending=(async()=>{
+  const policy=await getCapturePolicy();const contentType=audioContentType(input.blob.type,input.filename);
+  if(!policy.uploadEnabled)throw new Error("Uploading is not enabled for this account yet.");
+  if(!input.blob.size||input.blob.size>policy.maxUploadBytes)throw new Error("The recording is empty or exceeds the upload size limit.");
+  if(!policy.supportedAudioTypes.includes(contentType))throw new Error("Use MP3, M4A, PCM WAV, WebM or Ogg audio.");
+  if(!current.intent){const digest=await crypto.subtle.digest("SHA-256",await input.blob.arrayBuffer());const sha256=Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,"0")).join("");current.intent=await api<UploadIntent>("/api/uploads",{method:"POST",headers:{"Content-Type":"application/json","Idempotency-Key":current.key},body:JSON.stringify({contentType,sizeBytes:input.blob.size,sha256,consent:true,...(title?{title}:{})})});}
+  if(current.intent.state==="completed")return current.intent.captureId;
+  if(!current.uploaded){if(!current.intent.upload)throw new Error("Upload link unavailable.");await putWithProgress(current.intent.upload.url,input.blob,current.intent.upload.headers,onProgress);current.uploaded=true;}
+  await api(`/api/uploads/${current.intent.id}/complete`,{method:"POST",headers:{"Content-Type":"application/json","Idempotency-Key":current.completeKey},body:"{}"});return current.intent.captureId;
+ })();try{return await current.pending;}finally{current.pending=undefined;}
 }
 
 export interface CaptureListItem {
@@ -134,24 +122,24 @@ export interface CaptureListItem {
   createdAt: string;
 }
 
-export const listCaptures = (limit?: number, kind?: "meetings" | "recordings") => {
-  const p = new URLSearchParams();
-  if (limit) p.set("limit", String(limit));
-  if (kind) p.set("kind", kind);
-  const qs = p.toString();
-  return api<{ captures: CaptureListItem[] }>(qs ? `/api/captures?${qs}` : "/api/captures").then((r) => r.captures);
+export const listCaptures=async(limit=25,kind?:"meetings"|"recordings")=>{
+ const p=new URLSearchParams({limit:String(limit)});if(kind)p.set("type",kind==="meetings"?"meeting":"recording");
+ const page=await api<{results:Array<{id:string;source:string;title:string;state:string;failureReason:string|null;createdAt:string}>}>(`/api/library/search?${p}`);
+ return page.results.map(c=>({...c,source:c.source==="meeting"?"meeting_url":"audio_upload",status:c.state,platform:null}));
 };
-
-export const requestMeetingCapture = (meetingUrl: string, consentConfirmed: boolean, title?: string, recordVideo = false) =>
-  api<{ captureId: string; duplicate: boolean }>("/api/captures", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ meetingUrl, consentConfirmed, ...(title?.trim() ? { title: title.trim() } : {}), ...(recordVideo ? { recordVideo: true } : {}) }),
-  });
-
-export const cancelMeetingCapture = (id: string) => api<{ state: string }>(`/api/captures/${id}/cancel`, { method: "POST" });
-
-export const getCapture = (id: string) => api<CaptureView>(`/api/captures/${id}`);
+const meetingKeys=new Map<string,string>(),retryKeys=new Map<string,string>();
+export async function requestMeetingCapture(meetingUrl:string,consentConfirmed:boolean,title?:string,recordVideo=false,options?:{maxDurationSeconds:number;idempotencyKey?:string}){
+ if(consentConfirmed!==true)throw new Error("Confirm that you have the right to record this meeting.");if(recordVideo)throw new Error("Video recording is not available.");
+ const policy=await getCapturePolicy();if(!policy.meetingEnabled)throw new Error("Meeting capture is not available yet.");
+ const seconds=options?.maxDurationSeconds??policy.maxMeetingDurationSeconds;if(!Number.isSafeInteger(seconds)||seconds<30||seconds>policy.maxMeetingDurationSeconds)throw new Error("Choose a duration within the meeting limit.");
+ const body={meetingUrl:meetingUrl.trim(),maxDurationSeconds:seconds,consent:true,...(title?.trim()?{title:title.trim()}:{})};const fingerprint=JSON.stringify(body);let key=options?.idempotencyKey??meetingKeys.get(fingerprint);if(!key){key=crypto.randomUUID();meetingKeys.set(fingerprint,key);}
+ const r=await api<{id:string}>("/api/captures/meetings",{method:"POST",headers:{"Content-Type":"application/json","Idempotency-Key":key},body:JSON.stringify(body)});if(meetingKeys.get(fingerprint)===key)meetingKeys.delete(fingerprint);return {captureId:r.id,duplicate:false};
+}
+export const cancelMeetingCapture=(id:string)=>api<{state:string}>(`/api/captures/${encodeURIComponent(id)}/cancel`,{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});
+export async function getCapture(id:string,signal?:AbortSignal):Promise<CaptureView>{
+ const c=await api<{id:string;title:string;source:string;state:string;createdAt:string;transcript:TranscriptSegmentView[];transcriptVersion:number|null;speakerNames:Record<string,string>;cancelRequestedAt?:string|null;failureReason?:string|null;maxDurationSeconds?:number|null}>(`/api/library/captures/${encodeURIComponent(id)}`,{signal});
+ return {...c,source:c.source==="meeting"?"meeting_url":"audio_upload",status:c.state,failureReason:c.failureReason?messages[c.failureReason]??"Processing needs attention.":null,filename:null,platform:null,provider:null,documents:[],events:[],actions:{state:"none",error:null,items:[]},audio:null,audioStatus:"none",recordVideo:false,video:null,videoStatus:"none",videoFailure:null};
+}
 
 export const deleteCapture = (id: string) => api<void>(`/api/captures/${id}`, { method: "DELETE" });
 
@@ -181,7 +169,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export const statusLabel = (status: string) => STATUS_LABELS[status] ?? status;
-const MEETING_ACTIVE = new Set(["requested", "scheduled", "joining", "waiting_for_admission", "recording", "processing"]);
+const MEETING_ACTIVE = new Set(["requested", "queued", "scheduled", "joining", "waiting_for_admission", "recording", "processing"]);
 export const isMeetingActive = (status: string) => MEETING_ACTIVE.has(status);
 
 export const PLATFORM_LABELS: Record<string, string> = {
@@ -191,7 +179,7 @@ export const PLATFORM_LABELS: Record<string, string> = {
 };
 
 export const stateLabel = (state: string) => STATE_LABELS[state] ?? state;
-export const isTerminal = (state: string) => state === "ready_to_review" || state === "completed" || state === "failed" || state === "cancelled";
+export const isTerminal = (state: string) => state === "ready_to_review" || state === "completed" || state === "failed" || state === "cancelled" || state === "reconciliation_required" || state === "transcription_failed" || state === "host_denied" || state === "admission_timeout";
 
 export interface TranscriptEditInput {
   baseVersion: number;
@@ -202,20 +190,11 @@ export interface TranscriptEditInput {
 }
 
 /** Saves corrections. Throws ApiError with code "version_conflict" (409) if someone else edited first. */
-export const saveTranscript = (id: string, edit: TranscriptEditInput) =>
-  api<{ version: number; speakerNames: Record<string, string> }>(`/api/captures/${id}/transcript`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(edit),
-  });
-
-/** Sends the assistant again after a denial, timeout or failure. The user must confirm they may record, again. */
-export const retryMeeting = (id: string, consentConfirmed: boolean) =>
-  api<{ captureId: string; duplicate: boolean }>(`/api/captures/${id}/retry`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ consentConfirmed }),
-  });
+export const saveTranscript=(id:string,edit:TranscriptEditInput)=>api<{version:number;speakerNames:Record<string,string>}>(`/api/library/captures/${encodeURIComponent(id)}/transcript`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({expectedVersion:edit.baseVersion,segments:edit.segments,speakers:edit.speakers})});
+export async function retryMeeting(id:string,consentConfirmed:boolean){
+ if(consentConfirmed!==true)throw new Error("Confirm that you have the right to record this meeting again.");let key=retryKeys.get(id);if(!key){key=crypto.randomUUID();retryKeys.set(id,key);}
+ const r=await api<{id:string}>(`/api/captures/${encodeURIComponent(id)}/retry`,{method:"POST",headers:{"Content-Type":"application/json","Idempotency-Key":key},body:JSON.stringify({consent:true})});return {captureId:r.id,duplicate:false};
+}
 
 /** Development only: pretend the meeting provider reported this status. */
 /** Development only: pretend the meeting provider says the video is ready (the worker then fetches it). */
