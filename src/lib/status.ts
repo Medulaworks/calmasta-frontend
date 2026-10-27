@@ -9,9 +9,10 @@ export interface StatusView {
   active: boolean;
 }
 
-const MEETING_ACTIVE = new Set(["requested", "scheduled", "joining", "waiting_for_admission", "recording", "processing"]);
+const MEETING_ACTIVE = new Set(["requested", "queued", "scheduled", "joining", "waiting_for_admission", "recording", "processing"]);
 
 const MEETING_LABELS: Record<string, string> = {
+  queued: "Queued",
   requested: "Requested",
   scheduled: "Scheduled",
   joining: "Joining the meeting",
@@ -26,9 +27,17 @@ const RECORDING_LABELS: Record<string, string> = {
   queued: "Queued",
   processing_audio: "Processing audio",
   transcribing: "Transcribing",
+  processing: "Transcribing",
+  media_pending: "Saving recording",
+  recorded: "Waiting for transcription",
 };
 
 export function captureStatus(c: { source: string; state: string; status: string }): StatusView {
+  if(c.state==="reconciliation_required")return {label:"Needs attention",tone:"warning",active:false};
+  if(c.state==="transcription_failed")return {label:"Transcription failed",tone:"danger",active:false};
+  if(c.state==="host_denied")return {label:"Host declined",tone:"warning",active:false};
+  if(c.state==="admission_timeout")return {label:"Not let in in time",tone:"warning",active:false};
+  if(["media_pending","recorded"].includes(c.state))return {label:c.state==="recorded"?"Waiting for transcription":"Saving recording",tone:"info",active:true};
   if (c.state === "cancelled" || c.status === "cancelled") return { label: "Cancelled", tone: "neutral", active: false };
   if (c.state === "failed" || c.status === "failed") return { label: "Failed", tone: "danger", active: false };
 

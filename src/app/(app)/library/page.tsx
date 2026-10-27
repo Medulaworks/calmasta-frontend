@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { LibraryList } from "@/components/library-list";
+import { TranscriptLibrary } from "@/components/transcript-library";
 import { PageHeader } from "@/components/ui/page-header";
 
 export const metadata = { title: "Library · Mojooba" };
@@ -7,9 +7,9 @@ export const metadata = { title: "Library · Mojooba" };
 export default function LibraryPage() {
   return (
     <div className="space-y-6">
-      <PageHeader title="Library" description="Your documents and recordings in one place." />
+      <PageHeader title="Library" description="Search recordings and review or correct their transcripts." />
       <Suspense fallback={null}>
-        <LibraryList />
+        <TranscriptLibrary />
       </Suspense>
     </div>
   );

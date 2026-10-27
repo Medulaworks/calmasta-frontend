@@ -1,5 +1,6 @@
 "use client";
 
+import {useCapturePolicy} from "@/hooks/use-capture-policy";
 import { Video } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -23,7 +24,8 @@ export function CaptureForm() {
   const search = useSearchParams();
   const [url, setUrl] = useState(() => search.get("link") ?? "");
   const [consent, setConsent] = useState(false);
-  const [video, setVideo] = useState(false);
+  const {policy,policyError}=useCapturePolicy();
+  const [durationMinutes,setDurationMinutes]=useState(1);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -64,15 +66,10 @@ export function CaptureForm() {
     setNotice(null);
     setBusy(true);
     try {
-      const result = await requestMeetingCapture(url, consent, undefined, video);
-      setNotice(
-        result.duplicate
-          ? "A Mojooba assistant is already set up for this meeting, so no second one was sent."
-          : "Request sent. The assistant will join as “Mojooba Assistant”.",
-      );
+      await requestMeetingCapture(url, consent, undefined, false, {maxDurationSeconds:Math.min(Math.round(durationMinutes*60),policy?.maxMeetingDurationSeconds??0)});
+      setNotice(`Request queued for ${policy?.botName??"the recording assistant"}. ${policy?.liveProcessingEnabled?"It may need to be admitted by the host.":"Recording will start when processing becomes available."}`);
       setUrl("");
       setConsent(false);
-      setVideo(false);
       refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
@@ -91,7 +88,6 @@ export function CaptureForm() {
     refresh();
   }
 
-  const dev = process.env.NODE_ENV !== "production";
   return (
     <div className="grid items-start gap-6 lg:grid-cols-5">
       <div className="space-y-4 lg:col-span-2">
@@ -112,25 +108,20 @@ export function CaptureForm() {
               />
               <span className="mt-1.5 block text-xs text-muted">Google Meet, Microsoft Teams or Zoom.</span>
             </label>
-            <label className="flex items-start gap-3 text-sm">
-              <input type="checkbox" checked={video} onChange={(e) => setVideo(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>
-                <span className="font-medium">Also record the video</span>
-                <span className="mt-0.5 block text-xs text-muted">Off unless you choose it. You can watch it afterwards; it is private and removed on the same schedule as audio.</span>
-              </span>
-            </label>
+            {policy?.meetingEnabled&&<label className="block text-sm">Maximum recording minutes<input type="number" min={0.5} step={0.5} max={policy.maxMeetingDurationSeconds/60} required value={Math.min(durationMinutes,policy.maxMeetingDurationSeconds/60)} onChange={e=>setDurationMinutes(Number(e.target.value))} className="mt-1 block w-full rounded-lg border border-border bg-background px-3 py-2"/></label>}
+            <p className="text-xs text-muted">This capture records audio. Video recording is not available.</p>
             <label className="flex items-start gap-3 text-sm">
               <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
-                I have the right to record this meeting{video ? ", including its video," : ""} and I will tell its participants. A visible assistant named
-                “Mojooba Assistant” will join and may need to be admitted by the host.
+                I have the right to record this meeting and I will tell its participants. A visible assistant named
+                “{policy?.botName??"Recording assistant"}” will join and may need to be admitted by the host.
               </span>
             </label>
-            <Button type="submit" variant="primary" className="w-full" disabled={busy || !consent || !url.trim()}>
+            <Button type="submit" variant="primary" className="w-full" disabled={busy || !consent || !url.trim() || !policy?.meetingEnabled}>
               <Video aria-hidden className="h-4 w-4" /> {busy ? "Sending…" : "Send assistant"}
             </Button>
             <p className="text-xs text-muted">Mojooba never bypasses waiting rooms or host controls.</p>
-            {dev && <p className="border-t border-border pt-3 text-xs text-muted">Development: requests are tracked, but no assistant joins until a capture provider is connected.</p>}
+            {(!policy||!policy.meetingEnabled)&&<p role="status" className="text-xs text-muted">{policyError??(policy?"Meeting capture is not enabled for this account yet.":"Loading capture limits…")}</p>}
           </form>
         </Card>
 
