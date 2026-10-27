@@ -1,5 +1,7 @@
 # Mojooba frontend
 
+API consumption handoff: start at [docs/implementation/README.md](docs/implementation/README.md) and [HANDOFF](docs/implementation/HANDOFF.md); follow [AGENTS.md](AGENTS.md). These trackers distinguish implemented local contracts from unavailable APIs and live-provider gates.
+
 The user interface for Mojooba (formerly CalMasta): a conversation-to-action workspace. Capture a meeting or voice note, get a transcript, turn it into an editable document.
 
 Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, Tiptap 3, lucide-react.

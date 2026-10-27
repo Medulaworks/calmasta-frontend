@@ -1,6 +1,6 @@
 import {afterEach,expect,it,vi} from "vitest";
 import {createHash} from "node:crypto";
-import {uploadAudio,requestMeetingCapture,retryMeeting,getPrivateAudio} from "./upload-client";
+import {uploadAudio,requestMeetingCapture,retryMeeting,getPrivateAudio,cancelMeetingCapture} from "./upload-client";
 const fetcher=vi.fn();
 const policy={maxUploadBytes:1000000,maxUploadDurationSeconds:120,maxMeetingDurationSeconds:120,supportedAudioTypes:["audio/wav","audio/webm","audio/mpeg","audio/mp4","audio/ogg"],uploadEnabled:true,meetingEnabled:true,videoEnabled:false,liveProcessingEnabled:false,botName:"CalMasta Notetaker"};
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status});
@@ -41,4 +41,19 @@ it("retains a meeting key after an uncertain response and retires it after confi
  setup();let posts=0;const keys:string[]=[];fetcher.mockImplementation(async(url:string,init?:RequestInit)=>{if(url.endsWith("policy"))return json(policy);keys.push(new Headers(init?.headers).get("Idempotency-Key")!);if(++posts===1)throw new TypeError("unknown outcome");return json({id:"meeting",state:"queued"});});
  const send=()=>requestMeetingCapture("https://meet.google.com/recurring",true,"Weekly",false,{maxDurationSeconds:60});
  await expect(send()).rejects.toThrow();await send();await send();expect(keys[0]).toBe(keys[1]);expect(keys[2]).not.toBe(keys[1]);
+});
+
+it("rejects operations when policy disables upload or meeting capture",async()=>{
+ setup();const disabledPolicy={...policy,uploadEnabled:false,meetingEnabled:false};
+ fetcher.mockResolvedValue(json(disabledPolicy));
+ await expect(uploadAudio({blob:new Blob(["data"],{type:"audio/webm"}),filename:"rec.webm",title:"T",source:"voice_recording",consent:true},()=>{})).rejects.toThrow("Uploading is not enabled for this account yet.");
+ await expect(requestMeetingCapture("https://meet.google.com/abc-defg-hij",true)).rejects.toThrow("Meeting capture is not available yet.");
+});
+
+it("sends meeting cancellation and handles capture states",async()=>{
+ setup();fetcher.mockResolvedValue(json({state:"cancelled"}));
+ const res=await cancelMeetingCapture("cap-123");
+ expect(res.state).toBe("cancelled");
+ expect(fetcher.mock.calls[0][0]).toBe("/api/captures/cap-123/cancel");
+ expect(fetcher.mock.calls[0][1]?.method).toBe("POST");
 });

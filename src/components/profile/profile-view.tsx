@@ -1,14 +1,13 @@
 "use client";
 
-import { Camera, Check, ExternalLink, KeyRound, LogOut, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { Camera, Check, ExternalLink, KeyRound, LogOut } from "lucide-react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { useProfile, useSetProfile } from "@/components/shell/profile-context";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { signOut } from "@/lib/auth-client";
-import { prepareAvatar, removeAvatar, uploadAvatar } from "@/lib/avatar-client";
 import { TEMPLATE_CHOICES } from "@/lib/documents-client";
 import { saveProfile } from "@/lib/profile-client";
 import { ROLES } from "@/lib/roles";
@@ -16,90 +15,26 @@ import { ROLES } from "@/lib/roles";
 const noSubscribe = () => () => {};
 const useBrowserTimezone = () => useSyncExternalStore(noSubscribe, () => Intl.DateTimeFormat().resolvedOptions().timeZone, () => null);
 
-/** Your picture: choose one, see the square it will become, then save it. Nothing leaves the browser until you do. */
+/** Your picture: displays your current photo or initials. Avatar management is pending backend provider support. */
 function PhotoCard() {
   const profile = useProfile();
-  const setProfile = useSetProfile();
-  const input = useRef<HTMLInputElement>(null);
-  const [draft, setDraft] = useState<{ blob: Blob; url: string } | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState<string | null>(null);
-  const draftUrl = draft?.url;
-  useEffect(() => () => { if (draftUrl) URL.revokeObjectURL(draftUrl); }, [draftUrl]);
   if (!profile) return null;
   const name = profile.name?.trim() || profile.email;
-
-  async function pick(file: File | undefined) {
-    if (!file) return;
-    setError(null);
-    setSaved(null);
-    try {
-      const blob = await prepareAvatar(file);
-      setDraft({ blob, url: URL.createObjectURL(blob) });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "That picture couldn't be used.");
-    }
-    if (input.current) input.current.value = ""; // so choosing the same file again still fires
-  }
-  async function save() {
-    if (!draft || !profile) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const avatarUrl = await uploadAvatar(draft.blob);
-      setProfile({ ...profile, avatarUrl });
-      setDraft(null);
-      setSaved("Photo saved.");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "The picture couldn't be saved. Please try again.");
-    } finally {
-      setBusy(false);
-    }
-  }
-  async function remove() {
-    if (!profile) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await removeAvatar();
-      setProfile({ ...profile, avatarUrl: null });
-      setSaved("Photo removed.");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "The picture couldn't be removed.");
-    } finally {
-      setBusy(false);
-    }
-  }
 
   return (
     <Card>
       <CardHeader title="Profile photo" />
       <div className="flex flex-wrap items-center gap-6 p-5">
-        {draft ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={draft.url} alt="Preview of your new photo" width={96} height={96} className="h-24 w-24 rounded-full object-cover ring-2 ring-accent/40" />
-        ) : (
-          <Avatar name={name} src={profile.avatarUrl} size={96} />
-        )}
+        <Avatar name={name} src={profile.avatarUrl} size={96} />
         <div className="min-w-0 flex-1 space-y-3 text-sm">
-          <p className="text-muted">A square picture works best. PNG, JPG or WebP. It&rsquo;s cropped to a square and shrunk on your device before it&rsquo;s uploaded, and it&rsquo;s only shown to you, in your account menu.</p>
-          <input ref={input} type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => void pick(e.target.files?.[0])} className="sr-only" id="photo-input" aria-label="Choose a photo" />
+          <p className="text-muted">
+            Profile photo management is currently unavailable in this environment. When enabled, your photo will appear across your account menu.
+          </p>
           <div className="flex flex-wrap gap-2">
-            {draft ? (
-              <>
-                <Button variant="primary" onClick={() => void save()} disabled={busy}>{busy ? "Saving…" : "Save photo"}</Button>
-                <Button variant="ghost" onClick={() => setDraft(null)} disabled={busy}>Cancel</Button>
-              </>
-            ) : (
-              <>
-                <Button onClick={() => input.current?.click()} disabled={busy}><Camera aria-hidden className="h-4 w-4" /> {profile.avatarUrl ? "Change photo" : "Upload photo"}</Button>
-                {profile.avatarUrl && <Button variant="ghost" onClick={() => void remove()} disabled={busy}><Trash2 aria-hidden className="h-4 w-4" /> Remove</Button>}
-              </>
-            )}
+            <Button disabled variant="secondary" title="Photo upload is unavailable in this environment">
+              <Camera aria-hidden className="h-4 w-4" /> Upload photo
+            </Button>
           </div>
-          {saved && <p role="status" className="inline-flex items-center gap-1.5 text-success"><Check aria-hidden className="h-4 w-4" /> {saved}</p>}
-          {error && <p role="alert" className="text-danger">{error}</p>}
         </div>
       </div>
     </Card>

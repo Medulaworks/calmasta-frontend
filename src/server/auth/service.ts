@@ -44,13 +44,22 @@ export class AuthService {
         scope: `openid email profile offline_access urn:zitadel:iam:org:project:id:${this.config.projectId}:aud`,
         code_challenge: await oidc.calculatePKCECodeChallenge(transaction.verifier), code_challenge_method: "S256",
         state: transaction.state, nonce: transaction.nonce,
-        ...(query.get("signup") === "1" ? { prompt: "create" } : {}),
+        ...(query.get("signup") === "1" ? { prompt: "create" } : query.get("prompt") === "login" ? { prompt: "login" } : {}),
       });
       const previous = readCookie(request, this.config.transactionCookie);
-      if (previous) await this.store.consumeTransaction(hashId(previous));
+      if (previous) {
+        try {
+          await this.store.consumeTransaction(hashId(previous));
+        } catch {
+          // Failure to consume an old cookie must never block initiating a new login.
+        }
+      }
       await this.store.putTransaction(hashId(id), transaction);
       return this.setCookie(new Response(null, { status: 303, headers: { ...headers, Location: authorization.href } }), this.config.transactionCookie, id, 600);
-    } catch { return this.failure("not_configured"); }
+    } catch (error) {
+      console.error("[AUTH_LOGIN_ERROR]", error instanceof Error ? error.message : error);
+      return this.failure("not_configured");
+    }
   }
   async callback(request: Request) {
     let response: Response;
@@ -85,6 +94,7 @@ export class AuthService {
       if (previous) await this.store.revoke(hashId(previous), false);
       response = this.setCookie(this.redirect(profile.onboarded ? transaction.returnTo : "/welcome"), this.config.sessionCookie, sessionId, 8 * 3600);
     } catch (error) {
+      console.error("[AUTH_CALLBACK_ERROR]", error instanceof Error ? error.message : error);
       response = this.failure(error instanceof LoginError ? error.message : "invalid_response");
     }
     return this.setCookie(response, this.config.transactionCookie, "", 0);

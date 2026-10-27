@@ -34,7 +34,11 @@ async function request(init?: RequestInit): Promise<ProfileView> {
         : (body.error ?? "Something went wrong. Please try again."),
     );
   }
-  return body as ProfileView;
+  return {
+    ...body,
+    avatarUrl: body.avatarUrl ?? null,
+    passwordUrl: body.passwordUrl ?? null,
+  } as ProfileView;
 }
 
 export const getProfile = () => request();

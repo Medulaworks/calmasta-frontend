@@ -20,9 +20,18 @@ export class PgAuthStore implements AuthStore {
     await this.pool.query("INSERT INTO web_auth_transactions(id_hash,encrypted_data,expires_at) VALUES($1,$2,now()+interval '10 minutes')", [hash, seal(value,this.secret)]);
   }
   async consumeTransaction(hash: string) {
-    const result = await this.pool.query("DELETE FROM web_auth_transactions WHERE id_hash=$1 RETURNING encrypted_data,expires_at",[hash]);
-    const row=result.rows[0];
-    return row && new Date(row.expires_at).getTime()>Date.now() ? unseal<LoginTransaction>(row.encrypted_data,this.secret) : null;
+    try {
+      const result = await this.pool.query("DELETE FROM web_auth_transactions WHERE id_hash=$1 RETURNING encrypted_data,expires_at",[hash]);
+      const row=result.rows[0];
+      if (!row || new Date(row.expires_at).getTime() <= Date.now()) return null;
+      try {
+        return unseal<LoginTransaction>(row.encrypted_data,this.secret);
+      } catch {
+        return null;
+      }
+    } catch {
+      return null;
+    }
   }
   async putSession(hash: string, value: SessionData, expiresAt: number) {
     await this.pool.query("INSERT INTO web_sessions(id_hash,subject,encrypted_data,expires_at) VALUES($1,$2,$3,$4)",[hash,value.subject,seal(value,this.secret),new Date(expiresAt)]);
@@ -34,7 +43,15 @@ export class PgAuthStore implements AuthStore {
       // Cross-process lock prevents concurrent refresh-token rotation races.
       const row=(await connection.query("SELECT encrypted_data FROM web_sessions WHERE id_hash=$1 AND expires_at>now() FOR UPDATE",[hash])).rows[0];
       if(!row) { await connection.query("COMMIT"); return null; }
-      const previous=unseal<SessionData>(row.encrypted_data,this.secret), value=await refresh(previous);
+      let previous: SessionData;
+      try {
+        previous = unseal<SessionData>(row.encrypted_data, this.secret);
+      } catch {
+        await connection.query("DELETE FROM web_sessions WHERE id_hash=$1", [hash]);
+        await connection.query("COMMIT");
+        return null;
+      }
+      const value = await refresh(previous);
       if(!value) await connection.query("DELETE FROM web_sessions WHERE id_hash=$1",[hash]);
       else if(value!==previous) await connection.query("UPDATE web_sessions SET encrypted_data=$2 WHERE id_hash=$1",[hash,seal(value,this.secret)]);
       await connection.query("COMMIT");return value;

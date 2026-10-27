@@ -15,22 +15,42 @@ export function Login() {
   const error = authErrorMessage(params.get("error"));
   const expired = params.get("reason") === "expired" && !error;
   const [checking, setChecking] = useState(true);
+  const [bootstrapError, setBootstrapError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
-  // Already signed in? Go straight to where they were headed.
+  // Already signed in? Go straight to where they were headed, taking onboarding into account.
   useEffect(() => {
     let cancelled = false;
     fetch("/api/me").then(
-      (res) => {
+      async (res) => {
         if (cancelled) return;
-        if (res.ok) window.location.replace(returnTo);
-        else setChecking(false);
+        if (res.ok) {
+          const profile = (await res.json().catch(() => null)) as { onboarded?: boolean } | null;
+          if (cancelled) return;
+          if (profile && !profile.onboarded) {
+            window.location.replace("/welcome");
+          } else {
+            const target = returnTo === "/welcome" ? "/dashboard" : returnTo;
+            window.location.replace(target);
+          }
+        } else if (res.status === 401) {
+          setChecking(false);
+        } else {
+          setChecking(false);
+          setBootstrapError("Authentication service is temporarily unavailable. Please try again in a few moments.");
+        }
       },
-      () => !cancelled && setChecking(false),
+      () => {
+        if (!cancelled) {
+          setChecking(false);
+          setBootstrapError("Network error. Unable to verify your session. Please check your connection.");
+        }
+      },
     );
     return () => {
       cancelled = true;
     };
-  }, [returnTo]);
+  }, [returnTo, reloadKey]);
 
   const q = `returnTo=${encodeURIComponent(returnTo)}`;
   return (
@@ -53,13 +73,37 @@ export function Login() {
               {error}
             </p>
           )}
+          {bootstrapError && (
+            <div role="alert" className="mt-6 space-y-2 rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+              <p>{bootstrapError}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setChecking(true);
+                  setBootstrapError(null);
+                  setReloadKey((k) => k + 1);
+                }}
+                className="text-xs font-medium underline hover:no-underline"
+              >
+                Retry session check
+              </button>
+            </div>
+          )}
 
           {/* Plain links (not next/link): these are full-page navigations to the identity provider, and must never be prefetched. */}
           <div className="mt-8 space-y-3">
-            <a href={`/api/auth/login?${q}`} aria-disabled={checking} className={buttonClass("primary", "w-full", "lg")}>
-              Sign in
+            <a
+              href={`/api/auth/login?${q}${error ? "&prompt=login" : ""}`}
+              aria-disabled={checking}
+              className={`${buttonClass("primary", "w-full", "lg")}${checking ? " pointer-events-none opacity-60" : ""}`}
+            >
+              {checking ? "Checking session…" : "Sign in"}
             </a>
-            <a href={`/api/auth/login?${q}&signup=1`} className={buttonClass("secondary", "w-full", "lg")}>
+            <a
+              href={`/api/auth/login?${q}&signup=1`}
+              aria-disabled={checking}
+              className={`${buttonClass("secondary", "w-full", "lg")}${checking ? " pointer-events-none opacity-60" : ""}`}
+            >
               Create an account
             </a>
           </div>
