@@ -85,6 +85,7 @@ const viewAll = (href: string) => (
 /** Only rendered when there is something to decide on; the first few, with the full count in the header. */
 function ActionItems({ d }: { d: Dashboard }) {
   const m = d.metrics.actionItems;
+  if (!m) return null;
   return (
     <Card>
       <CardHeader title="Action items" id="actions" action={<span className="text-xs text-muted">{m.toReview} to review · {m.open} open</span>} />
@@ -109,7 +110,9 @@ function GettingStarted({ d }: { d: Dashboard }) {
   const latest = d.recentRecordings.find((r) => r.kind === "recording");
   const steps = [
     { done: d.progress.hasRecording, title: "Record or upload audio", body: "Speak for a minute or upload a file.", href: "/voice" },
-    { done: d.progress.hasDocument, title: "Turn it into a document", body: "Pick a template and edit the result.", href: latest?.href ?? "/voice" },
+    ...(d.progress.hasDocument !== null
+      ? [{ done: d.progress.hasDocument, title: "Turn it into a document", body: "Pick a template and edit the result.", href: latest?.href ?? "/voice" }]
+      : []),
     { done: d.progress.hasMeetingCapture, title: "Capture a meeting", body: "Send a visible assistant to a call.", href: "/capture" },
   ];
   if (steps.every((s) => s.done)) return null;
@@ -215,9 +218,15 @@ export function Dashboard() {
             <Metric label="Time transcribed" value={formatMinutes(m.minutesTranscribed.thisMonth)} icon={<Clock className="h-4 w-4" />} href="/plan">
               <Delta now={m.minutesTranscribed.thisMonth} before={m.minutesTranscribed.lastMonth} format={formatMinutes} />
             </Metric>
-            <Metric label="Action items to review" value={m.actionItems.toReview} icon={<ListChecks className="h-4 w-4" />} href={data.actionItems[0]?.href ?? "/library"} tone={m.actionItems.toReview > 0 ? "warning" : undefined}>
-              <span className="text-xs text-muted">{m.actionItems.open} open · accepted, not done</span>
-            </Metric>
+            {m.actionItems !== null ? (
+              <Metric label="Action items to review" value={m.actionItems.toReview} icon={<ListChecks className="h-4 w-4" />} href={data.actionItems[0]?.href ?? "/library"} tone={m.actionItems.toReview > 0 ? "warning" : undefined}>
+                <span className="text-xs text-muted">{m.actionItems.open} open · accepted, not done</span>
+              </Metric>
+            ) : (
+              <Metric label="Recordings this month" value={data.stats.recordingsThisMonth} icon={<Mic className="h-4 w-4" />} href="/library?tab=recordings">
+                <span className="text-xs text-muted">Uploads and meetings created</span>
+              </Metric>
+            )}
             {plan ? (
               <Metric label="Allowance left" value={formatMinutes(plan.remainingMinutes)} icon={<Gauge className="h-4 w-4" />} href="/plan" tone={plan.exhausted ? "warning" : undefined}>
                 <span className="block h-1.5 overflow-hidden rounded-full bg-border" aria-hidden>
@@ -226,7 +235,9 @@ export function Dashboard() {
                 <span className="mt-1.5 block text-xs text-muted">{PLAN_LABEL[plan.plan.plan]} · resets {formatDate(plan.resetsAt, plan.timezone)}</span>
               </Metric>
             ) : (
-              <MetricSkeleton />
+              <Metric label="In progress" value={data.stats.inProgress} icon={<Gauge className="h-4 w-4" />} href="/library?tab=recordings">
+                <span className="text-xs text-muted">{data.stats.inProgress === 0 ? "Nothing running right now" : "Currently recording or transcribing"}</span>
+              </Metric>
             )}
           </>
         ) : (
@@ -253,7 +264,7 @@ export function Dashboard() {
 
       <div className={`grid gap-6 ${side ? "xl:grid-cols-3" : ""}`}>
         <div className="min-w-0 space-y-6 xl:col-span-2">
-          <UpcomingMeetings timeZone={timeZone} />
+          {data?.capabilities?.calendar !== false && <UpcomingMeetings timeZone={timeZone} />}
 
           <ListCard
             title="Recent conversations"

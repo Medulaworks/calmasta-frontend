@@ -1,0 +1,42 @@
+name: Sync deployment repository
+
+on:
+  push:
+    branches:
+      - staging
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-deploy-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.repository == 'Medulaworks/calmasta-frontend' && (github.ref_name == 'staging' || github.ref_name == 'main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out source branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Push branch to private repository
+        env:
+          DEPLOY_REPO_TOKEN: ${{ secrets.DEPLOY_REPO_TOKEN }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          if [ -z "$DEPLOY_REPO_TOKEN" ]; then
+            echo "::error::Add the DEPLOY_REPO_TOKEN repository secret before running this workflow."
+            exit 1
+          fi
+          git push \
+            "https://x-access-token:${DEPLOY_REPO_TOKEN}@github.com/josiaharkson/calmasta-frontend-deploy.git" \
+            "HEAD:refs/heads/${BRANCH}"

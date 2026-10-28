@@ -31,22 +31,24 @@ export interface Trend {
 }
 
 export interface Dashboard {
-  stats: { recordingsThisMonth: number; minutesTranscribedThisMonth: number; documents: number; inProgress: number };
+  stats: { recordingsThisMonth: number; minutesTranscribedThisMonth: number; documents: number | null; inProgress: number };
   inProgress: DashboardItem[];
   needsAttention: DashboardItem[];
   recentRecordings: DashboardItem[];
   recentDocuments: DashboardItem[];
   /** Meetings an assistant joined (or is joining), newest first. */
   recentMeetings: DashboardItem[];
+  upcomingMeetings?: null;
+  capabilities?: { documents: boolean; actions: boolean; calendar: boolean };
   metrics: {
     meetingsCaptured: Trend;
     minutesTranscribed: Trend;
-    documentsCreated: Trend;
+    documentsCreated: Trend | null;
     /** Waiting for the person to accept or dismiss, and accepted but not yet done. */
-    actionItems: { toReview: number; open: number };
+    actionItems: { toReview: number; open: number } | null;
   };
   /** The action items most worth a look: those awaiting review first, then open ones. */
   actionItems: DashboardAction[];
   /** For the getting-started checklist. */
-  progress: { hasRecording: boolean; hasDocument: boolean; hasMeetingCapture: boolean };
+  progress: { hasRecording: boolean; hasDocument: boolean | null; hasMeetingCapture: boolean };
 }

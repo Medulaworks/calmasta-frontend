@@ -62,7 +62,8 @@ function Notifications({ pathname }: { pathname: string }) {
     setOpen(true);
     if (unread > 0) {
       // The badge clears straight away; the rows keep their "new" marks until the panel closes.
-      void markNotificationsRead().catch(() => undefined);
+      const ids = list?.items.filter((i) => i.unread).map((i) => i.id) ?? [];
+      void markNotificationsRead(ids).catch(() => undefined);
       setList((l) => (l ? { ...l, unread: 0 } : l));
     }
   }

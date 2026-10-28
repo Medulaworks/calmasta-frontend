@@ -59,7 +59,7 @@ export function SettingsView() {
           {[
             ["Recordings", usage ? String(usage.recordingsThisMonth) : "–"],
             ["Transcribed", usage ? formatMinutes(usage.minutesTranscribedThisMonth) : "–"],
-            ["Documents", usage ? String(usage.documents) : "–"],
+            ["Documents", usage && usage.documents !== null ? String(usage.documents) : "–"],
           ].map(([label, value]) => (
             <div key={label} className="px-5 py-4">
               <dt className="text-muted">{label}</dt>
