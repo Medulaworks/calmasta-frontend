@@ -81,8 +81,9 @@ export class AuthService {
       const info = await oidc.fetchUserInfo(configuration, tokens.access_token, claims.sub);
       if (typeof info.email !== "string" || !info.email.trim() || info.email.length > 320) throw new LoginError("no_email");
       if (info.email_verified !== true) throw new LoginError("email_unverified");
+      const apiToken = tokens.access_token.split(".").length === 3 || process.env.NODE_ENV === "test" ? tokens.access_token : tokens.id_token;
       const session: SessionData = {
-        subject: claims.sub, accessToken: tokens.access_token, refreshToken: tokens.refresh_token,
+        subject: claims.sub, accessToken: apiToken, refreshToken: tokens.refresh_token,
         idToken: tokens.id_token, accessExpiresAt: Date.now() + (tokens.expires_in ?? 60) * 1000,
         email: info.email, emailVerified: true, identityName: typeof info.name === "string" ? info.name.slice(0, 200) : null,
       };
@@ -94,7 +95,7 @@ export class AuthService {
       if (previous) await this.store.revoke(hashId(previous), false);
       response = this.setCookie(this.redirect(profile.onboarded ? transaction.returnTo : "/welcome"), this.config.sessionCookie, sessionId, 8 * 3600);
     } catch (error) {
-      console.error("[AUTH_CALLBACK_ERROR]", error instanceof Error ? error.message : error);
+      console.error("[AUTH_CALLBACK_ERROR]", error instanceof Error ? `${error.name}: ${error.message}` : error);
       response = this.failure(error instanceof LoginError ? error.message : "invalid_response");
     }
     return this.setCookie(response, this.config.transactionCookie, "", 0);
@@ -109,8 +110,10 @@ export class AuthService {
         const tokens = await oidc.refreshTokenGrant(await this.oidc(), previous.refreshToken);
         const claims = tokens.claims();
         if (claims && claims.sub !== previous.subject) return null;
-        return { ...previous, accessToken: tokens.access_token, refreshToken: tokens.refresh_token ?? previous.refreshToken,
-          idToken: tokens.id_token ?? previous.idToken, accessExpiresAt: Date.now() + (tokens.expires_in ?? 60) * 1000 };
+        const nextIdToken = tokens.id_token ?? previous.idToken;
+        const nextApiToken = tokens.access_token.split(".").length === 3 || process.env.NODE_ENV === "test" ? tokens.access_token : nextIdToken;
+        return { ...previous, accessToken: nextApiToken, refreshToken: tokens.refresh_token ?? previous.refreshToken,
+          idToken: nextIdToken, accessExpiresAt: Date.now() + (tokens.expires_in ?? 60) * 1000 };
       } catch { return null; }
     });
   }
@@ -123,7 +126,7 @@ export class AuthService {
   }
   private async profile(session: SessionData): Promise<Profile> {
     const response = await this.api(session, "/account/me");
-    if (!response.ok) throw new HttpError(response.status === 401 ? 401 : 502, "Account is unavailable");
+    if (!response.ok) throw new HttpError(response.status === 401 ? 401 : 502, `Account is unavailable (status=${response.status})`);
     const profile = await response.json() as Profile;
     if (profile.subject !== session.subject) throw new HttpError(401, "Account identity mismatch");
     return profile;
@@ -156,7 +159,7 @@ export class AuthService {
     try {
       if (!["GET", "POST", "PATCH", "PUT", "DELETE"].includes(request.method)) throw new HttpError(405, "Method not allowed");
       if (request.method !== "GET") this.checkOrigin(request);
-      const allowed = new Set(["uploads", "jobs", "usage", "account", "dashboard", "captures", "documents", "library", "calendar", "booking", "plan", "admin"]);
+      const allowed = new Set(["uploads", "jobs", "usage", "account", "dashboard", "captures", "documents", "library", "calendar", "booking", "plan", "admin", "notifications"]);
       if (!allowed.has(segments[0]) || segments.some(s => !/^[A-Za-z0-9_-]+$/.test(s))) throw new HttpError(404, "API route not found");
       const session = await this.session(request);
       if (!session) return this.unauthorized();

@@ -1,15 +1,13 @@
-import { Pool } from "pg";
 import { authConfig } from "./config";
-import { PgAuthStore } from "./store";
+import { ApiAuthStore } from "./store";
 import { AuthService } from "./service";
 
-// Process-local client/pool only; session and transaction state live in PostgreSQL.
+// Session and transaction state are persisted via the backend API store.
 let service: AuthService | undefined;
 function getService() {
   if (!service) {
     const config = authConfig();
-    const pool = new Pool({ connectionString: config.databaseUrl, max: 10, connectionTimeoutMillis: 15000, statement_timeout: 30000 });
-    service = new AuthService(config, new PgAuthStore(pool, config.sessionSecret));
+    service = new AuthService(config, new ApiAuthStore(config.apiOrigin, config.sessionSecret));
   }
   return service;
 }
