@@ -8,7 +8,7 @@ Core auth/profile/onboarding APIs exist; next work is frontend bootstrap/contrac
 
 ## Current checkpoint
 
-- **What was done (files + behavior):** Applied database migrations 002 through 008 to Neon DB; granted USAGE and DML on `web_sessions` and `web_auth_transactions` to `calmasta_frontend`. Verified live ZITADEL discovery, PKCE challenge generation, state/nonce creation, cookie dispatch, and authorization redirect on `GET /api/auth/login`.
-- **Proof (command + result + revision):** Migrations applied cleanly (`pnpm run migrate` in API); grants confirmed via PostgreSQL query; `curl -s -i http://localhost:3006/api/auth/login` verified returning HTTP 303 redirect to ZITADEL OAuth authorize endpoint with encrypted transaction saved in `web_auth_transactions`.
-- **What is NOT done:** Browser completion of user sign-in/signup interaction on hosted ZITADEL login page and subsequent OAuth callback verification with session write.
-- **Next action (task ID + files):** FE-A04 — test end-to-end user sign-in at `http://localhost:3006/login` and verify session establishment in `web_sessions`.
+- **What was done (files + behavior):** Replaced direct frontend PostgreSQL connection with `ApiAuthStore` calling `/internal/auth/*` on `calmasta-api` (`BffSessionController`), removed all `DATABASE_URL` references from frontend, and wired avatar upload/complete/delete (`FE-X02` / `B-AUTH-02`) and `passwordUrl` in `profile-client.ts`, `avatar-client.ts`, and `profile-view.tsx`.
+- **Proof (command + result + revision):** `pnpm typecheck && pnpm test && pnpm lint` and `git grep -i "database_url\|databaseurl"` (0 matches) verified on revision e9ad534; live ZITADEL login/callback verified creating user and session in PostgreSQL.
+- **What is NOT done:** Live R2 avatar/audio upload and playback verification (`FE-C03`) pending R2 bucket credentials and CORS setup.
+- **Next action (task ID + files):** FE-C03 — configure R2 credentials/CORS in `calmasta-api` and verify live avatar and audio upload/playback.

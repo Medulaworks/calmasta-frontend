@@ -31,8 +31,42 @@ it("normalizes missing avatarUrl and passwordUrl to null in profile response", a
   const profile = await getProfile();
   expect(fetcher).toHaveBeenCalledWith("/api/me", undefined);
   expect(profile.avatarUrl).toBeNull();
+  expect(profile.avatarExpiresAt).toBeNull();
+  expect(profile.avatarVersion).toBe(0);
   expect(profile.passwordUrl).toBeNull();
   expect(profile.role).toBe("consultant");
+});
+
+it("preserves avatarUrl, avatarExpiresAt, avatarVersion, and passwordUrl when returned by /api/me", async () => {
+  vi.stubGlobal("fetch", fetcher);
+  fetcher.mockResolvedValue(
+    new Response(
+      JSON.stringify({
+        email: "doc@example.com",
+        emailVerified: true,
+        name: "Doctor",
+        timezone: "UTC",
+        role: "consultant",
+        workspaceRole: "owner",
+        onboarded: true,
+        defaultTemplate: "consultant_brief",
+        outputsOnly: false,
+        audioRetentionDays: 30,
+        isStaff: false,
+        avatarUrl: "https://r2.example.invalid/avatars/profiles/u1/a1.webp?sig=1",
+        avatarExpiresAt: "2026-10-28T17:10:00.000Z",
+        avatarVersion: 3,
+        passwordUrl: "https://calmasta-api-t6ho0h.us1.zitadel.cloud/ui/console/users/me",
+      }),
+      { status: 200 },
+    ),
+  );
+
+  const profile = await getProfile();
+  expect(profile.avatarUrl).toBe("https://r2.example.invalid/avatars/profiles/u1/a1.webp?sig=1");
+  expect(profile.avatarExpiresAt).toBe("2026-10-28T17:10:00.000Z");
+  expect(profile.avatarVersion).toBe(3);
+  expect(profile.passwordUrl).toBe("https://calmasta-api-t6ho0h.us1.zitadel.cloud/ui/console/users/me");
 });
 
 it("throws ProfileError with distinct session message on 401", async () => {

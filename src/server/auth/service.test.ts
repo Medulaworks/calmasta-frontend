@@ -20,7 +20,7 @@ class MemoryStore implements AuthStore {
 let server:Server, origin:string, key:Awaited<ReturnType<typeof generateKeyPair>>, wrongKey:Awaited<ReturnType<typeof generateKeyPair>>;
 let nonce="", challenge="", tokenCalls=0, refreshCalls=0, profileCalls=0, verified=true, invalidSignature=false, invalidNonce=false, wrongSubject=false;
 const cookieFrom=(response:Response,name:string)=>response.headers.getSetCookie().find(value=>value.startsWith(name+"="))!.split(";")[0];
-const fixtureConfig=():AuthConfig=>({appOrigin:origin,apiOrigin:origin,issuer:origin,clientId:"fixture-client",projectId:"project",sessionSecret:"a".repeat(64),databaseUrl:"unused",secure:false,callbackUrl:origin+"/api/auth/callback",sessionCookie:"sid",transactionCookie:"txn"});
+const fixtureConfig=():AuthConfig=>({appOrigin:origin,apiOrigin:origin,issuer:origin,clientId:"fixture-client",projectId:"project",sessionSecret:"a".repeat(64),secure:false,callbackUrl:origin+"/api/auth/callback",sessionCookie:"sid",transactionCookie:"txn"});
 beforeAll(async()=>{
   key=await generateKeyPair("RS256");wrongKey=await generateKeyPair("RS256");const jwk=await exportJWK(key.publicKey);jwk.kid="fixture";
   server=createServer(async(req,res)=>{
@@ -108,7 +108,7 @@ describe("OIDC session and API flow",()=>{
   expect((await auth.me(new Request(origin+"/api/me",{headers:{cookie:browser}}))).status).toBe(401);wrongSubject=false;
  });
  it("requires HTTPS to public backend and production app, keeping local development usable",()=>{
-  const env={NODE_ENV:"production" as const,APP_URL:"http://public.invalid",CALMASTA_API_URL:"http://127.0.0.1:3000",ZITADEL_ISSUER:"https://identity.invalid",ZITADEL_CLIENT_ID:"client",ZITADEL_PROJECT_ID:"project",SESSION_SECRET:"a".repeat(64),DATABASE_URL:"private"};
+  const env={NODE_ENV:"production" as const,APP_URL:"http://public.invalid",CALMASTA_API_URL:"http://127.0.0.1:3000",ZITADEL_ISSUER:"https://identity.invalid",ZITADEL_CLIENT_ID:"client",ZITADEL_PROJECT_ID:"project",SESSION_SECRET:"a".repeat(64)};
   expect(()=>authConfig(env)).toThrow();expect(()=>authConfig({...env,APP_URL:"https://app.invalid",CALMASTA_API_URL:"http://89.117.56.55"})).toThrow();
   expect(authConfig({...env,APP_URL:"https://app.invalid"}).sessionCookie).toBe("__Host-calmasta_session");
  });

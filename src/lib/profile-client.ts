@@ -11,6 +11,8 @@ export interface ProfileView {
   audioRetentionDays: number;
   isStaff: boolean;
   avatarUrl: string | null;
+  avatarExpiresAt: string | null;
+  avatarVersion: number;
   passwordUrl: string | null;
 }
 
@@ -37,6 +39,8 @@ async function request(init?: RequestInit): Promise<ProfileView> {
   return {
     ...body,
     avatarUrl: body.avatarUrl ?? null,
+    avatarExpiresAt: body.avatarExpiresAt ?? null,
+    avatarVersion: typeof body.avatarVersion === "number" ? body.avatarVersion : 0,
     passwordUrl: body.passwordUrl ?? null,
   } as ProfileView;
 }

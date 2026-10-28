@@ -8,7 +8,7 @@ These services have UI/client expectations but no implemented backend contracts.
 
 ## Current checkpoint
 
-- **What was done (files + behavior):** Source audited; existing implementation versus pending consumer/backend work recorded. No runtime edits in this documentation task.
-- **Proof (command + result + revision):** Frontend e9ad534/backend 5b690cc source inspection; `python3 docs/implementation/validate.py` passed: 15 documentation files, 48 local links, 15 READY_LOCAL contract rows, 18 unique task IDs and six matching professions. Historical application evidence is linked from backend references, not rerun or promoted to live acceptance here.
-- **What is NOT done:** Pending tasks and external gates listed in WORK_PLAN; no new application verification claimed.
-- **Next action (task ID + files):** FE-X02–FE-X07 — await linked backend contracts; keep unavailable actions honest; stay within the listed target files and follow the cross-repository contract boundary.
+- **What was done (files + behavior):** Wired dashboard aggregate contract (B-DASH-01 / FE-X01) in `dashboard-types.ts`, `dashboard.tsx`, and `settings-view.tsx`, notifications contract (B-NOTIFY-01) in `notifications-client.ts` and `top-bar.tsx`, and avatar upload/complete/delete contract (B-AUTH-02 / FE-X02) in `avatar-client.ts`, `profile-client.ts`, `profile-view.tsx`, and `app-shell.tsx`.
+- **Proof (command + result + revision):** `pnpm typecheck && pnpm test && pnpm lint` passed with new `avatar-client.test.ts`, `profile-client.test.ts`, and `store.test.ts` suites on revision e9ad534; `python3 docs/implementation/validate.py` passed with 0 errors.
+- **What is NOT done:** Document generation (FE-X03), calendar (FE-X04), booking (FE-X05), staff HTTP controls (FE-X06), and commerce/deletion (FE-X07) remain blocked pending backend contracts.
+- **Next action (task ID + files):** FE-C03 — configure R2 CORS and verify live private avatar and audio upload/playback.

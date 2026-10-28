@@ -102,6 +102,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     };
   }, [router]);
 
+  const avatarExpiresAt = state.profile?.avatarExpiresAt ?? null;
+  useEffect(() => {
+    if (!avatarExpiresAt) return;
+    const ms = new Date(avatarExpiresAt).getTime() - Date.now() - 30_000;
+    if (!Number.isFinite(ms)) return;
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      getProfile()
+        .then((profile) => {
+          if (!cancelled) setState((s) => ({ ...s, profile }));
+        })
+        .catch(() => undefined);
+    }, Math.max(1_000, ms));
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [avatarExpiresAt]);
+
   // Plan and deletion status for the banners and the sidebar. Refreshed on every page change; failing to read it
   // never blocks the page, it just shows nothing.
   const [account, setAccount] = useState<{ plan: PlanSummary | null; deletion: DeletionView | null }>({ plan: null, deletion: null });

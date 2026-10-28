@@ -17,3 +17,9 @@
 - **Proof (command + result + revision):** `curl -s -i http://localhost:3006/api/auth/login` returned HTTP 303 redirect to ZITADEL OAuth authorize endpoint with encrypted transaction saved in `web_auth_transactions`; `calmasta_frontend` query verified 0 errors on revision e9ad534.
 - **What is NOT done:** Interactive user login/signup in browser on hosted ZITADEL page and callback exchange to write authenticated session.
 - **Next action (task ID + files):** FE-A04 — perform browser sign-in at `http://localhost:3006/login` and verify session write and welcome/dashboard landing.
+
+## 2026-10-28 — API-backed session store, DATABASE_URL removal, and Avatar/Dashboard/Notifications consumption (FE-X01, FE-X02)
+- **What was done (files + behavior):** Replaced direct frontend DB connection with `ApiAuthStore` (`/internal/auth/*`) and removed all `DATABASE_URL` references from `calmasta-frontend`; wired `FE-X01` (nullable dashboard aggregates), `B-NOTIFY-01` (notifications seen IDs), and `FE-X02` (avatar upload/complete/delete in `avatar-client.ts`, `profile-client.ts`, `profile-view.tsx`, `app-shell.tsx`).
+- **Proof (command + result + revision):** `pnpm typecheck && pnpm test && pnpm lint` and `python3 docs/implementation/validate.py` passed on revision e9ad534; `git grep -i "database_url\|databaseurl"` returned 0 matches.
+- **What is NOT done:** Live R2 storage credentials and CORS configuration for private avatar and audio upload/playback (`FE-C03`).
+- **Next action (task ID + files):** FE-C03 — configure R2 credentials and CORS in `../calmasta-api/.env` and verify private upload/playback.
