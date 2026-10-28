@@ -29,4 +29,4 @@ FE-A02 → FE-A03 → FE-U01 → FE-C02 → FE-L02. Existing FE-A01/FE-C01/FE-L0
 
 ## Validation
 
-Use targeted Vitest tests for changed logic, pnpm typecheck and targeted eslint; run pnpm build for route/production integration changes. Authentication persistence tests use `PG_BIN=/opt/homebrew/opt/postgresql@18/bin pnpm run test:auth:isolated` on this Mac, or a disposable TEST_DATABASE_URL in the documented test workflow. Never use application/production DATABASE_URL for tests. Respect the no-browser rule unless the user explicitly requests browser verification. Historical tests do not prove later revisions.
+Use targeted Vitest tests for changed logic, pnpm typecheck and targeted eslint; run pnpm build for route/production integration changes. Authentication persistence tests verify the BFF session store against local HTTP fixtures without connecting directly to a database. Respect the no-browser rule unless the user explicitly requests browser verification. Historical tests do not prove later revisions.

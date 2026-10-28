@@ -8,8 +8,7 @@
     "start": "next start -p ${PORT:-3006}",
     "lint": "eslint",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
-    "test:auth:isolated": "node scripts/test-auth-isolated.cjs"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@tiptap/pm": "^3.32.0",
@@ -19,14 +18,12 @@
     "lucide-react": "^1.59.0",
     "next": "16.4.1",
     "openid-client": "^6.8.8",
-    "pg": "^8.23.1",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^24.19.2",
-    "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",

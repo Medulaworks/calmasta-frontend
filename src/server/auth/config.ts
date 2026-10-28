@@ -1,6 +1,6 @@
 export interface AuthConfig {
   appOrigin: string; apiOrigin: string; issuer: string; clientId: string; clientSecret?: string;
-  projectId: string; sessionSecret: string; databaseUrl?: string; secure: boolean;
+  projectId: string; sessionSecret: string; secure: boolean;
   callbackUrl: string; sessionCookie: string; transactionCookie: string;
 }
 export function authConfig(env: NodeJS.ProcessEnv = process.env): AuthConfig {
@@ -20,7 +20,7 @@ export function authConfig(env: NodeJS.ProcessEnv = process.env): AuthConfig {
   if (!/^[a-f\d]{64}$/i.test(sessionSecret)) throw new Error("Invalid SESSION_SECRET");
   const secure = appOrigin.startsWith("https:");
   return { appOrigin, apiOrigin, issuer, clientId: required("ZITADEL_CLIENT_ID"), clientSecret: env.ZITADEL_CLIENT_SECRET || undefined,
-    projectId: required("ZITADEL_PROJECT_ID"), sessionSecret, databaseUrl: env.DATABASE_URL?.trim() || undefined, secure,
+    projectId: required("ZITADEL_PROJECT_ID"), sessionSecret, secure,
     callbackUrl: appOrigin + "/api/auth/callback", sessionCookie: secure ? "__Host-calmasta_session" : "calmasta_session",
     transactionCookie: secure ? "__Host-calmasta_oidc" : "calmasta_oidc" };
 }

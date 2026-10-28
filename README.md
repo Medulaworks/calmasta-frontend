@@ -46,5 +46,3 @@ Logout everywhere revokes all **CalMasta application sessions** for the authenti
 The proxy authenticates supported application API prefixes, forwards only its server-held bearer token and selected headers (including Idempotency-Key), rejects path traversal, and bounds JSON bodies. It does not implement missing dashboard/calendar/commerce endpoints: those still return the API's real status. Public booking APIs are not added by this authentication change.
 
 Verification: `pnpm typecheck`, `pnpm test`, `pnpm build`. Authentication tests use local signed OIDC fixtures and make no live ZITADEL calls. Real provider login/logout, production certificate and deployment acceptance remain separate checks.
-
-To verify persistent sessions against real isolated PostgreSQL: `PG_BIN=/path/to/postgres/bin pnpm test:auth:isolated`. By default it reads the sibling `../calmasta-api/migrations`; set `AUTH_MIGRATIONS_DIR` to an alternate migration directory if needed. It never loads your application database URL. Regular tests skip only the four PostgreSQL-backed store checks when TEST_DATABASE_URL is absent.
