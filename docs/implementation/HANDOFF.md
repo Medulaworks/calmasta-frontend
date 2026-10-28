@@ -16,7 +16,7 @@ You can start consuming ready local contracts now. Core auth/capture/library cod
 
 ## Current checkpoint
 
-- **What was done (files + behavior):** Applied additive database migrations 002-008 to Neon database; granted schema USAGE and table DML on `web_sessions` and `web_auth_transactions` to `calmasta_frontend`. Verified live ZITADEL discovery, PKCE challenge generation, state/nonce creation, cookie dispatch, and authorization redirect on `GET /api/auth/login`.
-- **Proof (command + result + revision):** `curl -s -i http://localhost:3006/api/auth/login` returned HTTP 303 redirect to ZITADEL OAuth authorize endpoint with encrypted transaction saved in `web_auth_transactions`; `calmasta_frontend` query verified 0 errors on revision e9ad534.
-- **What is NOT done:** Interactive user login/signup in browser on hosted ZITADEL page and callback exchange to write authenticated session.
-- **Next action (task ID + files):** FE-A04 — perform browser sign-in at `http://localhost:3006/login` and verify session write and welcome/dashboard landing.
+- **What was done (files + behavior):** Removed all `DATABASE_URL` and direct PostgreSQL dependencies from `calmasta-frontend` in favor of `ApiAuthStore` (`/internal/auth/*`), and implemented `FE-X01` (dashboard aggregates), `B-NOTIFY-01` (notifications seen IDs), and `FE-X02` (avatar upload/complete/delete and `passwordUrl` in `avatar-client.ts`, `profile-client.ts`, `profile-view.tsx`, and `app-shell.tsx`).
+- **Proof (command + result + revision):** `pnpm typecheck && pnpm test && pnpm lint` and `python3 docs/implementation/validate.py` passed on revision e9ad534; `git grep -i "database_url\|databaseurl"` returned 0 matches.
+- **What is NOT done:** Live R2 bucket credentials and CORS setup for end-to-end private audio and avatar upload/playback (`FE-C03`).
+- **Next action (task ID + files):** FE-C03 — configure R2 storage credentials and CORS in `../calmasta-api/.env` and verify private upload/playback.

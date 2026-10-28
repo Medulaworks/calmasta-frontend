@@ -1,40 +1,156 @@
 "use client";
 
-import { Camera, Check, ExternalLink, KeyRound, LogOut } from "lucide-react";
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { Camera, Check, ExternalLink, KeyRound, LogOut, RotateCcw, Trash2 } from "lucide-react";
+import { useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useProfile, useSetProfile } from "@/components/shell/profile-context";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { signOut } from "@/lib/auth-client";
+import { prepareAvatar, removeAvatar, uploadAvatar } from "@/lib/avatar-client";
 import { TEMPLATE_CHOICES } from "@/lib/documents-client";
-import { saveProfile } from "@/lib/profile-client";
+import { getProfile, saveProfile } from "@/lib/profile-client";
 import { ROLES } from "@/lib/roles";
+import { ApiError } from "@/lib/upload-client";
 
 const noSubscribe = () => () => {};
 const useBrowserTimezone = () => useSyncExternalStore(noSubscribe, () => Intl.DateTimeFormat().resolvedOptions().timeZone, () => null);
 
-/** Your picture: displays your current photo or initials. Avatar management is pending backend provider support. */
+/** Your picture: crops, uploads, refreshes on conflict, or removes your profile photo via the authenticated BFF. */
 function PhotoCard() {
   const profile = useProfile();
+  const setProfile = useSetProfile();
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [busy, setBusy] = useState<"uploading" | "removing" | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [photoSaved, setPhotoSaved] = useState<string | null>(null);
+  const [pendingBlob, setPendingBlob] = useState<Blob | null>(null);
+
   if (!profile) return null;
-  const name = profile.name?.trim() || profile.email;
+  const currentProfile = profile;
+  const name = currentProfile.name?.trim() || currentProfile.email;
+
+  async function runUpload(blob: Blob) {
+    setBusy("uploading");
+    setPhotoError(null);
+    setPhotoSaved(null);
+    try {
+      const updated = await uploadAvatar(blob, currentProfile.avatarVersion);
+      setProfile({
+        ...currentProfile,
+        avatarUrl: updated.avatarUrl,
+        avatarExpiresAt: updated.avatarExpiresAt,
+        avatarVersion: updated.avatarVersion,
+      });
+      setPendingBlob(null);
+      setPhotoSaved("Photo updated");
+    } catch (err) {
+      if (err instanceof ApiError && (err.code === "avatar_version_conflict" || err.code === "avatar_superseded")) {
+        setPendingBlob(null);
+        await getProfile().then(setProfile).catch(() => undefined);
+      } else if (err instanceof ApiError && (err.code === "invalid_avatar" || err.code === "invalid_image")) {
+        setPendingBlob(null);
+      }
+      setPhotoError(err instanceof Error ? err.message : "Could not upload photo.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setPhotoError(null);
+    setPhotoSaved(null);
+    try {
+      const blob = await prepareAvatar(file);
+      setPendingBlob(blob);
+      await runUpload(blob);
+    } catch (err) {
+      setPendingBlob(null);
+      setPhotoError(err instanceof Error ? err.message : "That picture couldn't be prepared.");
+    }
+  }
+
+  async function onRemove() {
+    setBusy("removing");
+    setPhotoError(null);
+    setPhotoSaved(null);
+    try {
+      const updated = await removeAvatar(currentProfile.avatarVersion);
+      setProfile({
+        ...currentProfile,
+        avatarUrl: updated.avatarUrl,
+        avatarExpiresAt: updated.avatarExpiresAt,
+        avatarVersion: updated.avatarVersion,
+      });
+      setPendingBlob(null);
+      setPhotoSaved("Photo removed");
+    } catch (err) {
+      if (err instanceof ApiError && (err.code === "avatar_version_conflict" || err.code === "avatar_superseded")) {
+        await getProfile().then(setProfile).catch(() => undefined);
+      }
+      setPhotoError(err instanceof Error ? err.message : "Could not remove photo.");
+    } finally {
+      setBusy(null);
+    }
+  }
 
   return (
     <Card>
       <CardHeader title="Profile photo" />
       <div className="flex flex-wrap items-center gap-6 p-5">
-        <Avatar name={name} src={profile.avatarUrl} size={96} />
+        <Avatar name={name} src={currentProfile.avatarUrl} size={96} />
         <div className="min-w-0 flex-1 space-y-3 text-sm">
           <p className="text-muted">
-            Profile photo management is currently unavailable in this environment. When enabled, your photo will appear across your account menu.
+            PNG, JPG or WebP up to 1 MB. We crop it to a square and strip camera/location metadata before saving.
           </p>
-          <div className="flex flex-wrap gap-2">
-            <Button disabled variant="secondary" title="Photo upload is unavailable in this environment">
-              <Camera aria-hidden className="h-4 w-4" /> Upload photo
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="sr-only"
+            aria-label="Choose profile photo"
+            onChange={(e) => void onPick(e)}
+            disabled={busy !== null}
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="secondary"
+              disabled={busy !== null}
+              onClick={() => inputRef.current?.click()}
+            >
+              <Camera aria-hidden className="h-4 w-4" />
+              {busy === "uploading" ? "Uploading…" : currentProfile.avatarUrl ? "Change photo" : "Upload photo"}
             </Button>
+            {pendingBlob && busy === null && (
+              <Button variant="secondary" onClick={() => void runUpload(pendingBlob)}>
+                <RotateCcw aria-hidden className="h-4 w-4" /> Try again
+              </Button>
+            )}
+            {currentProfile.avatarUrl && (
+              <Button
+                variant="ghost"
+                disabled={busy !== null}
+                onClick={() => void onRemove()}
+              >
+                <Trash2 aria-hidden className="h-4 w-4" />
+                {busy === "removing" ? "Removing…" : "Remove photo"}
+              </Button>
+            )}
+            {photoSaved && (
+              <span role="status" className="inline-flex items-center gap-1.5 text-sm text-success">
+                <Check aria-hidden className="h-4 w-4" /> {photoSaved}
+              </span>
+            )}
           </div>
+          {photoError && (
+            <p role="alert" className="text-sm text-danger">
+              {photoError}
+            </p>
+          )}
         </div>
       </div>
     </Card>

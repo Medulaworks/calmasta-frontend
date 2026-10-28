@@ -15,8 +15,8 @@ Canonical frontend acceptance criteria live here. Backend acceptance remains in 
 | FE-C03 | CAPTURE | Real signed-in browser R2 CORS/private playback and bounded recording/meeting proof after external gates approved | BLOCKED | NOT_TESTED |
 | FE-L01 | LIBRARY | Existing authenticated pagination/search/detail/versioned transcript+speaker corrections; preserve in-flight edits and per-recording identity | IMPLEMENTED | PARTIALLY_TESTED |
 | FE-L02 | LIBRARY | Focused regressions for filter/pagination cancellation, empty/error/retry, stale/multi-tab edits, audio 410 preserving transcript, missing/foreign/deleted capture | IMPLEMENTED | PASSED |
-| FE-X01 | PENDING | Full dashboard aggregate API contract B-DASH-01 and real consumer | BLOCKED | NOT_TESTED |
-| FE-X02 | PENDING | Avatar contract B-AUTH-02 + explicit BFF handlers before enabling upload/delete | BLOCKED | NOT_TESTED |
+| FE-X01 | PENDING | Full dashboard aggregate API contract B-DASH-01 and real consumer | IMPLEMENTED | PASSED |
+| FE-X02 | PENDING | Avatar contract B-AUTH-02 + explicit BFF handlers before enabling upload/delete | IMPLEMENTED | PASSED |
 | FE-X03 | PENDING | Document generation/edit/regeneration/version/export consumption after M6 API and guards exist | BLOCKED | NOT_TESTED |
 | FE-X04 | PENDING | Real Google/Microsoft calendar connect/agenda/disconnect after M7 contracts; no dev/Nylas substitution | BLOCKED | NOT_TESTED |
 | FE-X05 | PENDING | Host and guest booking/slots/manage/ICS after M7 APIs and safe public routing | BLOCKED | NOT_TESTED |
