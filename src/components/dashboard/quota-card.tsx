@@ -1,11 +1,11 @@
 "use client";
 
 import { AlertCircle, Gauge, PauseCircle, RefreshCw } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
-import { type UsageSummaryView, fetchUsageSummary } from "@/lib/usage-client";
+import { usageQuery } from "@/lib/queries";
 
 function formatSeconds(totalSeconds: number): string {
   if (totalSeconds < 60) return `${totalSeconds}s`;
@@ -15,38 +15,10 @@ function formatSeconds(totalSeconds: number): string {
 }
 
 export function QuotaCard() {
-  const [data, setData] = useState<UsageSummaryView | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [tick, setTick] = useState(0);
+  const { data, error, isLoading, refetch } = useQuery(usageQuery);
+  const reload = () => void refetch();
 
-  const reload = useCallback(() => {
-    setLoading(true);
-    setError(null);
-    setTick((t) => t + 1);
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetchUsageSummary().then(
-      (summary) => {
-        if (cancelled) return;
-        setData(summary);
-        setError(null);
-        setLoading(false);
-      },
-      (err) => {
-        if (cancelled) return;
-        setError(err instanceof Error ? err.message : "Unable to load quota data.");
-        setLoading(false);
-      },
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [tick]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <Card>
         <CardHeader title="Audio allowance" />
@@ -69,7 +41,7 @@ export function QuotaCard() {
         <CardHeader title="Audio allowance" />
         <div className="space-y-3 p-5">
           <p role="alert" className="text-sm text-danger">
-            {error}
+            {(error as Error).message}
           </p>
           <Button variant="secondary" onClick={reload}>
             <RefreshCw aria-hidden className="h-3.5 w-3.5" /> Retry

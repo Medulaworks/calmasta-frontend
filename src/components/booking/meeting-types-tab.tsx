@@ -1,7 +1,8 @@
 "use client";
 
 import { Video } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Confirm,
   ErrorBox,
@@ -13,16 +14,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
-  type AvailabilityView,
   type MeetingTypeInput,
   type MeetingTypeView,
-  type PageView,
-  deleteMeetingType,
-  listAvailabilities,
-  listMeetingTypes,
-  listPages,
-  saveMeetingType,
 } from "@/lib/booking-client";
+import { useDeleteMeetingType, useSaveMeetingType } from "@/lib/mutations";
+import { availabilitiesQuery, meetingTypesQuery, pagesQuery } from "@/lib/queries";
 
 const blank = (pageId = "", availabilityId = ""): MeetingTypeInput => ({
   pageId,
@@ -38,41 +34,27 @@ const blank = (pageId = "", availabilityId = ""): MeetingTypeInput => ({
 const DURATIONS = [15, 20, 30, 45, 60, 90, 120];
 
 export function MeetingTypesTab() {
-  const [types, setTypes] = useState<MeetingTypeView[] | null>(null);
-  const [pages, setPages] = useState<PageView[]>([]);
-  const [avails, setAvails] = useState<AvailabilityView[]>([]);
-  const [tick, setTick] = useState(0);
+  const typesQ = useQuery(meetingTypesQuery);
+  const pagesQ = useQuery(pagesQuery);
+  const availsQ = useQuery(availabilitiesQuery);
+  const types = typesQ.data ?? null;
+  const pages = pagesQ.data ?? [];
+  const avails = availsQ.data ?? [];
+  const qError = (typesQ.error as Error | undefined)?.message ?? (pagesQ.error as Error | undefined)?.message ?? (availsQ.error as Error | undefined)?.message ?? null;
+  const saveM = useSaveMeetingType();
+  const delM = useDeleteMeetingType();
   const [editing, setEditing] = useState<MeetingTypeView | "new" | null>(null);
   const [form, setForm] = useState<MeetingTypeInput>(blank());
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const error = localError ?? qError;
+  const busy = saveM.isPending || delM.isPending;
   const [confirmDelete, setConfirmDelete] = useState<MeetingTypeView | null>(
     null,
   );
 
-  useEffect(() => {
-    let cancelled = false;
-    Promise.all([listMeetingTypes(), listPages(), listAvailabilities()]).then(
-      ([t, p, a]) => {
-        if (cancelled) return;
-        setTypes(t);
-        setPages(p);
-        setAvails(a);
-      },
-      (err) =>
-        !cancelled &&
-        setError(
-          err instanceof Error ? err.message : "Could not load meeting types.",
-        ),
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [tick]);
-
   function open(t: MeetingTypeView | "new") {
     setEditing(t);
-    setError(null);
+    setLocalError(null);
     setForm(
       t === "new"
         ? blank(pages[0]?.id, avails[0]?.id)
@@ -91,31 +73,22 @@ export function MeetingTypesTab() {
   }
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    setBusy(true);
-    setError(null);
+    setLocalError(null);
     try {
-      await saveMeetingType(
-        form,
-        editing === "new" || !editing ? undefined : editing.id,
-      );
+      await saveM.mutateAsync({ input: form, id: editing === "new" || !editing ? undefined : editing.id });
       setEditing(null);
-      setTick((n) => n + 1);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save.");
+      setLocalError(err instanceof Error ? err.message : "Could not save.");
     }
-    setBusy(false);
   }
   async function remove() {
     if (!confirmDelete) return;
-    setBusy(true);
     try {
-      await deleteMeetingType(confirmDelete.id);
+      await delM.mutateAsync(confirmDelete.id);
       setConfirmDelete(null);
-      setTick((n) => n + 1);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not delete.");
+      setLocalError(err instanceof Error ? err.message : "Could not delete.");
     }
-    setBusy(false);
   }
 
   const ready = pages.length > 0 && avails.length > 0;
@@ -195,7 +168,7 @@ export function MeetingTypesTab() {
                   value={form.pageId}
                   onChange={(e) => setForm({ ...form, pageId: e.target.value })}
                   className={field}>
-                  {pages.map((p) => (
+                  {pages.map((p: import("@/lib/booking-client").PageView) => (
                     <option key={p.id} value={p.id}>
                       {p.title}
                     </option>
@@ -209,7 +182,7 @@ export function MeetingTypesTab() {
                     setForm({ ...form, availabilityId: e.target.value })
                   }
                   className={field}>
-                  {avails.map((a) => (
+                  {avails.map((a: import("@/lib/booking-client").AvailabilityView) => (
                     <option key={a.id} value={a.id}>
                       {a.name}
                     </option>
@@ -357,7 +330,7 @@ export function MeetingTypesTab() {
           />
         ) : (
           <ul className="divide-y divide-border">
-            {types.map((t) => (
+            {types.map((t: import("@/lib/booking-client").MeetingTypeView) => (
               <li
                 key={t.id}
                 className="flex flex-wrap items-start justify-between gap-3 px-5 py-4 text-sm">

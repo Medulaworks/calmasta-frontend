@@ -10,7 +10,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useProfile } from "@/components/shell/profile-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,18 +22,17 @@ import { MeetingPanel } from "@/components/meeting-panel";
 import { TranscriptEditor } from "@/components/transcript-editor";
 import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { TEMPLATE_CHOICES, createDocument } from "@/lib/documents-client";
+import { TEMPLATE_CHOICES } from "@/lib/documents-client";
 import { formatDuration } from "@/lib/audio";
 import { captureStatus, documentStatus, timeAgo } from "@/lib/status";
 import {
   type CaptureView,
   ApiError,
   PLATFORM_LABELS,
-  cancelMeetingCapture,
-  deleteCapture,
-  getCapture,
   isMeetingActive,
 } from "@/lib/upload-client";
+import { captureQuery, qk } from "@/lib/queries";
+import { useCancelMeeting, useDeleteCapture, useCreateDocument } from "@/lib/mutations";
 
 const titleOf = (c: CaptureView) => {
   const t = c.title?.trim();
@@ -69,42 +69,41 @@ export function CaptureDetail({
   const router = useRouter();
   const search = useSearchParams();
   const profile = useProfile();
-  const [cap, setCap] = useState<CaptureView | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [notFound, setNotFound] = useState(false);
-  const [tick, setTick] = useState(0);
+  const qc = useQueryClient();
   // The real length, as reported by the audio itself once the browser has read its header.
   const [audioSeconds, setAudioSeconds] = useState<number | null>(null);
   // The template the user picked, else the one that suits their role, else a sensible general one.
   const [picked, setTemplate] = useState<string | null>(null);
   const template = picked ?? profile?.defaultTemplate ?? TEMPLATE_CHOICES[1].id;
-  const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const refresh = useCallback(() => setTick((t) => t + 1), []);
 
-  useEffect(() => {
-    let cancelled = false;
-    getCapture(id).then(
-      (c) => {
-        if (cancelled) return;
-        setCap(c);
-        setError(null);
-      },
-      (err) => {
-        if (cancelled) return;
-        if (err instanceof ApiError && err.status === 404) setNotFound(true);
-        else
-          setError(
-            err instanceof Error
-              ? err.message
-              : "Could not load this recording.",
-          );
-      },
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [id, tick]);
+  const cancelMutation = useCancelMeeting();
+  const deleteMutation = useDeleteCapture();
+  const createDocMutation = useCreateDocument();
+
+  const { data: cap, error: queryError, isLoading } = useQuery({
+    ...captureQuery(id),
+    refetchInterval: (q) => {
+      const data = q.state.data as CaptureView | undefined;
+      if (!data) return false;
+      const st = captureStatus({ source: data.source, state: data.state, status: data.status });
+      const extracting = data.actions.state === "extracting";
+      const videoComing = data.videoStatus === "processing";
+      if (st.active || extracting || videoComing) return 3000;
+      return false;
+    },
+  });
+
+  const errorMessage = queryError
+    ? queryError instanceof Error
+      ? queryError.message
+      : "Could not load this recording."
+    : null;
+  const notFound = queryError instanceof ApiError && queryError.status === 404;
+
+  const busy = createDocMutation.isPending || deleteMutation.isPending;
+
+  const refresh = () => qc.invalidateQueries({ queryKey: qk.capture(id) });
 
   const status = cap
     ? captureStatus({
@@ -114,46 +113,39 @@ export function CaptureDetail({
       })
     : null;
   const extracting = cap?.actions.state === "extracting";
-  // The video is saved a little after the meeting ends, so keep looking until it is there (or has failed).
   const videoComing = cap?.videoStatus === "processing";
-  useEffect(() => {
-    if (!status?.active && !extracting && !videoComing) return;
-    const t = setInterval(refresh, 3000);
-    return () => clearInterval(t);
-  }, [status?.active, extracting, videoComing, refresh]);
 
   async function makeDocument() {
-    setBusy(true);
-    setError(null);
     try {
-      const { documentId } = await createDocument(id, template);
+      const { documentId } = await createDocMutation.mutateAsync({ captureId: id, template });
       router.push(`/dashboard/library/${documentId}`);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Could not start the document.",
-      );
-      setBusy(false);
+      // error is surfaced via mutation error; keep local error for display
+      // use queryError handling pattern: set via local state if needed
     }
   }
 
+  // surface mutation errors
+  const docError = createDocMutation.error instanceof Error ? createDocMutation.error.message : null;
+  const cancelError = cancelMutation.error instanceof Error ? cancelMutation.error.message : null;
+  const deleteError = deleteMutation.error instanceof Error ? deleteMutation.error.message : null;
+  const displayError = errorMessage ?? docError ?? cancelError ?? deleteError;
+
   async function cancelMeeting() {
-    setError(null);
     try {
-      await cancelMeetingCapture(id);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not cancel.");
+      await cancelMutation.mutateAsync(id);
+      // optimistic: mutation already invalidates; also force refresh
+      refresh();
+    } catch {
+      // error handled via cancelError
     }
-    refresh();
   }
 
   async function remove() {
-    setBusy(true);
     try {
-      await deleteCapture(id);
+      await deleteMutation.mutateAsync(id);
       router.push("/dashboard/library?tab=recordings");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not delete.");
-      setBusy(false);
+    } catch {
       setConfirmDelete(false);
     }
   }
@@ -176,12 +168,17 @@ export function CaptureDetail({
     );
   }
   if (!cap || !status) {
-    return error ? (
+    return displayError ? (
       <p
         role="alert"
         className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
-        {error}
+        {displayError}
       </p>
+    ) : isLoading ? (
+      <div className="space-y-4" aria-hidden>
+        <div className="h-8 w-64 animate-pulse rounded bg-border" />
+        <div className="h-48 animate-pulse rounded-xl bg-border/50" />
+      </div>
     ) : (
       <div className="space-y-4" aria-hidden>
         <div className="h-8 w-64 animate-pulse rounded bg-border" />
@@ -239,7 +236,7 @@ export function CaptureDetail({
         </div>
         <div className="flex gap-2">
           {meetingActive && (
-            <Button onClick={() => void cancelMeeting()}>Cancel capture</Button>
+            <Button onClick={() => void cancelMeeting()} disabled={cancelMutation.isPending}>Cancel capture</Button>
           )}
           {!meetingActive && (
             <Button
@@ -252,11 +249,11 @@ export function CaptureDetail({
         </div>
       </header>
 
-      {error && (
+      {displayError && (
         <p
           role="alert"
           className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
-          {error}
+          {displayError}
         </p>
       )}
       {cap.state === "failed" && cap.failureReason && (
@@ -301,7 +298,7 @@ export function CaptureDetail({
             id: "actions",
             label: "Actions",
             count: cap.actions.items.filter(
-              (a) => a.status === "suggested" || a.status === "confirmed",
+              (a: { status: string }) => a.status === "suggested" || a.status === "confirmed",
             ).length,
           },
         ]}
@@ -498,7 +495,7 @@ export function CaptureDetail({
               <p className="px-5 py-6 text-sm text-muted">None yet.</p>
             ) : (
               <ul className="divide-y divide-border">
-                {cap.documents.map((d) => {
+                {cap.documents.map((d: { id: string; title: string; template: string; status: string; editedByUser: boolean }) => {
                   const ds = documentStatus({
                     status: d.status,
                     editedByUser: d.editedByUser,

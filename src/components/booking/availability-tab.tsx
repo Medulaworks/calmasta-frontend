@@ -2,7 +2,8 @@
 
 import { Clock } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Confirm,
   ErrorBox,
@@ -21,11 +22,9 @@ import {
   WEEKDAYS,
   type Weekday,
   type WeeklyHours,
-  deleteAvailability,
-  listAvailabilities,
-  saveAvailability,
 } from "@/lib/booking-client";
-import { type ConnectionView, getConnections } from "@/lib/calendar-client";
+import { useDeleteAvailability, useSaveAvailability } from "@/lib/mutations";
+import { availabilitiesQuery, calendarConnectionsQuery } from "@/lib/queries";
 import { browserTimeZone } from "@/lib/tz";
 
 const NOTICE = [
@@ -77,46 +76,30 @@ const blank = (tz: string): AvailabilityInput => ({
 export function AvailabilityTab() {
   const profile = useProfile();
   const tz = profile?.timezone || browserTimeZone();
-  const [items, setItems] = useState<AvailabilityView[] | null>(null);
-  const [conns, setConns] = useState<ConnectionView[]>([]);
-  const [tick, setTick] = useState(0);
+  const availQ = useQuery(availabilitiesQuery);
+  const connQ = useQuery(calendarConnectionsQuery);
+  const items = availQ.data ?? null;
+  const conns = connQ.data?.connections ?? [];
+  const qError = (availQ.error as Error | undefined)?.message ?? (connQ.error as Error | undefined)?.message ?? null;
+  const saveM = useSaveAvailability();
+  const delM = useDeleteAvailability();
   const [editing, setEditing] = useState<AvailabilityView | "new" | null>(null);
   const [form, setForm] = useState<AvailabilityInput>(blank(tz));
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const error = localError ?? qError;
+  const busy = saveM.isPending || delM.isPending;
   const [confirmDelete, setConfirmDelete] = useState<AvailabilityView | null>(
     null,
   );
   const zones = useMemo(() => timeZoneChoices(form.timezone), [form.timezone]);
 
-  useEffect(() => {
-    let cancelled = false;
-    Promise.all([listAvailabilities(), getConnections()]).then(
-      ([a, c]) => {
-        if (cancelled) return;
-        setItems(a);
-        setConns(c.connections);
-      },
-      (err) =>
-        !cancelled &&
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Could not load your availability.",
-        ),
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [tick]);
-
-  const calendars = conns.flatMap((c) =>
-    c.calendars.map((k) => ({ ...k, account: c.accountEmail })),
+  const calendars = conns.flatMap((c: { calendars: Array<{ id: string; name: string }>; accountEmail: string }) =>
+    c.calendars.map((k: { id: string; name: string }) => ({ ...k, account: c.accountEmail })),
   );
 
   function open(a: AvailabilityView | "new") {
     setEditing(a);
-    setError(null);
+    setLocalError(null);
     setForm(
       a === "new"
         ? blank(tz)
@@ -145,32 +128,23 @@ export function AvailabilityTab() {
   }
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    setBusy(true);
-    setError(null);
+    setLocalError(null);
     try {
-      await saveAvailability(
-        form,
-        editing === "new" || !editing ? undefined : editing.id,
-      );
+      await saveM.mutateAsync({ input: form, id: editing === "new" || !editing ? undefined : editing.id });
       setEditing(null);
-      setTick((n) => n + 1);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save.");
+      setLocalError(err instanceof Error ? err.message : "Could not save.");
     }
-    setBusy(false);
   }
   async function remove() {
     if (!confirmDelete) return;
-    setBusy(true);
     try {
-      await deleteAvailability(confirmDelete.id);
+      await delM.mutateAsync(confirmDelete.id);
       setConfirmDelete(null);
-      setTick((n) => n + 1);
     } catch (err) {
       setConfirmDelete(null);
-      setError(err instanceof Error ? err.message : "Could not delete.");
+      setLocalError(err instanceof Error ? err.message : "Could not delete.");
     }
-    setBusy(false);
   }
   const summary = (w: WeeklyHours) => summarizeWeek(w);
 
@@ -432,7 +406,7 @@ export function AvailabilityTab() {
                       double booking.
                     </p>
                     <ul className="mt-2 space-y-1.5">
-                      {calendars.map((c) => (
+                      {calendars.map((c: { id: string; name: string; account: string }) => (
                         <li key={c.id}>
                           <label className="flex items-center gap-2 text-sm">
                             <input
@@ -444,7 +418,7 @@ export function AvailabilityTab() {
                                   conflictCalendarIds: e.target.checked
                                     ? [...form.conflictCalendarIds, c.id]
                                     : form.conflictCalendarIds.filter(
-                                        (x) => x !== c.id,
+                                        (x: string) => x !== c.id,
                                       ),
                                 })
                               }
@@ -472,7 +446,7 @@ export function AvailabilityTab() {
                       }
                       className={field}>
                       <option value="">Nowhere (MyJooba only)</option>
-                      {calendars.map((c) => (
+                      {calendars.map((c: { id: string; name: string; account: string }) => (
                         <option key={c.id} value={c.id}>
                           {c.name} · {c.account}
                         </option>
@@ -518,7 +492,7 @@ export function AvailabilityTab() {
           />
         ) : (
           <ul className="divide-y divide-border">
-            {items.map((a) => (
+            {items.map((a: AvailabilityView) => (
               <li
                 key={a.id}
                 className="flex flex-wrap items-start justify-between gap-3 px-5 py-4 text-sm">

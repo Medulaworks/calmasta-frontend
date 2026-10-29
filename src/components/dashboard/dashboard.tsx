@@ -2,18 +2,20 @@
 
 import { dashboardPath } from "@/lib/app-routes";
 
+import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, CheckCircle2, Circle, Clock, Gauge, ListChecks, Mic, Video } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import { useProfile } from "@/components/shell/profile-context";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
-import { type Dashboard, fetchDashboard } from "@/lib/dashboard-client";
-import { type PlanSummary, fetchPlan, formatDate } from "@/lib/plan-client";
+import { type Dashboard } from "@/lib/dashboard-client";
+import { type PlanSummary, formatDate } from "@/lib/plan-client";
 import { PLAN_LABEL } from "@/lib/plan-types";
+import { dashboardQuery } from "@/lib/queries";
 import { formatMinutes, greeting, timeAgo } from "@/lib/status";
 import { browserTimeZone, formatDay } from "@/lib/tz";
 import { ItemRow, ItemRowSkeleton } from "./item-row";
@@ -144,43 +146,24 @@ export function Dashboard() {
   const hour = useHour();
   const profile = useProfile();
   const timeZone = profile?.timezone || browserTimeZone();
-  const [data, setData] = useState<Dashboard | null>(null);
-  const [plan, setPlan] = useState<PlanSummary | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [tick, setTick] = useState(0);
-  const refresh = useCallback(() => setTick((t) => t + 1), []);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetchDashboard().then(
-      (d) => {
-        if (cancelled) return;
-        setData(d);
-        setError(null);
-      },
-      (err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Could not load your dashboard.");
-      },
-    );
-    fetchPlan().then((p) => !cancelled && setPlan(p), () => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, [tick]);
-
-  // While anything is still being processed, keep the numbers and statuses fresh.
-  const busy = (data?.stats.inProgress ?? 0) > 0;
-  useEffect(() => {
-    if (!busy) return;
-    const id = setInterval(refresh, 4000);
-    return () => clearInterval(id);
-  }, [busy, refresh]);
+  const {
+    data: dataRaw,
+    error: queryError,
+    refetch,
+  } = useQuery({
+    ...dashboardQuery,
+    refetchInterval: (q) => ((q.state.data as Dashboard | undefined)?.stats.inProgress ?? 0) > 0 ? 4000 : false,
+  });
+  const data = dataRaw ?? null;
+  const plan: PlanSummary | null = null;
+  const error = queryError ? (queryError instanceof Error ? queryError.message : "Could not load your dashboard.") : null;
+  const refresh = () => void refetch();
 
   const m = data?.metrics;
   // One list for everything recent: what is running now first, then meetings and recordings together, newest first.
   const conversations = data
-    ? [...data.inProgress, ...[...data.recentMeetings, ...data.recentRecordings].filter((r) => !data.inProgress.some((i) => i.id === r.id)).sort((a, b) => b.at.localeCompare(a.at))]
-        .filter((r, i, all) => all.findIndex((x) => x.id === r.id && x.kind === r.kind) === i)
+    ? [...data.inProgress, ...[...data.recentMeetings, ...data.recentRecordings].filter((r: Dashboard["recentRecordings"][number]) => !data.inProgress.some((i: Dashboard["inProgress"][number]) => i.id === r.id)).sort((a: Dashboard["recentRecordings"][number], b: Dashboard["recentRecordings"][number]) => b.at.localeCompare(a.at))]
+        .filter((r: Dashboard["recentRecordings"][number], i: number, all: Dashboard["recentRecordings"]) => all.findIndex((x: Dashboard["recentRecordings"][number]) => x.id === r.id && x.kind === r.kind) === i)
         .slice(0, 5)
     : null;
   const side = true;
@@ -230,11 +213,11 @@ export function Dashboard() {
               </Metric>
             )}
             {plan ? (
-              <Metric label="Allowance left" value={formatMinutes(plan.remainingMinutes)} icon={<Gauge className="h-4 w-4" />} href="/dashboard/plan" tone={plan.exhausted ? "warning" : undefined}>
+              <Metric label="Allowance left" value={formatMinutes((plan as PlanSummary).remainingMinutes)} icon={<Gauge className="h-4 w-4" />} href="/dashboard/plan" tone={(plan as PlanSummary).exhausted ? "warning" : undefined}>
                 <span className="block h-1.5 overflow-hidden rounded-full bg-border" aria-hidden>
-                  <span className={`block h-full rounded-full ${plan.exhausted ? "bg-danger-solid" : "bg-accent-solid"}`} style={{ width: `${Math.min(100, Math.round((plan.usedMinutes / Math.max(1, plan.allowanceMinutes)) * 100))}%` }} />
+                  <span className={`block h-full rounded-full ${(plan as PlanSummary).exhausted ? "bg-danger-solid" : "bg-accent-solid"}`} style={{ width: `${Math.min(100, Math.round(((plan as PlanSummary).usedMinutes / Math.max(1, (plan as PlanSummary).allowanceMinutes)) * 100))}%` }} />
                 </span>
-                <span className="mt-1.5 block text-xs text-muted">{PLAN_LABEL[plan.plan.plan]} · resets {formatDate(plan.resetsAt, plan.timezone)}</span>
+                <span className="mt-1.5 block text-xs text-muted">{PLAN_LABEL[(plan as PlanSummary).plan.plan]} · resets {formatDate((plan as PlanSummary).resetsAt, (plan as PlanSummary).timezone)}</span>
               </Metric>
             ) : (
               <Metric label="In progress" value={data.stats.inProgress} icon={<Gauge className="h-4 w-4" />} href="/dashboard/library?tab=recordings">
@@ -250,7 +233,7 @@ export function Dashboard() {
       {data && data.needsAttention.length > 0 && (
         <section aria-label="Needs attention" className="rounded-xl border border-danger/30 bg-danger/5">
           <ul className="divide-y divide-danger/15">
-            {data.needsAttention.slice(0, 2).map((it) => (
+            {data.needsAttention.slice(0, 2).map((it: Dashboard["needsAttention"][number]) => (
               <li key={`${it.kind}-${it.id}`}>
                 <Link href={dashboardPath(it.href)} className="flex items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-danger/5">
                   <AlertTriangle aria-hidden className="h-4 w-4 shrink-0 text-danger" />

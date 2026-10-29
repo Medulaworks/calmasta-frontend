@@ -3,6 +3,7 @@
 import { Mic, Square, Upload, Video } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -13,16 +14,13 @@ import {
   formatBytes,
   formatDuration,
 } from "@/lib/audio";
-import {useCapturePolicy} from "@/hooks/use-capture-policy";
+import { capturePolicyQuery, capturesQuery, captureQuery } from "@/lib/queries";
+import { useUploadAudio } from "@/lib/mutations";
 import { captureStatus, timeAgo } from "@/lib/status";
 import {
   type CaptureListItem,
   type CaptureView,
-  getCapture,
   isTerminal,
-  listCaptures,
-  stateLabel,
-  uploadAudio,
 } from "@/lib/upload-client";
 
 type Phase = "idle" | "requesting" | "recording";
@@ -68,8 +66,10 @@ function describeMicError(err: unknown): string {
 }
 
 export function VoiceRecorder() {
-  const {policy,policyError}=useCapturePolicy();
+  const { data: policy, error: policyErrorRaw } = useQuery(capturePolicyQuery);
+  const policyError = policyErrorRaw instanceof Error ? policyErrorRaw.message : policyErrorRaw ? String(policyErrorRaw) : null;
   const [consent,setConsent]=useState(false);
+  const [titleMode,setTitleMode]=useState<"auto"|"mine">("auto");
   const maxSeconds=policy?.maxUploadDurationSeconds??MAX_RECORDING_SECONDS;
   const supported = useSyncExternalStore(subscribeNone, recordingSupported, () => true);
 
@@ -79,6 +79,8 @@ export function VoiceRecorder() {
   const [title, setTitle] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [job, setJob] = useState<Job | null>(null);
+
+  const uploadMutation = useUploadAudio();
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -121,44 +123,51 @@ export function VoiceRecorder() {
     return () => clearInterval(id);
   }, [phase,maxSeconds]);
 
-  // Poll processing status until the item reaches a resting state.
+  // Poll processing status via TanStack Query until the item reaches a resting state.
   const processingId = job?.kind === "processing" ? job.captureId : null;
+  const processingQuery = useQuery({
+    ...captureQuery(processingId ?? ""),
+    enabled: !!processingId,
+    refetchInterval: (q) => {
+      const data = q.state.data as CaptureView | undefined;
+      if (!data) return 2000;
+      if (isTerminal(data.state)) return false;
+      return 2000;
+    },
+  });
+
   useEffect(() => {
     if (!processingId) return;
-    let stopped = false;
-    let timer: ReturnType<typeof setTimeout>;
-    async function tick() {
-      try {
-        const capture = await getCapture(processingId!);
-        if (stopped) return;
-        if (["failed","reconciliation_required","transcription_failed","cancelled","host_denied","admission_timeout"].includes(capture.state)) {
-          setJob({ kind: "failed", captureId: processingId, message: capture.failureReason ?? "Processing failed." });
-        } else if (isTerminal(capture.state)) {
-          setJob({ kind: "done", captureId: processingId!, capture });
-        } else {
-          setJob({ kind: "processing", captureId: processingId!, capture });
-          timer = setTimeout(tick, 2000);
-        }
-      } catch (err) {
-        if (stopped) return;
-        setJob({ kind: "failed", captureId: processingId, message: err instanceof Error ? err.message : "Lost contact with the server." });
-      }
+    const capture = processingQuery.data as CaptureView | undefined;
+    const err = processingQuery.error;
+    if (err) {
+      setJob({ kind: "failed", captureId: processingId, message: err instanceof Error ? err.message : "Lost contact with the server." });
+      return;
     }
-    void tick();
-    return () => {
-      stopped = true;
-      clearTimeout(timer);
-    };
-  }, [processingId]);
+    if (!capture) return;
+    if (["failed","reconciliation_required","transcription_failed","cancelled","host_denied","admission_timeout"].includes(capture.state)) {
+      setJob({ kind: "failed", captureId: processingId, message: capture.failureReason ?? "Processing failed." });
+    } else if (isTerminal(capture.state)) {
+      setJob({ kind: "done", captureId: processingId!, capture });
+    } else {
+      setJob((prev) => {
+        // avoid redundant updates
+        if (prev?.kind === "processing" && prev.capture?.state === capture.state) return prev;
+        return { kind: "processing", captureId: processingId!, capture };
+      });
+    }
+  }, [processingId, processingQuery.data, processingQuery.error]);
 
   async function submit() {
     if (!selected || !consent) return;
     setError(null);
     setJob({ kind: "uploading", progress: 0 });
     try {
-      const captureId = await uploadAudio(
-        { blob: selected.blob, filename: selected.name, title, source: selected.source === "recording" ? "voice_recording" : "audio_upload",consent },
-        (progress) => setJob({ kind: "uploading", progress }),
+      const captureId = await uploadMutation.mutateAsync(
+        {
+          input: { blob: selected.blob, filename: selected.name, title: titleMode === "mine" ? title : "", source: selected.source === "recording" ? "voice_recording" : "audio_upload",consent },
+          onProgress: (progress) => setJob({ kind: "uploading", progress }),
+        },
       );
       setJob({ kind: "processing", captureId, capture: null });
     } catch (err) {
@@ -167,7 +176,7 @@ export function VoiceRecorder() {
     }
   }
 
-  function discardEverything(){setJob(null);setSelected(null);setTitle("");setConsent(false);}
+  function discardEverything(){setJob(null);setSelected(null);setTitle("");setTitleMode("auto");setConsent(false);}
 
   async function startRecording() {
     setError(null);
@@ -257,7 +266,9 @@ export function VoiceRecorder() {
       return;
     }
     setError(null);
-    if (!title) setTitle(file.name.replace(/\.[^.]+$/, ""));
+    if (!title && titleMode === "auto") {
+      // Suggest file name as title but keep auto mode unless user switches to custom
+    }
     setConsent(false);
     setSelected({
       blob: file,
@@ -353,10 +364,33 @@ export function VoiceRecorder() {
             {selected.source === "recording" ? "Recording" : selected.name} · {formatBytes(selected.blob.size)}
             {selected.durationSeconds !== null && ` · ${formatDuration(selected.durationSeconds)}`}
           </p>
-          <label className="block text-sm">
-            <span className="font-medium">What is this recording about?</span>
-            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} placeholder="Optional title" className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2" />
-          </label>
+          <div className="flex flex-wrap items-start gap-3">
+            <label className="text-sm">
+              <span className="sr-only">Title</span>
+              <select
+                value={titleMode}
+                onChange={(e) => setTitleMode(e.target.value as "auto" | "mine")}
+                className="rounded-lg border border-border bg-surface px-3 py-2 text-sm"
+              >
+                <option value="auto">Auto-generated title</option>
+                <option value="mine">Choose a title</option>
+              </select>
+            </label>
+            {titleMode === "mine" ? (
+              <label className="min-w-[12rem] flex-1 text-sm">
+                <span className="sr-only">Meeting title</span>
+                <input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  maxLength={200}
+                  placeholder="Quarterly planning"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2"
+                />
+              </label>
+            ) : (
+              <p className="flex-1 py-2 text-sm text-muted">We’ll generate a title from the transcript.</p>
+            )}
+          </div>
           {job?.kind === "uploading" && (
             <div role="status">
               <progress value={job.progress} max={1} className="h-1.5 w-full overflow-hidden rounded-full accent-[var(--accent-solid)]" aria-label="Upload progress" />
@@ -365,7 +399,7 @@ export function VoiceRecorder() {
           )}
           {job?.kind === "processing" && (
             <p role="status" className="text-sm">
-              {stateLabel(job.capture?.state ?? "uploaded")}…
+              {processingQuery.data ? (processingQuery.data as CaptureView).state : "uploaded"}…
             </p>
           )}
           {job?.kind === "failed" && (
@@ -394,39 +428,24 @@ export function VoiceRecorder() {
           {(!policy||!policy.uploadEnabled)&&<p role="status" className="text-sm text-muted">{policyError??(policy?"Uploading is not enabled for this account yet.":"Loading capture limits…")}</p>}
           {job?.kind==="processing"&&policy&&!policy.liveProcessingEnabled&&<p className="text-sm text-muted">Your recording is saved. Processing is currently paused.</p>}
           <div className="flex items-center gap-2">
-            <Button variant="primary" onClick={submit} disabled={!consent || !policy?.uploadEnabled || job?.kind === "uploading" || job?.kind === "processing" || job?.kind === "done"}>
+            <Button variant="primary" onClick={submit} disabled={!consent || !policy?.uploadEnabled || job?.kind === "uploading" || job?.kind === "processing" || job?.kind === "done" || uploadMutation.isPending}>
               {job?.kind === "failed" ? "Try again" : "Upload and transcribe"}
             </Button>
-            <Button variant="ghost" onClick={discardEverything} disabled={job?.kind === "uploading"}>
+            <Button variant="ghost" onClick={discardEverything} disabled={job?.kind === "uploading" || uploadMutation.isPending}>
               Clear selection
             </Button>
           </div>
         </section>
       )}
 
-      <RecentRecordings refreshKey={job?.kind === "done" ? job.captureId : ""} />
+      <RecentRecordings />
     </div>
   );
 }
 
 /** The last few recordings and meetings, so Capture is also where you see what you captured. */
-function RecentRecordings({ refreshKey }: { refreshKey: string }) {
-  const [items, setItems] = useState<CaptureListItem[] | null>(null);
-  const [failed, setFailed] = useState(false);
-  useEffect(() => {
-    let cancelled = false;
-    listCaptures(6, "recordings").then(
-      (c) => {
-        if (cancelled) return;
-        setItems(c);
-        setFailed(false);
-      },
-      () => !cancelled && setFailed(true),
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [refreshKey]);
+function RecentRecordings() {
+  const { data: items, isLoading, isError } = useQuery(capturesQuery(6, "recordings"));
 
   return (
     <Card>
@@ -439,9 +458,9 @@ function RecentRecordings({ refreshKey }: { refreshKey: string }) {
           </Link>
         }
       />
-      {failed && items === null ? (
+      {isError && !items ? (
         <p role="alert" className="px-5 py-6 text-sm text-danger">Couldn&rsquo;t load your recordings just now.</p>
-      ) : items === null ? (
+      ) : isLoading ? (
         <ul aria-hidden className="divide-y divide-border">
           {[0, 1, 2].map((i) => (
             <li key={i} className="flex items-center gap-3 px-5 py-3">
@@ -450,11 +469,11 @@ function RecentRecordings({ refreshKey }: { refreshKey: string }) {
             </li>
           ))}
         </ul>
-      ) : items.length === 0 ? (
+      ) : !items || items.length === 0 ? (
         <EmptyState icon={<Mic />} title="Nothing recorded yet" body="Your recordings and captured meetings will be listed here." />
       ) : (
         <ul aria-labelledby="recent-recordings" className="divide-y divide-border">
-          {items.map((c) => {
+          {items.map((c: CaptureListItem) => {
             const st = captureStatus({ source: c.source, state: c.state, status: c.status });
             const Icon = c.source === "meeting_url" ? Video : Mic;
             return (

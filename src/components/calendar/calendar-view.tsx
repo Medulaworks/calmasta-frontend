@@ -10,7 +10,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useProfile } from "@/components/shell/profile-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,9 +21,8 @@ import {
   type Agenda,
   type AgendaEvent,
   type ConnectionView,
-  getAgenda,
-  getConnections,
 } from "@/lib/calendar-client";
+import { agendaQuery, calendarConnectionsQuery } from "@/lib/queries";
 import {
   EMPTY_FILTERS,
   type MeetingFilters,
@@ -87,13 +87,20 @@ export function CalendarView() {
       : null;
   const timeZone = profile?.timezone || browserTimeZone();
 
-  const [conns, setConns] = useState<{
-    provider: string;
-    connections: ConnectionView[];
-  } | null>(null);
+  const queryClient = useQueryClient();
+  const {
+    data: connsRaw,
+    error: connsError,
+  } = useQuery(calendarConnectionsQuery);
+  const conns = connsRaw ?? null;
   const [error, setError] = useState<string | null>(null);
-  const [tick, setTick] = useState(0);
-  const reload = useCallback(() => setTick((n) => n + 1), []);
+  const connsErrorMsg = connsError ? (connsError instanceof Error ? connsError.message : "Could not load your calendars.") : null;
+  const displayError = error ?? connsErrorMsg;
+  const reload = () => {
+    setError(null);
+    void queryClient.invalidateQueries({ queryKey: calendarConnectionsQuery.queryKey });
+    void queryClient.invalidateQueries({ queryKey: ["calendar", "agenda"] });
+  };
   const [manage, setManage] = useState(false);
 
   const [tab, setTab] = useState<Tab>("upcoming");
@@ -133,50 +140,24 @@ export function CalendarView() {
   }, [filters.from, filters.to, tab, steps, timeZone, now]);
   const winKey = `${win.from.toISOString()}|${win.to.toISOString()}`;
 
-  useEffect(() => {
-    let cancelled = false;
-    getConnections().then(
-      (c) => !cancelled && setConns(c),
-      (err) =>
-        !cancelled &&
-        setError(
-          err instanceof Error ? err.message : "Could not load your calendars.",
-        ),
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [tick]);
-
-  const [agenda, setAgenda] = useState<{
-    key: string;
-    data: Agenda | null;
-    error?: string;
-  } | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    getAgenda(win.from, win.to).then(
-      (data) => !cancelled && setAgenda({ key: winKey, data }),
-      (err) =>
-        !cancelled &&
-        setAgenda({
-          key: winKey,
-          data: null,
-          error:
-            err instanceof Error
-              ? err.message
-              : "Could not load your meetings.",
-        }),
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [win.from, win.to, winKey, tick]);
-
-  const loading = !agenda || agenda.key !== winKey;
-  const loaded = useMemo(
-    () => (loading ? [] : (agenda!.data?.events ?? [])),
-    [loading, agenda],
+  const {
+    data: agendaData,
+    error: agendaError,
+    isLoading: agendaLoading,
+    isFetching: agendaFetching,
+  } = useQuery({
+    ...agendaQuery(win.from, win.to),
+    placeholderData: (prev) => prev,
+  });
+  const agenda: { key: string; data: Agenda | null; error?: string } | null = agendaError
+    ? { key: winKey, data: null, error: agendaError instanceof Error ? agendaError.message : "Could not load your meetings." }
+    : agendaData
+      ? { key: winKey, data: agendaData }
+      : null;
+  const loading = agendaLoading || (agendaFetching && !agendaData);
+  const loaded: AgendaEvent[] = useMemo(
+    () => (agenda?.data?.events ?? []),
+    [agenda],
   );
   // Outside a date range, Upcoming and Past split the loaded window at "now".
   const inTab = useMemo(
@@ -224,11 +205,11 @@ export function CalendarView() {
           {outcome.text}
         </p>
       )}
-      {error && (
+      {displayError && (
         <p
           role="alert"
           className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
-          {error}
+          {displayError}
         </p>
       )}
 
@@ -240,16 +221,16 @@ export function CalendarView() {
             <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
               <span className="font-medium">
                 {conns
-                  ? conns.connections.map((c) => c.accountEmail).join(", ")
+                  ? conns.connections.map((c: ConnectionView) => c.accountEmail).join(", ")
                   : "Loading calendars…"}
               </span>
               {conns?.connections.some(
-                (c) => c.status === "needs_reconnect",
+                (c: ConnectionView) => c.status === "needs_reconnect",
               ) && <Badge tone="warning">Needs reconnecting</Badge>}
               {conns &&
                 (() => {
                   const n = conns.connections.reduce(
-                    (t, c) => t + c.calendars.length,
+                    (t: number, c: ConnectionView) => t + c.calendars.length,
                     0,
                   );
                   const a = conns.connections.length;
@@ -352,7 +333,7 @@ export function CalendarView() {
         </p>
       )}
 
-      {data?.problems.map((p) => (
+      {data?.problems.map((p: Agenda["problems"][number]) => (
         <p
           key={p.connectionId}
           role="status"

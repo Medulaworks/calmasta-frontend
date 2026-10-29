@@ -1,5 +1,6 @@
 "use client";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, TriangleAlert } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +12,7 @@ import {
   connectDevCalendar,
   disconnectCalendar,
 } from "@/lib/calendar-client";
+import { qk } from "@/lib/queries";
 
 /** The connected calendars, how to connect one, and the confirmed way to disconnect. Connecting never starts a recording. */
 export function ConnectionsPanel({
@@ -25,30 +27,34 @@ export function ConnectionsPanel({
   const [disconnecting, setDisconnecting] = useState<ConnectionView | null>(
     null,
   );
-  const [busy, setBusy] = useState(false);
+  const queryClient = useQueryClient();
   const isDev = conns?.provider === "mock";
 
-  async function connect() {
-    setBusy(true);
-    try {
-      await connectDevCalendar();
+  const connectMut = useMutation({
+    mutationFn: () => connectDevCalendar(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: qk.calendarConnections() });
       onChanged();
-    } catch (err) {
-      onError(err instanceof Error ? err.message : "Could not connect.");
-    }
-    setBusy(false);
-  }
-  async function confirmDisconnect() {
-    if (!disconnecting) return;
-    setBusy(true);
-    try {
-      await disconnectCalendar(disconnecting.id);
+    },
+    onError: (err) => onError(err instanceof Error ? err.message : "Could not connect."),
+  });
+  const disconnectMut = useMutation({
+    mutationFn: (id: string) => disconnectCalendar(id),
+    onSuccess: () => {
       setDisconnecting(null);
+      queryClient.invalidateQueries({ queryKey: qk.calendarConnections() });
       onChanged();
-    } catch (err) {
-      onError(err instanceof Error ? err.message : "Could not disconnect.");
-    }
-    setBusy(false);
+    },
+    onError: (err) => onError(err instanceof Error ? err.message : "Could not disconnect."),
+  });
+  const busy = connectMut.isPending || disconnectMut.isPending;
+
+  function connect() {
+    connectMut.mutate();
+  }
+  function confirmDisconnect() {
+    if (!disconnecting) return;
+    disconnectMut.mutate(disconnecting.id);
   }
 
   return (

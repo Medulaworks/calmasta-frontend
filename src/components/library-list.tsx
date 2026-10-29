@@ -2,6 +2,7 @@
 
 import { dashboardPath } from "@/lib/app-routes";
 
+import { useQuery } from "@tanstack/react-query";
 import { FileText, Mic, Search, Video, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -12,10 +13,10 @@ import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, tabId, tabPanelId } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/ui/empty-state";
-import { type DocumentListItem, listDocuments, templateLabel } from "@/lib/documents-client";
+import { templateLabel } from "@/lib/documents-client";
 import { captureStatus, documentStatus, timeAgo } from "@/lib/status";
-import { EMPTY_QUERY, type LibraryQuery, type LibraryResult, isSearching, searchLibrary } from "@/lib/library-client";
-import { type CaptureListItem, listCaptures } from "@/lib/upload-client";
+import { EMPTY_QUERY, type LibraryQuery, type LibraryResult, isSearching } from "@/lib/library-client";
+import { capturesQuery, documentsQuery, libraryQuery } from "@/lib/queries";
 
 type Tab = "documents" | "recordings";
 
@@ -96,45 +97,37 @@ export function LibraryList() {
   });
   const update = (patch: Partial<LibraryQuery>) => router.replace(urlFor({ ...filters, ...patch }, tab), { scroll: false });
 
-  const [results, setResults] = useState<LibraryResult[] | null>(null);
-  const [searchError, setSearchError] = useState<string | null>(null);
   const tooShort = filters.q.trim().length === 1;
-  const key = JSON.stringify(filters);
-  useEffect(() => {
-    if (!isSearching(filters) || tooShort) return;
-    const ctrl = new AbortController();
-    searchLibrary(filters, ctrl.signal).then(
-      (r) => {
-        setResults(r);
-        setSearchError(null);
-      },
-      (err) => {
-        if (ctrl.signal.aborted) return;
-        setSearchError(err instanceof Error ? err.message : "Could not search your library.");
-        setResults([]);
-      },
-    );
-    return () => ctrl.abort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
-  const [docs, setDocs] = useState<DocumentListItem[] | null>(null);
-  const [caps, setCaps] = useState<CaptureListItem[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    data: searchPage,
+    error: searchErr,
+  } = useQuery({
+    ...libraryQuery(filters),
+    enabled: isSearching(filters) && !tooShort,
+  });
+  const results: LibraryResult[] | null = !isSearching(filters) || tooShort ? [] : searchPage ? searchPage.results : null;
+  const searchError = searchErr ? (searchErr instanceof Error ? searchErr.message : "Could not search your library.") : null;
 
-  useEffect(() => {
-    let cancelled = false;
-    const fail = (err: unknown) => {
-      if (cancelled) return;
-      setError(err instanceof Error ? err.message : "Could not load your library.");
-      setDocs((d) => d ?? []);
-      setCaps((c) => c ?? []);
-    };
-    listDocuments().then((d) => !cancelled && setDocs(d), fail);
-    listCaptures(50).then((c) => !cancelled && setCaps(c), fail);
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const {
+    data: docsRaw,
+    error: docsErr,
+    isLoading: docsLoading,
+  } = useQuery({
+    ...documentsQuery,
+    enabled: !searching,
+  });
+  const {
+    data: capsRaw,
+    error: capsErr,
+    isLoading: capsLoading,
+  } = useQuery({
+    ...capturesQuery(50),
+    enabled: !searching,
+  });
+  const docs = !searching ? (docsRaw ?? (docsLoading ? null : [])) : null;
+  const caps = !searching ? (capsRaw ?? (capsLoading ? null : [])) : null;
+  const errorRaw = docsErr ?? capsErr;
+  const error = errorRaw ? (errorRaw instanceof Error ? errorRaw.message : "Could not load your library.") : null;
 
   const tabs: Array<{ id: Tab; label: string; count: number | null }> = [
     { id: "documents", label: "Documents", count: docs?.length ?? null },
@@ -226,7 +219,7 @@ export function LibraryList() {
             <EmptyState icon={<FileText className="h-5 w-5" />} title="No documents yet" body="Open a recording and choose a template to write your first document." action={<ButtonLink href="/dashboard/voice" variant="primary">Record a thought</ButtonLink>} />
           ) : (
             <ul className="divide-y divide-border" role="tabpanel" id={tabPanelId("documents")} aria-labelledby={tabId("documents")}>
-              {docs.map((d) => {
+              {docs.map((d: import("@/lib/documents-client").DocumentListItem) => {
                 const st = documentStatus({ status: d.status, failureReason: d.failureReason, editedByUser: d.editedByUser });
                 return (
                   <li key={d.id}>
@@ -249,7 +242,7 @@ export function LibraryList() {
           <EmptyState icon={<Mic className="h-5 w-5" />} title="No recordings yet" body="Record a thought, upload audio or capture a meeting." action={<ButtonLink href="/dashboard/voice" variant="primary">Record a thought</ButtonLink>} />
         ) : (
           <ul className="divide-y divide-border" role="tabpanel" id={tabPanelId("recordings")} aria-labelledby={tabId("recordings")}>
-            {caps.map((c) => {
+            {caps.map((c: import("@/lib/upload-client").CaptureListItem) => {
               const st = captureStatus({ source: c.source, state: c.state, status: c.status });
               const Icon = c.source === "meeting_url" ? Video : Mic;
               return (

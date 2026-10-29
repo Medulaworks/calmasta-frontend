@@ -1,23 +1,21 @@
 "use client";
 
-import { createMeetingPoller } from "@/lib/meeting-poller";
-import { useCapturePolicy } from "@/hooks/use-capture-policy";
+import { useQuery } from "@tanstack/react-query";
 import { Video } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { captureStatus, timeAgo } from "@/lib/status";
+import { capturesQuery, capturePolicyQuery } from "@/lib/queries";
+import { useRequestMeeting, useCancelMeeting } from "@/lib/mutations";
 import {
   type CaptureListItem,
   PLATFORM_LABELS,
-  cancelMeetingCapture,
   isMeetingActive,
-  listCaptures,
-  requestMeetingCapture,
 } from "@/lib/upload-client";
 
 export function CaptureForm() {
@@ -25,50 +23,43 @@ export function CaptureForm() {
   const search = useSearchParams();
   const [url, setUrl] = useState(() => search.get("link") ?? "");
   const [consent, setConsent] = useState(false);
-  const { policy, policyError } = useCapturePolicy();
-  const [durationMinutes, setDurationMinutes] = useState(1);
-  const [busy, setBusy] = useState(false);
+  const { data: policy, error: policyErrorRaw } = useQuery(capturePolicyQuery);
+  const policyError = policyErrorRaw instanceof Error ? policyErrorRaw.message : policyErrorRaw ? String(policyErrorRaw) : null;
+  const [durationMinutes, setDurationMinutes] = useState(30);
+  const [titleMode, setTitleMode] = useState<"auto" | "mine">("auto");
+  const [title, setTitle] = useState("");
+  const [recordVideo, setRecordVideo] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [listError, setListError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [items, setItems] = useState<CaptureListItem[] | null>(null);
 
-  const poller = useRef<ReturnType<typeof createMeetingPoller> | null>(null);
-  const refresh = useCallback(() => poller.current?.refresh(), []);
+  const requestMutation = useRequestMeeting();
+  const cancelMutation = useCancelMeeting();
 
-  useEffect(() => {
-    const controller = new AbortController();
-    poller.current = createMeetingPoller(async () => {
-      try {
-        const all = await listCaptures(50, "meetings", controller.signal);
-        if (!controller.signal.aborted) {
-          setItems(all);
-          setListError(null);
-        }
-        return all.some((capture) => isMeetingActive(capture.status));
-      } catch (err) {
-        if (!controller.signal.aborted) {
-          setItems((prev) => prev ?? []);
-          setListError(err instanceof Error ? err.message : "Could not load your captures.");
-        }
-        throw err;
-      }
-    }, document);
-    return () => {
-      poller.current?.stop();
-      poller.current = null;
-      controller.abort();
-    };
-  }, []);
+  const captures = useQuery({
+    ...capturesQuery(50, "meetings"),
+    refetchInterval: (q) => {
+      const data = q.state.data as Array<{ status: string }> | undefined;
+      if (!data) return 15000;
+      const hasActive = data.some((capture) => isMeetingActive(capture.status));
+      return hasActive ? 15000 : false;
+    },
+  });
+  const items = captures.data ?? null;
+  const listError = captures.isError ? (captures.error instanceof Error ? captures.error.message : "Could not load your captures.") : null;
+
+  const busy = requestMutation.isPending;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setNotice(null);
-    setBusy(true);
     try {
-      await requestMeetingCapture(url, consent, undefined, false, {
-        maxDurationSeconds: Math.min(
+      await requestMutation.mutateAsync({
+        url,
+        consent,
+        title: titleMode === "mine" ? title : undefined,
+        video: recordVideo,
+        seconds: Math.min(
           Math.round(durationMinutes * 60),
           policy?.maxMeetingDurationSeconds ?? 0,
         ),
@@ -78,26 +69,25 @@ export function CaptureForm() {
       );
       setUrl("");
       setConsent(false);
-      refresh();
+      setTitle("");
+      setTitleMode("auto");
+      setRecordVideo(false);
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
           : "Something went wrong. Please try again.",
       );
-    } finally {
-      setBusy(false);
     }
   }
 
   async function cancel(id: string) {
     setError(null);
     try {
-      await cancelMeetingCapture(id);
+      await cancelMutation.mutateAsync(id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not cancel.");
     }
-    refresh();
   }
 
   return (
@@ -140,9 +130,45 @@ export function CaptureForm() {
                 />
               </label>
             )}
-            <p className="text-xs text-muted">
-              This capture records audio. Video recording is not available.
-            </p>
+            <div className="flex flex-wrap items-start gap-3">
+              <label className="text-sm">
+                <span className="sr-only">Title</span>
+                <select
+                  value={titleMode}
+                  onChange={(e) => setTitleMode(e.target.value as "auto" | "mine")}
+                  className="rounded-lg border border-border bg-surface px-3 py-2 text-sm"
+                >
+                  <option value="auto">Auto-generated title</option>
+                  <option value="mine">Choose a title</option>
+                </select>
+              </label>
+              {titleMode === "mine" && (
+                <label className="min-w-[12rem] flex-1 text-sm">
+                  <span className="sr-only">Meeting title</span>
+                  <input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    maxLength={200}
+                    placeholder="Quarterly planning"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2"
+                  />
+                </label>
+              )}
+            </div>
+            <label className="flex items-start gap-3 text-sm">
+              <input
+                type="checkbox"
+                checked={recordVideo}
+                onChange={(e) => setRecordVideo(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent-solid)]"
+              />
+              <span>
+                <span className="font-medium">Also record the video</span>
+                <span className="mt-0.5 block text-xs text-muted">
+                  Off unless you choose it. Private to you, and removed on the same schedule as audio.
+                </span>
+              </span>
+            </label>
             <label className="flex items-start gap-3 text-sm">
               <input
                 type="checkbox"
@@ -151,9 +177,8 @@ export function CaptureForm() {
                 className="mt-0.5 h-4 w-4 shrink-0"
               />
               <span>
-                I have the right to record this meeting and I will tell its
-                participants. A visible assistant named “
-                {policy?.botName ?? "Recording assistant"}” will join and may
+                I have the right to record this meeting{recordVideo ? ", including its video," : ""} and I will tell its
+                participants. A visible assistant named “{policy?.botName ?? "Recording assistant"}” will join and may
                 need to be admitted by the host.
               </span>
             </label>
@@ -228,7 +253,7 @@ export function CaptureForm() {
           <ul
             aria-labelledby="history-heading"
             className="divide-y divide-border">
-            {items.map((c) => {
+            {items.map((c: CaptureListItem) => {
               const st = captureStatus({
                 source: c.source,
                 state: c.state,
@@ -267,7 +292,7 @@ export function CaptureForm() {
                     </span>
                   </Link>
                   {isMeetingActive(c.status) && (
-                    <Button size="sm" onClick={() => void cancel(c.id)}>
+                    <Button size="sm" onClick={() => void cancel(c.id)} disabled={cancelMutation.isPending}>
                       Cancel
                     </Button>
                   )}

@@ -41,10 +41,10 @@ import { type PlanSummary, formatDate } from "@/lib/plan-client";
 import { PLAN_LABEL, isPaidPlan } from "@/lib/plan-types";
 import {
   type NotificationItem,
-  type NotificationList,
-  fetchNotifications,
-  markNotificationsRead,
 } from "@/lib/notifications-client";
+import { useMarkNotificationsRead } from "@/lib/mutations";
+import { notificationsQuery } from "@/lib/queries";
+import { useQuery } from "@tanstack/react-query";
 import type { ProfileView } from "@/lib/profile-client";
 import { formatMinutes, timeAgo } from "@/lib/status";
 
@@ -62,52 +62,44 @@ const TONE_COLOR = {
 } as const;
 
 function Notifications({ pathname }: { pathname: string }) {
-  const [list, setList] = useState<NotificationList | null>(null);
-  const [failed, setFailed] = useState(false);
   const [open, setOpen] = useState(false);
   const panel = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
+  const markRead = useMarkNotificationsRead();
+  // Keep a local copy so "New" marks persist until panel closes
+  const [local, setLocal] = useState<{ unread: number; items: NotificationItem[] } | null>(null);
+  const q = useQuery({
+    ...notificationsQuery,
+    refetchInterval: 60_000,
+  });
+  // Sync server data to local when panel closed
+  useEffect(() => {
+    if (!q.data) return;
+    if (open && local) return;
+    setLocal(q.data);
+  }, [q.data, open, local]);
+  // Refetch on pathname change
+  useEffect(() => {
+    void q.refetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  const list = local;
+  const failed = !!q.error && !list;
   const close = useCallback(() => {
     setOpen(false);
-    // Once closed, everything that was new counts as read.
-    setList((l) =>
-      l
-        ? { unread: 0, items: l.items.map((i) => ({ ...i, unread: false })) }
-        : l,
-    );
+    setLocal((l) => (l ? { unread: 0, items: l.items.map((i) => ({ ...i, unread: false })) } : l));
   }, []);
   useDismiss(open, close, panel, trigger);
-
-  // Look for news on every page change, and every minute while the tab is open.
-  useEffect(() => {
-    let cancelled = false;
-    const load = () =>
-      fetchNotifications().then(
-        (l) => {
-          if (cancelled) return;
-          setFailed(false);
-          // While the panel is open keep what the person is reading steady.
-          setList((cur) => (open && cur ? cur : l));
-        },
-        () => !cancelled && setFailed(true),
-      );
-    void load();
-    const t = setInterval(() => void load(), 60_000);
-    return () => {
-      cancelled = true;
-      clearInterval(t);
-    };
-  }, [pathname, open]);
 
   const unread = list?.unread ?? 0;
   function toggle() {
     if (open) return close();
     setOpen(true);
     if (unread > 0) {
-      // The badge clears straight away; the rows keep their "new" marks until the panel closes.
       const ids = list?.items.filter((i) => i.unread).map((i) => i.id) ?? [];
-      void markNotificationsRead(ids).catch(() => undefined);
-      setList((l) => (l ? { ...l, unread: 0 } : l));
+      void markRead.mutateAsync(ids).catch(() => undefined);
+      setLocal((l) => (l ? { ...l, unread: 0 } : l));
     }
   }
 
