@@ -1,5 +1,5 @@
 import type { PlanId } from "./plan-types";
-import { api } from "./upload-client";
+import { ApiError } from "./upload-client";
 
 export type PlanStatus = "none" | "pending_activation" | "active" | "grace" | "expired";
 
@@ -40,23 +40,19 @@ export interface DeletionView {
   startsAt: string | null;
 }
 
-const call = <T>(url: string, init?: RequestInit) => api<T>(url, { ...init, cache: "no-store" });
-
-export const fetchPlan = () => call<PlanSummary>("/api/plan");
-export const fetchDeletion = async () => (await call<{ deletion: DeletionView | null }>("/api/account/deletion")).deletion;
+// FE-X07: these contracts are absent from the backend; never send speculative requests.
+const unavailable = async <T>(message: string): Promise<T> => {
+  throw new ApiError(503, message, "feature_unavailable");
+};
+export const fetchPlan = () => unavailable<PlanSummary>("Plan and billing are not available yet.");
+export const fetchDeletion = () => unavailable<DeletionView | null>("Account deletion is not available yet.");
 /** Tells the app shell (banners, sidebar) to re-read the account status. */
 export const ACCOUNT_CHANGED = "calmasta:account-changed";
-const changed = () => window.dispatchEvent(new Event(ACCOUNT_CHANGED));
-
-export const requestDeletion = async (confirmation: string) => {
-  const d = (await call<{ deletion: DeletionView }>("/api/account/deletion", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ confirmation }) })).deletion;
-  changed();
-  return d;
+export const requestDeletion = (confirmation: string) => {
+  void confirmation;
+  return unavailable<DeletionView>("Account deletion is not available yet.");
 };
-export const cancelDeletion = async () => {
-  await call<{ deletion: null }>("/api/account/deletion", { method: "DELETE" });
-  changed();
-};
+export const cancelDeletion = () => unavailable<void>("Account deletion is not available yet.");
 
 /** A date in the customer's own time zone. */
 export const formatDate = (iso: string, timeZone: string, withTime = false) =>

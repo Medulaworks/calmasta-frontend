@@ -1,6 +1,6 @@
 "use client";
 
-import { Camera, Check, ExternalLink, KeyRound, LogOut, RotateCcw, Trash2 } from "lucide-react";
+import { Camera, Check, KeyRound, LogOut, RotateCcw, Trash2 } from "lucide-react";
 import { useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useProfile, useSetProfile } from "@/components/shell/profile-context";
 import { Avatar } from "@/components/ui/avatar";
@@ -171,7 +171,6 @@ export function ProfileView() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [confirmAll, setConfirmAll] = useState(false);
 
   const savedTimezone = profile?.timezone;
   const zones = useMemo(() => {
@@ -262,32 +261,18 @@ export function ProfileView() {
         <div className="space-y-5 p-5 text-sm">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="max-w-md">
-              <p className="flex items-center gap-2 font-medium"><KeyRound aria-hidden className="h-4 w-4 text-muted" /> Password and two-step sign-in</p>
-              <p className="mt-1 text-muted">Your password and extra sign-in checks are kept by our sign-in provider. Mojooba never sees or stores your password, so changes are made on the provider&rsquo;s own page.</p>
+              <p className="flex items-center gap-2 font-medium"><KeyRound aria-hidden className="h-4 w-4 text-muted" /> Password</p>
+              <p className="mt-1 text-muted">Your password is securely hashed. Changing it signs out existing sessions. If you signed in with Google, use Forgot password on the sign-in page to set a password.</p>
             </div>
-            {profile.passwordUrl ? (
-              <a href={profile.passwordUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 font-medium hover:bg-surface">
-                Change password <ExternalLink aria-hidden className="h-4 w-4" />
-              </a>
-            ) : (
-              <p className="max-w-[16rem] rounded-lg border border-border bg-surface px-3 py-2 text-xs text-muted">Not available in this setup: no sign-in provider page is configured.</p>
-            )}
+            <a href="/auth/change-password" className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 font-medium hover:bg-surface">Change password</a>
           </div>
 
           <div className="border-t border-border pt-5">
             <p className="font-medium">Where you&rsquo;re signed in</p>
-            <p className="mt-1 text-muted">Signing out of all devices ends every session, including this one. Use it if you lost a device or used a shared computer.</p>
+            <p className="mt-1 text-muted">Signing out of all devices is temporarily unavailable. You can still sign out on this device.</p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <Button onClick={() => void signOut()}><LogOut aria-hidden className="h-4 w-4" /> Sign out</Button>
-              {!confirmAll ? (
-                <Button variant="ghost" onClick={() => setConfirmAll(true)}>Sign out of all devices</Button>
-              ) : (
-                <span className="flex flex-wrap items-center gap-2" role="alertdialog" aria-label="Confirm sign out everywhere">
-                  <span className="text-muted">Sign out on every device?</span>
-                  <Button variant="danger" onClick={() => void signOut(true)}>Yes, sign out everywhere</Button>
-                  <Button variant="ghost" onClick={() => setConfirmAll(false)}>Cancel</Button>
-                </span>
-              )}
+              <Button variant="ghost" disabled title="Temporarily unavailable">Sign out of all devices</Button>
             </div>
           </div>
         </div>

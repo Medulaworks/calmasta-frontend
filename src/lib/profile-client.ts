@@ -1,8 +1,13 @@
+import type { Mode, ThemeId } from "./theme";
+import { DEFAULT_MODE, DEFAULT_THEME } from "./theme-boot";
+
 export interface ProfileView {
   email: string;
   emailVerified: boolean;
   name: string | null;
   timezone: string;
+  theme?: ThemeId;
+  mode?: Mode;
   role: string | null; // Profession; never a workspace permission.
   workspaceRole: "owner" | "member";
   onboarded: boolean;
@@ -38,6 +43,8 @@ async function request(init?: RequestInit): Promise<ProfileView> {
   }
   return {
     ...body,
+    theme: ["a", "b", "d", "e", "f"].includes(body.theme ?? "") ? body.theme : DEFAULT_THEME,
+    mode: ["light", "dark", "system"].includes(body.mode ?? "") ? body.mode : DEFAULT_MODE,
     avatarUrl: body.avatarUrl ?? null,
     avatarExpiresAt: body.avatarExpiresAt ?? null,
     avatarVersion: typeof body.avatarVersion === "number" ? body.avatarVersion : 0,
@@ -47,5 +54,5 @@ async function request(init?: RequestInit): Promise<ProfileView> {
 
 export const getProfile = () => request();
 
-export const saveProfile = (patch: { role?: string | null; complete?: boolean; name?: string | null; timezone?: string; outputsOnly?: boolean }) =>
+export const saveProfile = (patch: { role?: string | null; complete?: boolean; name?: string | null; timezone?: string; outputsOnly?: boolean; theme?: ThemeId; mode?: Mode }) =>
   request({ method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) });

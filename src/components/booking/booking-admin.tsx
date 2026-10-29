@@ -21,7 +21,7 @@ export function BookingAdmin() {
         label="Booking"
         items={[{ id: "bookings", label: "Bookings" }, { id: "pages", label: "Pages" }, { id: "types", label: "Meeting types" }, { id: "availability", label: "Availability" }]}
         active={tab}
-        onChange={(t) => router.replace(t === "bookings" ? "/booking" : `/booking?tab=${t}`, { scroll: false })}
+        onChange={(t) => router.replace(t === "bookings" ? "/dashboard/booking" : `/dashboard/booking?tab=${t}`, { scroll: false })}
       />
       <div role="tabpanel" id={tabPanelId(tab)} aria-labelledby={tabId(tab)}>
         {tab === "bookings" && <BookingsTab />}

@@ -1,4 +1,4 @@
-# Mojooba / CalMasta frontend agent instructions
+# MyJooba / CalMasta frontend agent instructions
 
 Follow docs/rules.md and docs/token-management.md. Begin API work with docs/implementation/README.md + HANDOFF.md + WORK_PLAN.md + only the target module. WORK_PLAN owns frontend criteria/status; backend criteria remain in the sibling calmasta-api/docs/implementation/WORK_PLAN.md. BACKEND_REFERENCE.md gives exact paths and source precedence.
 

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { dashboardPath } from "@/lib/app-routes";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 type Size = "sm" | "md" | "lg";
@@ -25,7 +26,7 @@ export function Button({ variant = "secondary", size = "md", className = "", typ
 
 export function ButtonLink({ href, variant = "secondary", size = "md", className = "", children }: { href: string; variant?: Variant; size?: Size; className?: string; children: React.ReactNode }) {
   return (
-    <Link href={href} className={buttonClass(variant, className, size)}>
+    <Link href={dashboardPath(href)} className={buttonClass(variant, className, size)}>
       {children}
     </Link>
   );

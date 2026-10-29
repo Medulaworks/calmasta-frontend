@@ -1,5 +1,7 @@
 "use client";
 
+import { dashboardPath } from "@/lib/app-routes";
+
 import { ArrowRight, CalendarCheck, CalendarDays, CornerDownLeft, FileText, Gauge, History, House, Library, Loader2, Mic, Search, Settings, Upload, User, Video, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
@@ -218,7 +220,7 @@ function Palette({ onClose }: { onClose: () => void }) {
   const go = (href: string, searched?: string) => {
     if (searched) remember(searched);
     onClose();
-    router.push(href);
+    router.push(dashboardPath(href));
   };
   const choose = (o: Option) => {
     if (o.type === "command") return go(o.command.href);

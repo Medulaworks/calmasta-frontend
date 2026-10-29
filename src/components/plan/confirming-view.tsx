@@ -56,14 +56,14 @@ export function ConfirmingView() {
               <CheckCircle2 aria-hidden className="h-5 w-5 text-success" /> {plan ? PLAN_LABEL[plan.plan.plan] : "Your plan"} is on
             </p>
             <p className="text-muted">The store confirmed your payment. Your new allowance is ready to use.</p>
-            <ButtonLink href="/plan" variant="primary">See your plan</ButtonLink>
+            <ButtonLink href="/dashboard/plan" variant="primary">See your plan</ButtonLink>
           </>
         ) : slow ? (
           <>
             <p className="text-lg font-semibold">This is taking longer than usual</p>
             <p className="text-muted">We haven&rsquo;t heard from the store yet. If you paid, it will be applied automatically as soon as the store confirms, and you won&rsquo;t be charged twice. You can leave this page.</p>
             <div className="flex gap-2">
-              <ButtonLink href="/plan">Back to plan</ButtonLink>
+              <ButtonLink href="/dashboard/plan">Back to plan</ButtonLink>
               <ButtonLink href="/dashboard" variant="ghost">Go home</ButtonLink>
             </div>
           </>
