@@ -1,7 +1,8 @@
 import { Suspense } from "react";
+import { SkeletonDetail } from "@/components/ui/skeleton";
 import { DocumentStudio } from "@/components/document-studio";
 
-export const metadata = { title: "Document · MyJooba" };
+export const metadata = { title: "Document · Jooba" };
 
 async function Studio(props: PageProps<"/dashboard/library/[id]">) {
   const { id } = await props.params;
@@ -12,7 +13,7 @@ export default function DocumentPage(
   props: PageProps<"/dashboard/library/[id]">,
 ) {
   return (
-    <Suspense fallback={<p className="text-sm text-muted">Loading…</p>}>
+    <Suspense fallback={<SkeletonDetail label="Loading document" />}>
       <Studio {...props} />
     </Suspense>
   );

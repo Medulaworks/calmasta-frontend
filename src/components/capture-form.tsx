@@ -10,6 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Loading, Skeleton, SkeletonRows } from "@/components/ui/skeleton";
+import { ToastStack, useToasts } from "@/components/ui/toast";
+import { useMeetingToasts } from "@/hooks/use-meeting-toasts";
 import { captureStatus, timeAgo } from "@/lib/status";
 import {
   type CaptureListItem,
@@ -30,8 +33,10 @@ export function CaptureForm() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [listError, setListError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [items, setItems] = useState<CaptureListItem[] | null>(null);
+  const toasts = useToasts();
+  // A toast each time a meeting moves on: joining, waiting to be let in, recording, ended, ready...
+  useMeetingToasts(items, toasts.push);
 
   const poller = useRef<ReturnType<typeof createMeetingPoller> | null>(null);
   const refresh = useCallback(() => poller.current?.refresh(), []);
@@ -64,7 +69,6 @@ export function CaptureForm() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setNotice(null);
     setBusy(true);
     try {
       await requestMeetingCapture(url, consent, undefined, false, {
@@ -73,9 +77,11 @@ export function CaptureForm() {
           policy?.maxMeetingDurationSeconds ?? 0,
         ),
       });
-      setNotice(
-        `Request queued for ${policy?.botName ?? "the recording assistant"}. ${policy?.liveProcessingEnabled ? "It may need to be admitted by the host." : "Recording will start when processing becomes available."}`,
-      );
+      toasts.push({
+        message: `Request queued for ${policy?.botName ?? "the recording assistant"}. ${policy?.liveProcessingEnabled ? "It may need to be admitted by the host." : "Recording will start when processing becomes available."}`,
+        tone: "info",
+        indicator: "spinner",
+      });
       setUrl("");
       setConsent(false);
       refresh();
@@ -102,6 +108,7 @@ export function CaptureForm() {
 
   return (
     <div className="grid items-start gap-6 lg:grid-cols-5">
+      <ToastStack items={toasts.items} onDismiss={toasts.dismiss} />
       <div className="space-y-4 lg:col-span-2">
         <Card>
           <CardHeader title="Capture a meeting" />
@@ -168,26 +175,20 @@ export function CaptureForm() {
               {busy ? "Sending…" : "Send assistant"}
             </Button>
             <p className="text-xs text-muted">
-              MyJooba never bypasses waiting rooms or host controls.
+              Jooba never bypasses waiting rooms or host controls.
             </p>
-            {(!policy || !policy.meetingEnabled) && (
-              <p role="status" className="text-xs text-muted">
-                {policyError ??
-                  (policy
-                    ? "Meeting capture is not enabled for this account yet."
-                    : "Loading capture limits…")}
-              </p>
+            {!policy && !policyError ? (
+              <Loading label="Loading capture limits" className="space-y-2"><Skeleton className="h-3 w-2/3" /></Loading>
+            ) : (
+              (!policy || !policy.meetingEnabled) && (
+                <p role="status" className="text-xs text-muted">
+                  {policyError ?? "Meeting capture is not enabled for this account yet."}
+                </p>
+              )
             )}
           </form>
         </Card>
 
-        {notice && (
-          <p
-            role="status"
-            className="rounded-lg border border-border bg-surface px-4 py-3 text-sm">
-            {notice}
-          </p>
-        )}
         {(error || listError) && (
           <p
             role="alert"
@@ -210,14 +211,7 @@ export function CaptureForm() {
           }
         />
         {items === null ? (
-          <ul aria-hidden className="divide-y divide-border">
-            {[0, 1, 2].map((i) => (
-              <li key={i} className="flex items-center gap-3 px-5 py-3">
-                <span className="h-9 w-9 animate-pulse rounded-lg bg-border" />
-                <span className="h-3 w-1/3 animate-pulse rounded bg-border" />
-              </li>
-            ))}
-          </ul>
+          <SkeletonRows count={3} label="Loading your meeting captures" />
         ) : items.length === 0 ? (
           <EmptyState
             icon={<Video />}
@@ -251,7 +245,7 @@ export function CaptureForm() {
                         {c.title ?? "Meeting"}
                       </span>
                       <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-                        <Badge tone={st.tone} active={st.active}>
+                        <Badge tone={st.tone} active={st.active} indicator={st.indicator}>
                           {st.label}
                         </Badge>
                         <span>

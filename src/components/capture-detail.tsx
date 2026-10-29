@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useProfile } from "@/components/shell/profile-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,9 @@ import { MeetingPanel } from "@/components/meeting-panel";
 import { TranscriptEditor } from "@/components/transcript-editor";
 import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { SkeletonDetail } from "@/components/ui/skeleton";
+import { ToastStack, useToasts } from "@/components/ui/toast";
+import { useMeetingToasts } from "@/hooks/use-meeting-toasts";
 import { TEMPLATE_CHOICES, createDocument } from "@/lib/documents-client";
 import { formatDuration } from "@/lib/audio";
 import { captureStatus, documentStatus, timeAgo } from "@/lib/status";
@@ -81,6 +84,13 @@ export function CaptureDetail({
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const refresh = useCallback(() => setTick((t) => t + 1), []);
+  // A toast each time this meeting moves on (joining, waiting to be let in, recording, ended, ready...).
+  const toasts = useToasts();
+  const watched = useMemo(
+    () => (cap && cap.source === "meeting_url" ? [{ id: cap.id, title: titleOf(cap), source: cap.source, state: cap.state, status: cap.status }] : null),
+    [cap],
+  );
+  useMeetingToasts(watched, toasts.push);
 
   useEffect(() => {
     let cancelled = false;
@@ -183,10 +193,7 @@ export function CaptureDetail({
         {error}
       </p>
     ) : (
-      <div className="space-y-4" aria-hidden>
-        <div className="h-8 w-64 animate-pulse rounded bg-border" />
-        <div className="h-48 animate-pulse rounded-xl bg-border/50" />
-      </div>
+      <SkeletonDetail label="Loading this recording" />
     );
   }
 
@@ -204,6 +211,7 @@ export function CaptureDetail({
 
   return (
     <div className="space-y-6">
+      <ToastStack items={toasts.items} onDismiss={toasts.dismiss} />
       <Link
         href="/dashboard/library?tab=recordings"
         className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground">
@@ -222,7 +230,7 @@ export function CaptureDetail({
               {titleOf(cap)}
             </h1>
             <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted">
-              <Badge tone={status.tone} active={status.active}>
+              <Badge tone={status.tone} active={status.active} indicator={status.indicator}>
                 {status.label}
               </Badge>
               <span>

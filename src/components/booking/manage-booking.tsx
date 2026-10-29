@@ -1,4 +1,5 @@
 "use client";
+import { Loading, Skeleton, SkeletonPanel } from "@/components/ui/skeleton";
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -114,12 +115,10 @@ export function ManageBooking({ token }: { token: string }) {
   }
   if (!booking)
     return (
-      <div
-        aria-hidden
-        className="mx-auto max-w-xl animate-pulse space-y-4 py-10">
-        <div className="h-8 w-56 rounded bg-border" />
-        <div className="h-48 rounded-xl bg-border/50" />
-      </div>
+      <Loading label="Loading your booking" className="mx-auto max-w-xl space-y-4 py-10">
+        <Skeleton className="h-8 w-56" />
+        <SkeletonPanel className="h-48" />
+      </Loading>
     );
 
   return (
@@ -264,9 +263,9 @@ export function ManageBooking({ token }: { token: string }) {
         </section>
       )}
       <p className="text-xs text-muted">
-        Booked through MyJooba.{" "}
+        Booked through Jooba.{" "}
         <Link href="/" className="underline">
-          What is MyJooba?
+          What is Jooba?
         </Link>
       </p>
     </div>

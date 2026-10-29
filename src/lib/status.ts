@@ -1,12 +1,16 @@
 // One place that turns internal states into the words and colours users see.
 // Never show a success state until the work is really done (blueprint §12.3).
 
+import type { Indicator } from "@/components/ui/status-indicator";
+
 export type Tone = "neutral" | "info" | "success" | "warning" | "danger";
 export interface StatusView {
   label: string;
   tone: Tone;
   /** True while work is still happening, so lists can show activity and keep refreshing. */
   active: boolean;
+  /** Which animated mark the badge shows for this stage, if it has one. */
+  indicator?: Indicator;
 }
 
 const MEETING_ACTIVE = new Set(["requested", "queued", "scheduled", "joining", "waiting_for_admission", "recording", "processing"]);
@@ -18,7 +22,7 @@ const MEETING_LABELS: Record<string, string> = {
   joining: "Joining the meeting",
   waiting_for_admission: "Waiting to be let in",
   recording: "Recording",
-  processing: "Processing",
+  processing: "Meeting ended",
 };
 
 const RECORDING_LABELS: Record<string, string> = {
@@ -37,21 +41,24 @@ export function captureStatus(c: { source: string; state: string; status: string
   if(c.state==="transcription_failed")return {label:"Transcription failed",tone:"danger",active:false};
   if(c.state==="host_denied")return {label:"Host declined",tone:"warning",active:false};
   if(c.state==="admission_timeout")return {label:"Not let in in time",tone:"warning",active:false};
-  if(["media_pending","recorded"].includes(c.state))return {label:c.state==="recorded"?"Waiting for transcription":"Saving recording",tone:"info",active:true};
+  if(["media_pending","recorded"].includes(c.state))return {label:c.state==="recorded"?"Waiting for transcription":"Saving recording",tone:"info",active:true,indicator:"spinner"};
   if (c.state === "cancelled" || c.status === "cancelled") return { label: "Cancelled", tone: "neutral", active: false };
   if (c.state === "failed" || c.status === "failed") return { label: "Failed", tone: "danger", active: false };
 
   if (c.source === "meeting_url") {
     if (c.status === "denied") return { label: "Host declined", tone: "warning", active: false };
     if (c.status === "timed_out") return { label: "Not let in in time", tone: "warning", active: false };
-    if (c.status === "recording") return { label: "Recording", tone: "danger", active: true }; // red on purpose: recording must be obvious
-    if (MEETING_ACTIVE.has(c.status)) return { label: MEETING_LABELS[c.status] ?? c.status, tone: "info", active: true };
-    if (c.status === "completed") return { label: "Ready", tone: "success", active: false };
+    if (c.status === "recording") return { label: "Recording", tone: "danger", active: true, indicator: "recording" }; // red on purpose: recording must be obvious
+    if (c.status === "waiting_for_admission") return { label: MEETING_LABELS.waiting_for_admission, tone: "warning", active: true, indicator: "dots" };
+    if (c.status === "joining") return { label: MEETING_LABELS.joining, tone: "info", active: true, indicator: "spinner" };
+    if (c.status === "processing") return { label: MEETING_LABELS.processing, tone: "info", active: true, indicator: "spinner" };
+    if (MEETING_ACTIVE.has(c.status)) return { label: MEETING_LABELS[c.status] ?? c.status, tone: "info", active: true, indicator: "pulse" };
+    if (c.status === "completed") return { label: "Ready", tone: "success", active: false, indicator: "check" };
     return { label: c.status, tone: "neutral", active: false };
   }
 
-  if (c.state in RECORDING_LABELS) return { label: RECORDING_LABELS[c.state], tone: "info", active: true };
-  if (c.state === "ready_to_review" || c.state === "completed") return { label: "Ready", tone: "success", active: false };
+  if (c.state in RECORDING_LABELS) return { label: RECORDING_LABELS[c.state], tone: "info", active: true, indicator: "spinner" };
+  if (c.state === "ready_to_review" || c.state === "completed") return { label: "Ready", tone: "success", active: false, indicator: "check" };
   return { label: c.state, tone: "neutral", active: false };
 }
 

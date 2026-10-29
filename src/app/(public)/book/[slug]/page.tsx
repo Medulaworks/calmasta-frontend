@@ -1,7 +1,8 @@
 import { Suspense } from "react";
+import { SkeletonGuest } from "@/components/ui/skeleton";
 import { PublicBooking } from "@/components/booking/public-booking";
 
-export const metadata = { title: "Book a time · MyJooba" };
+export const metadata = { title: "Book a time · Jooba" };
 
 async function Booking(props: PageProps<"/book/[slug]">) {
   const { slug } = await props.params;
@@ -11,9 +12,7 @@ async function Booking(props: PageProps<"/book/[slug]">) {
 export default function BookPage(props: PageProps<"/book/[slug]">) {
   return (
     <Suspense
-      fallback={
-        <p className="py-10 text-center text-sm text-muted">Loading…</p>
-      }>
+      fallback={<SkeletonGuest label="Loading" />}>
       <Booking {...props} />
     </Suspense>
   );

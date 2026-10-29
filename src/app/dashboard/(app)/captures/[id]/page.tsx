@@ -1,7 +1,8 @@
 import { Suspense } from "react";
+import { SkeletonDetail } from "@/components/ui/skeleton";
 import { LibraryRecording } from "@/components/library-recording";
 
-export const metadata = { title: "Recording · MyJooba" };
+export const metadata = { title: "Recording · Jooba" };
 
 async function Detail(props: PageProps<"/dashboard/captures/[id]">) {
   const { id } = await props.params;
@@ -12,7 +13,7 @@ export default function CapturePage(
   props: PageProps<"/dashboard/captures/[id]">,
 ) {
   return (
-    <Suspense fallback={<p className="text-sm text-muted">Loading…</p>}>
+    <Suspense fallback={<SkeletonDetail label="Loading recording" />}>
       <Detail {...props} />
     </Suspense>
   );

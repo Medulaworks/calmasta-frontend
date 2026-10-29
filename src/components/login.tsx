@@ -4,9 +4,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { dashboardPath } from "@/lib/app-routes";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Eye, EyeOff, LoaderCircle } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, LoaderCircle } from "lucide-react";
 import { authErrorMessage } from "@/lib/auth-errors";
 import { AuthLayout } from "@/components/auth-layout";
+import { PasswordReset } from "@/components/password-reset";
+import { Toast, type ToastTone } from "@/components/ui/toast";
 import { buttonClass } from "@/components/ui/button";
 
 /** Only same-site paths survive; mirrors the server's check so the link we build is already safe. */
@@ -36,8 +38,19 @@ export function Login() {
   const [submitting, setSubmitting] = useState(false);
   const [connectingGoogle, setConnectingGoogle] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const expired = params.get("reason") === "expired" && !formError;
-  const [forgotSuccess, setForgotSuccess] = useState(false);
+  const [toast, setToast] = useState<{ message: string; tone: ToastTone } | null>(() =>
+    params.get("reason") === "expired"
+      ? { message: "Your session ended, so we signed you out. Sign in again to pick up where you left off.", tone: "info" }
+      : null,
+  );
+  // Take the reason out of the address so a refresh doesn't show the message again.
+  useEffect(() => {
+    if (params.get("reason") === "expired") {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("reason");
+      window.history.replaceState(null, "", url.pathname + url.search);
+    }
+  }, [params]);
 
   const [checking, setChecking] = useState(true);
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
@@ -104,43 +117,14 @@ export function Login() {
   function returnToSignIn() {
     setMode("signin");
     setShowPassword(false);
-    setForgotSuccess(false);
     setFormError(null);
     setPassword("");
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (mode === "forgot" && forgotSuccess) return;
     setFormError(null);
-    setForgotSuccess(false);
-
-    if (mode === "forgot") {
-      setSubmitting(true);
-      try {
-        const res = await fetch("/api/auth/forgot-password", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        });
-        if (res.ok) {
-          setForgotSuccess(true);
-        } else {
-          setFormError(
-            res.status === 503
-              ? "Email delivery is temporarily unavailable. Please try again shortly."
-              : res.status === 429
-                ? "Too many requests. Please wait before trying again."
-                : "Could not request a reset email. Please check your email format and try again.",
-          );
-        }
-      } catch {
-        setFormError("Network error. Please try again.");
-      } finally {
-        setSubmitting(false);
-      }
-      return;
-    }
+    setToast(null);
 
     setSubmitting(true);
     try {
@@ -186,57 +170,44 @@ export function Login() {
 
   const q = `returnTo=${encodeURIComponent(returnTo)}`;
 
+  if (mode === "forgot") {
+    return (
+      <AuthLayout>
+        <PasswordReset
+          initialEmail={email}
+          onDone={(doneEmail, doneNotice) => {
+            setEmail(doneEmail);
+            returnToSignIn();
+            setToast(doneNotice ? { message: doneNotice, tone: "success" } : null);
+          }}
+        />
+      </AuthLayout>
+    );
+  }
+
   return (
     <AuthLayout>
-          {mode === "forgot" && (
-            <button
-              type="button"
-              onClick={returnToSignIn}
-              disabled={submitting}
-              aria-label="Back to sign in"
-              className="mb-4 inline-flex size-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface hover:text-foreground disabled:opacity-50">
-              <ArrowLeft aria-hidden className="size-5" />
-            </button>
-          )}
-
-          <h1 className="text-3xl font-semibold tracking-tight">
-            {mode === "signin"
-              ? "Welcome back"
-              : mode === "signup"
-                ? "Create an account"
-                : "Reset your password"}
+          {toast && <Toast message={toast.message} tone={toast.tone} onClose={() => setToast(null)} />}
+          <h1 className="text-[clamp(2rem,5vh,3rem)] font-semibold leading-[1.1] tracking-tight">
+            {mode === "signin" ? (
+              <>Turn every conversation into <span className="text-accent">finished work</span>.</>
+            ) : mode === "signup" ? (
+              <>Start with your <span className="text-accent">next conversation</span>.</>
+            ) : null}
           </h1>
-          <p className="mt-2 text-sm text-muted">
+          <p className="mt-3 text-[clamp(0.9375rem,2.1vh,1.0625rem)] leading-[1.55] text-muted">
             {mode === "signin"
-              ? "Sign in to turn your conversations into useful work."
+              ? "Meetings and voice notes become transcripts, briefs and follow-ups. Pick up where you left off."
               : mode === "signup"
-                ? "Start capturing, transcribing, and organizing your conversations."
-                : "Enter your account email and we'll send you a recovery link."}
+                ? "Record a thought or join a meeting and get a transcript and first draft today. Free, no card needed."
+                : null}
           </p>
-
-          {expired && (
-            <p
-              role="status"
-              className="mt-6 rounded-lg border border-border bg-surface px-4 py-3 text-sm">
-              Your session ended, so we signed you out. Signing in again picks
-              up where you left off.
-            </p>
-          )}
 
           {formError && (
             <p
               role="alert"
-              className="mt-6 rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+              className="mt-5 rounded-xl border border-danger/30 bg-danger/10 px-4 py-2.5 text-sm text-danger">
               {formError}
-            </p>
-          )}
-
-          {forgotSuccess && (
-            <p
-              role="status"
-              className="mt-6 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-600 dark:text-emerald-400">
-              If an account matches that email address, we have sent
-              instructions to reset your password.
             </p>
           )}
 
@@ -258,11 +229,11 @@ export function Login() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+          <form onSubmit={handleSubmit} className="mt-[clamp(1rem,3.4vh,2rem)] space-y-[clamp(0.75rem,2vh,1.25rem)]">
             {mode === "signup" && (
               <div>
                 <label
-                  className="block text-xs font-medium text-muted mb-1"
+                  className="mb-1.5 block text-sm font-medium text-foreground"
                   htmlFor="name">
                   Full Name
                 </label>
@@ -273,14 +244,14 @@ export function Login() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Jane Doe"
-                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                  className="h-[clamp(2.5rem,5.6vh,3rem)] w-full rounded-xl border border-border bg-background px-4 text-base shadow-sm transition focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent-solid/20"
                 />
               </div>
             )}
 
-            {!(mode === "forgot" && forgotSuccess) && <div>
+            <div>
               <label
-                className="block text-xs font-medium text-muted mb-1"
+                className="mb-1.5 block text-sm font-medium text-foreground"
                 htmlFor="email">
                 Email Address
               </label>
@@ -288,19 +259,18 @@ export function Login() {
                 id="email"
                 type="email"
                 required
-                disabled={mode === "forgot" && (forgotSuccess || submitting)}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                className="h-[clamp(2.5rem,5.6vh,3rem)] w-full rounded-xl border border-border bg-background px-4 text-base shadow-sm transition focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent-solid/20"
               />
-            </div>}
+            </div>
 
-            {mode !== "forgot" && (
+            {(
               <div>
-                <div className="flex items-center justify-between mb-1">
+                <div className="mb-1.5 flex items-center justify-between">
                   <label
-                    className="block text-xs font-medium text-muted"
+                    className="block text-sm font-medium text-foreground"
                     htmlFor="password">
                     Password
                   </label>
@@ -312,7 +282,7 @@ export function Login() {
                         setShowPassword(false);
                         setFormError(null);
                       }}
-                      className="text-xs text-muted hover:underline">
+                      className="text-sm text-muted transition-colors hover:text-foreground hover:underline">
                       Forgot password?
                     </button>
                   )}
@@ -326,7 +296,7 @@ export function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="At least 8 characters"
-                  className="w-full rounded-lg border border-border bg-surface py-2 pl-3 pr-11 text-sm focus:border-primary focus:outline-none"
+                  className="h-[clamp(2.5rem,5.6vh,3rem)] w-full rounded-xl border border-border bg-background pl-4 pr-12 text-base shadow-sm transition focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent-solid/20"
                 />
                 <button
                   type="button"
@@ -334,46 +304,43 @@ export function Login() {
                   aria-pressed={showPassword}
                   aria-controls="password"
                   onClick={() => setShowPassword((shown) => !shown)}
-                  className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-lg text-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-primary">
-                  {showPassword ? <EyeOff aria-hidden className="size-4" /> : <Eye aria-hidden className="size-4" />}
+                  className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-xl text-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-accent">
+                  {showPassword ? <EyeOff aria-hidden className="size-5" /> : <Eye aria-hidden className="size-5" />}
                 </button>
                 </div>
               </div>
             )}
 
             <button
-              type={mode === "forgot" && forgotSuccess ? "button" : "submit"}
-              onClick={mode === "forgot" && forgotSuccess ? returnToSignIn : undefined}
+              type="submit"
               disabled={submitting || checking || connectingGoogle}
-              className={`${buttonClass("primary", "w-full", "lg")}${
+              className={`${buttonClass("primary", "group min-h-[clamp(2.5rem,5.6vh,3rem)]! w-full rounded-xl text-base shadow-[0_10px_24px_-10px_color-mix(in_srgb,var(--accent-solid)_90%,transparent)] transition-all hover:-translate-y-0.5 hover:shadow-[0_16px_28px_-12px_color-mix(in_srgb,var(--accent-solid)_95%,transparent)] active:translate-y-0", "lg")}${
                 submitting || checking || connectingGoogle
                   ? " pointer-events-none opacity-60"
                   : ""
               }`}>
-              {mode === "forgot" && forgotSuccess
-                ? "Return"
-                : submitting
+              {submitting
                 ? "Processing…"
                 : mode === "signin"
                   ? "Sign in"
-                  : mode === "signup"
-                    ? "Create account"
-                    : "Send recovery link"}
+                  : "Create account"}
+              {!submitting && <ArrowRight aria-hidden className="size-4.5 transition-transform group-hover:translate-x-1" />}
             </button>
           </form>
 
-          {mode !== "forgot" && <>
+          <>
           {/* Social sign-in alternatives */}
-          <div className="mt-6">
+          <div className="mt-[clamp(1rem,3vh,1.5rem)]">
             <div className="relative flex items-center justify-center">
               <div className="border-t border-border w-full" />
-              <span className="bg-background px-3 text-xs text-muted">or</span>
+              <span className="bg-background px-3 text-sm text-muted">or</span>
               <div className="border-t border-border w-full" />
             </div>
 
-            <div className="mt-4 space-y-3">
+            <div className="mt-[clamp(0.75rem,2.4vh,1.25rem)] grid grid-cols-2 gap-3">
               <a
                 href={`/api/auth/login?${q}&provider=google`}
+                aria-label="Continue with Google"
                 aria-disabled={checking || submitting || connectingGoogle}
                 aria-busy={connectingGoogle}
                 onClick={(event) => {
@@ -390,7 +357,7 @@ export function Login() {
                   )
                     setConnectingGoogle(true);
                 }}
-                className={`${buttonClass("secondary", "w-full", "lg")}${
+                className={`${buttonClass("secondary", "min-h-[clamp(2.5rem,5.6vh,3rem)]! w-full rounded-xl text-base transition-all hover:-translate-y-0.5 hover:shadow-sm", "lg")}${
                   checking || submitting || connectingGoogle
                     ? " pointer-events-none opacity-60"
                     : ""
@@ -403,32 +370,31 @@ export function Login() {
                 ) : (
                   <Image
                     src="/icons/google-icon.svg"
-                    alt="Google"
+                    alt=""
                     width={18}
                     height={18}
                     className="w-[18px]"
                   />
                 )}
-                {connectingGoogle
-                  ? "Connecting to Google"
-                  : "Continue with Google"}
+                {connectingGoogle ? "Connecting…" : "Google"}
               </a>
               <button
                 type="button"
                 disabled
-                className={buttonClass("secondary", "w-full", "lg")}>
+                aria-label="Continue with Microsoft (not available yet)"
+                className={buttonClass("secondary", "min-h-[clamp(2.5rem,5.6vh,3rem)]! w-full rounded-xl text-base", "lg")}>
                 <svg aria-hidden="true" width="18" height="18" viewBox="0 0 21 21">
                   <path fill="#f25022" d="M0 0h10v10H0z" />
                   <path fill="#7fba00" d="M11 0h10v10H11z" />
                   <path fill="#00a4ef" d="M0 11h10v10H0z" />
                   <path fill="#ffb900" d="M11 11h10v10H11z" />
                 </svg>
-                Continue with Microsoft
+                Microsoft
               </button>
             </div>
           </div>
 
-          <div className="mt-6 text-center text-xs text-muted">
+          <div className="mt-[clamp(0.75rem,2.6vh,1.5rem)] text-center text-sm text-muted">
             {mode === "signin" ? (
               <p>
                 Don&apos;t have an account?{" "}
@@ -459,7 +425,7 @@ export function Login() {
               </p>
             )}
           </div>
-          </>}
+          </>
     </AuthLayout>
   );
 }

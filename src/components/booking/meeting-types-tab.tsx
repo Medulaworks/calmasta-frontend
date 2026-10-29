@@ -341,7 +341,7 @@ export function MeetingTypesTab() {
       <Card>
         {types === null ? (
           <div aria-hidden className="p-5">
-            <div className="h-4 w-1/3 animate-pulse rounded bg-border" />
+            <div className="h-4 w-1/3 jb-skel rounded bg-border" />
           </div>
         ) : types.length === 0 ? (
           <EmptyState

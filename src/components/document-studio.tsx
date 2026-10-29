@@ -1,4 +1,5 @@
 "use client";
+import { Skeleton, SkeletonLines } from "@/components/ui/skeleton";
 
 import {
   Check,
@@ -417,9 +418,9 @@ export function DocumentStudio({ id }: { id: string }) {
         aria-label="Loading document"
         className="max-w-4xl space-y-4"
         aria-busy="true">
-        <div className="h-4 w-40 animate-pulse rounded bg-border" />
-        <div className="h-8 w-2/3 animate-pulse rounded bg-border" />
-        <div className="h-96 animate-pulse rounded-xl border border-border bg-surface" />
+        <div className="h-4 w-40 jb-skel rounded bg-border" />
+        <div className="h-8 w-2/3 jb-skel rounded bg-border" />
+        <div className="h-96 jb-skel rounded-xl border border-border bg-surface" />
       </div>
     );
   }
@@ -591,13 +592,17 @@ export function DocumentStudio({ id }: { id: string }) {
           {editor && <EditorToolbar editor={editor} disabled={readOnly} />}
           <EditorContent editor={editor} />
           {generating && (
-            <div
-              className="absolute inset-0 flex items-center justify-center gap-2 bg-background/70 text-sm"
-              role="status">
-              <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
-              {doc.rewritingSection
-                ? `Rewriting “${doc.rewritingSection}”…`
-                : "Writing your document…"}
+            <div className="absolute inset-0 space-y-3 bg-background/85 p-6 text-sm" role="status">
+              <p className="flex items-center gap-2 text-muted">
+                <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
+                {doc.rewritingSection
+                  ? `Rewriting “${doc.rewritingSection}”…`
+                  : "Writing your document…"}
+              </p>
+              <Skeleton className="h-6 w-1/2" />
+              <SkeletonLines lines={4} />
+              <Skeleton className="mt-4 h-5 w-1/3" />
+              <SkeletonLines lines={3} />
             </div>
           )}
         </div>
@@ -608,7 +613,7 @@ export function DocumentStudio({ id }: { id: string }) {
           {outline.uncertain}{" "}
           {outline.uncertain === 1 ? "place is" : "places are"} marked{" "}
           <span className="font-medium">not specified</span> or to confirm.
-          MyJooba leaves a gap rather than guess an owner, date or number: fill
+          Jooba leaves a gap rather than guess an owner, date or number: fill
           them in, or check them against the conversation.
         </p>
       )}

@@ -1,7 +1,7 @@
 import { ProfileView } from "@/components/profile/profile-view";
 import { PageHeader } from "@/components/ui/page-header";
 
-export const metadata = { title: "Your profile · MyJooba" };
+export const metadata = { title: "Your profile · Jooba" };
 
 export default function ProfilePage() {
   return (

@@ -1,4 +1,5 @@
 "use client";
+import { SkeletonGuest } from "@/components/ui/skeleton";
 
 import { Clock, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -94,7 +95,7 @@ export function PublicBooking({ slug }: { slug: string }) {
       </div>
     );
   }
-  if (!page) return <div aria-hidden className="mx-auto max-w-3xl animate-pulse space-y-4 py-10"><div className="h-8 w-64 rounded bg-border" /><div className="h-64 rounded-xl bg-border/50" /></div>;
+  if (!page) return <SkeletonGuest label="Loading this booking page" />;
 
   if (step === "done" && result) {
     return (

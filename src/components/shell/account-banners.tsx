@@ -98,7 +98,7 @@ function Ring({ pct, health }: { pct: number; health: Health }) {
  */
 export function SidebarPlanCard({ plan }: { plan: PlanSummary | null }) {
   if (!plan) {
-    return <div aria-hidden className="mb-1 h-[7.5rem] animate-pulse rounded-xl bg-black/15 sc:md:h-12 sc:md:w-12 sc:md:self-center" />;
+    return <div aria-hidden className="mb-1 h-[7.5rem] jb-skel rounded-xl bg-black/15 [--skel-sheen:rgb(255_255_255/0.1)] sc:md:h-12 sc:md:w-12 sc:md:self-center" />;
   }
   const pro = isPaidPlan(plan.plan.plan);
   const planName = PLAN_LABEL[plan.plan.plan];

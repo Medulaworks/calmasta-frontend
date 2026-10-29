@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { SkeletonRows } from "@/components/ui/skeleton";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Brand } from "@/components/ui/brand";
 import { useDismiss } from "@/components/ui/use-dismiss";
@@ -148,9 +149,7 @@ function Notifications({ pathname }: { pathname: string }) {
               minute.
             </p>
           ) : !list ? (
-            <p role="status" className="px-4 py-6 text-sm text-muted">
-              Loading…
-            </p>
+            <SkeletonRows count={3} label="Loading notifications" icon={false} />
           ) : list.items.length === 0 ? (
             <div className="px-4 py-8 text-center">
               <p className="text-sm font-medium">You&rsquo;re all caught up</p>
@@ -235,9 +234,9 @@ function PlanCard({
   if (!plan) {
     return (
       <div aria-hidden className="space-y-3 px-4 py-4">
-        <div className="h-4 w-16 animate-pulse rounded bg-surface" />
-        <div className="h-2 animate-pulse rounded-full bg-surface" />
-        <div className="h-9 animate-pulse rounded-lg bg-surface" />
+        <div className="h-4 w-16 jb-skel rounded bg-surface" />
+        <div className="h-2 jb-skel rounded-full bg-surface" />
+        <div className="h-9 jb-skel rounded-lg bg-surface" />
       </div>
     );
   }
@@ -391,7 +390,7 @@ function ProfileMenu({
     return (
       <span
         aria-hidden
-        className="h-9 w-9 animate-pulse rounded-full bg-surface"
+        className="h-9 w-9 jb-skel rounded-full bg-surface"
       />
     );
   const name = profile?.name?.trim() || profile?.email || "Not signed in";
@@ -564,7 +563,7 @@ export function TopBar({
     <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-topbar px-4 text-topbar-fg sm:px-6 md:px-8">
       <Link
         href="/dashboard"
-        aria-label="MyJooba home"
+        aria-label="Jooba home"
         className="text-lg text-topbar-fg md:hidden">
         <Brand size={28} />
       </Link>

@@ -56,8 +56,8 @@ export function Brand({
     <span
       className={`inline-flex items-center gap-2 font-bold tracking-tight ${className}`}>
       <BrandMark size={size} tile={tile} />
-      <span aria-label="MyJooba" className={labelClassName}>
-        MyJooba
+      <span aria-label="Jooba" className={labelClassName}>
+        Jooba
       </span>
     </span>
   );

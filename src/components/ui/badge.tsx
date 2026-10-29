@@ -1,4 +1,5 @@
 import type { Tone } from "@/lib/status";
+import { type Indicator, StatusIndicator } from "@/components/ui/status-indicator";
 
 const TONES: Record<Tone, string> = {
   neutral: "bg-surface text-muted ring-border",
@@ -8,11 +9,14 @@ const TONES: Record<Tone, string> = {
   danger: "bg-danger/10 text-danger ring-danger/25",
 };
 
-/** A status pill. The dot pulses while `active`, and the label always says it in words too. */
-export function Badge({ tone = "neutral", active = false, children }: { tone?: Tone; active?: boolean; children: React.ReactNode }) {
+/**
+ * A status pill. Give it an `indicator` for an animated mark (spinner, dots, recording dot, check); without one the dot
+ * pulses while `active`. The label always says it in words too.
+ */
+export function Badge({ tone = "neutral", active = false, indicator, children }: { tone?: Tone; active?: boolean; indicator?: Indicator; children: React.ReactNode }) {
   return (
     <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${TONES[tone]}`}>
-      <span aria-hidden className={`h-1.5 w-1.5 rounded-full bg-current ${active ? "animate-pulse" : ""}`} />
+      {indicator ? <StatusIndicator kind={indicator} /> : <span aria-hidden className={`h-1.5 w-1.5 rounded-full bg-current ${active ? "animate-pulse" : ""}`} />}
       {children}
     </span>
   );

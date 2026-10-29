@@ -1,4 +1,5 @@
 "use client";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import {
   CalendarDays,
@@ -241,7 +242,7 @@ export function CalendarView() {
               <span className="font-medium">
                 {conns
                   ? conns.connections.map((c) => c.accountEmail).join(", ")
-                  : "Loading calendars…"}
+                  : <Skeleton className="inline-block h-4 w-44 align-middle" />}
               </span>
               {conns?.connections.some(
                 (c) => c.status === "needs_reconnect",
@@ -329,7 +330,7 @@ export function CalendarView() {
         </label>
         <p role="status" className="ml-auto text-sm text-muted">
           {loading
-            ? "Loading…"
+            ? <Skeleton className="inline-block h-4 w-20 align-middle" />
             : `${shown.length} ${shown.length === 1 ? "meeting" : "meetings"}`}
         </p>
       </div>
@@ -376,7 +377,7 @@ export function CalendarView() {
               {[0, 1, 2].map((i) => (
                 <li
                   key={i}
-                  className="h-20 animate-pulse rounded-xl border border-border bg-surface/50"
+                  className="h-20 jb-skel rounded-xl border border-border bg-surface/50"
                 />
               ))}
             </ul>
@@ -404,9 +405,9 @@ export function CalendarView() {
                   body={
                     data?.connected
                       ? tab === "upcoming"
-                        ? "Your calendars have nothing in this period. Bookings made through MyJooba appear here too."
+                        ? "Your calendars have nothing in this period. Bookings made through Jooba appear here too."
                         : "Nothing happened in this period."
-                      : "Connect a calendar to see everything in one place. Bookings made through MyJooba appear here too."
+                      : "Connect a calendar to see everything in one place. Bookings made through Jooba appear here too."
                   }
                 />
               )}
@@ -512,7 +513,7 @@ function MeetingRow({
           <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
             {e.source === "booking" && <Badge tone="info">Booking</Badge>}
             {st && rec !== "not_recorded" && (
-              <Badge tone={st.tone} active={st.active}>
+              <Badge tone={st.tone} active={st.active} indicator={st.indicator}>
                 {rec === "recorded" ? "Recorded" : st.label}
               </Badge>
             )}

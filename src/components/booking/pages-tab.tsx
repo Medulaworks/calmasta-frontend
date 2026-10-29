@@ -100,7 +100,7 @@ export function PagesTab() {
 
       <Card>
         {pages === null ? (
-          <div aria-hidden className="p-5"><div className="h-4 w-1/3 animate-pulse rounded bg-border" /></div>
+          <div aria-hidden className="p-5"><div className="h-4 w-1/3 jb-skel rounded bg-border" /></div>
         ) : pages.length === 0 ? (
           <EmptyState icon={<Link2 className="h-5 w-5" />} title="No booking pages yet" body="Create a page, add a meeting type and your hours, and share the link." action={<Button variant="primary" onClick={() => open("new")}>Create a page</Button>} />
         ) : (

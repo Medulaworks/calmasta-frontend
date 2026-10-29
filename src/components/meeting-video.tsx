@@ -1,4 +1,5 @@
 "use client";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import { Loader2, TriangleAlert, Video } from "lucide-react";
 import { formatBytes } from "@/lib/audio";
@@ -47,7 +48,9 @@ export function MeetingVideo({ cap, compact = false }: { cap: Pick<CaptureView, 
 
   const ended = ["completed", "processing"].includes(cap.status);
   return (
-    <div role="status" className="flex items-start gap-3 rounded-lg border border-border bg-surface px-4 py-3 text-sm">
+    <div role="status" className="space-y-3 rounded-lg border border-border bg-surface px-4 py-3 text-sm">
+      {cap.videoStatus === "processing" && <Skeleton className="aspect-video w-full rounded-lg" />}
+    <div className="flex items-start gap-3">
       {cap.videoStatus === "processing" ? <Loader2 aria-hidden className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-muted" /> : <Video aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-muted" />}
       <div>
         <p className="font-medium">{cap.videoStatus === "processing" ? "Saving the video…" : "Video will appear here"}</p>
@@ -55,6 +58,7 @@ export function MeetingVideo({ cap, compact = false }: { cap: Pick<CaptureView, 
           {cap.videoStatus === "processing" ? "The recording is being saved. This page updates by itself." : ended ? "The meeting has ended. The video appears once the recording has been processed, usually a few minutes." : "It appears after the meeting has ended and the recording has been processed."}
         </p>
       </div>
+    </div>
     </div>
   );
 }

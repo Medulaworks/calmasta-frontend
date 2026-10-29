@@ -4,6 +4,7 @@ import { useRouter,useSearchParams } from "next/navigation";
 import { useEffect,useRef,useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { SkeletonRows } from "@/components/ui/skeleton";
 import { Highlight } from "@/components/ui/highlight";
 import { type LibraryQuery,type LibraryResult,searchLibraryPage } from "@/lib/library-client";
 import { timeAgo } from "@/lib/status";
@@ -38,7 +39,8 @@ export function TranscriptLibrary(){
    <Button type="submit" variant="primary">Search</Button><Link href="/dashboard/library" className="px-2 py-2 text-sm text-muted">Clear</Link>
   </form>
   {current?.error&&<p role="alert" className="text-sm text-danger">{current.error}</p>}
-  <Card>{!current?<p role="status" className="p-5 text-muted">Loading recordings…</p>:current.results.length===0?<p className="p-5 text-muted">{current.error?"Recordings could not be loaded.":"No recordings match these filters."}</p>:<ul className="divide-y divide-border">{current.results.map(r=><li key={r.id}><Link href={`/dashboard/library/recordings/${r.id}`} className="block px-5 py-4 hover:bg-surface"><span className="block font-medium"><Highlight text={r.title} query={filters.q}/></span><span className="text-xs text-muted">{r.kind==="meeting"?"Meeting":"Recording"} · {timeAgo(r.at)} · {r.state==="completed"?"Ready":r.state?.replaceAll("_"," ")}</span>{r.snippet&&<p className="mt-1 text-sm text-muted"><Highlight text={r.snippet} query={filters.q}/></p>}</Link></li>)}</ul>}</Card>
-  {current?.nextCursor&&<Button variant="secondary" disabled={loadingMore===key} onClick={()=>void loadMore()}>{loadingMore===key?"Loading…":"Load more"}</Button>}
+  <Card>{!current?<SkeletonRows count={6} label="Loading recordings"/>:current.results.length===0?<p className="p-5 text-muted">{current.error?"Recordings could not be loaded.":"No recordings match these filters."}</p>:<ul className="divide-y divide-border">{current.results.map(r=><li key={r.id}><Link href={`/dashboard/library/recordings/${r.id}`} className="block px-5 py-4 hover:bg-surface"><span className="block font-medium"><Highlight text={r.title} query={filters.q}/></span><span className="text-xs text-muted">{r.kind==="meeting"?"Meeting":"Recording"} · {timeAgo(r.at)} · {r.state==="completed"?"Ready":r.state?.replaceAll("_"," ")}</span>{r.snippet&&<p className="mt-1 text-sm text-muted"><Highlight text={r.snippet} query={filters.q}/></p>}</Link></li>)}</ul>}</Card>
+  {current?.nextCursor&&<Button variant="secondary" disabled={loadingMore===key} onClick={()=>void loadMore()}>Load more</Button>}
+  {loadingMore===key&&<Card><SkeletonRows count={2} label="Loading more recordings"/></Card>}
  </div>;
 }

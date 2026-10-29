@@ -338,7 +338,7 @@ function Palette({ onClose }: { onClose: () => void }) {
 
           {searchable && pending && items.length === 0 && !error && (
             <ul aria-hidden className="space-y-1 px-1 pb-2">
-              {[0, 1, 2].map((i) => <li key={i} className="flex items-center gap-3 rounded-lg px-2 py-2"><span className="h-7 w-7 animate-pulse rounded-md bg-border" /><span className="h-3 w-2/5 animate-pulse rounded bg-border" /></li>)}
+              {[0, 1, 2].map((i) => <li key={i} className="flex items-center gap-3 rounded-lg px-2 py-2"><span className="h-7 w-7 jb-skel rounded-md bg-border" /><span className="h-3 w-2/5 jb-skel rounded bg-border" /></li>)}
             </ul>
           )}
 

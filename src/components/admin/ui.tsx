@@ -49,7 +49,7 @@ export function ResourceBoundary<T>({ resource, children }: { resource: Resource
   }
   if (loading || !data) {
     return (
-      <div role="status" aria-label="Loading" aria-busy="true" className="h-48 animate-pulse rounded-xl border border-border bg-surface" />
+      <div role="status" aria-label="Loading" aria-busy="true" className="h-48 jb-skel rounded-xl border border-border bg-surface" />
     );
   }
   return <>{children(data)}</>;

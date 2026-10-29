@@ -63,9 +63,13 @@ it("unverified accounts are directed to verification and profile verification is
  const profile=await auth.me(new Request(origin+"/api/me",{headers:{cookie:responseCookie(res)}}));expect((await profile.json()).emailVerified).toBe(true);
 });
 it("anonymous recovery and verification are explicit bounded same-origin actions",async()=>{
- for(const action of ["forgot-password","reset-password","verify-email"]){expect((await auth.action(request(`/api/auth/${action}`,{token:"token"}),action)).status).toBe(200);}
+ for(const action of ["forgot-password","verify-reset-code","reset-password","verify-email"]){expect((await auth.action(request(`/api/auth/${action}`,{token:"token"}),action)).status).toBe(200);}
  expect((await auth.action(request("/api/auth/reset-password",{},undefined,"https://foreign.invalid"),"reset-password")).status).toBe(403);
  expect((await auth.action(request("/api/auth/change-password",{}),"change-password")).status).toBe(401);
+});
+it("verifying an email with a code needs a signed-in session, but a link token does not",async()=>{
+ expect((await auth.action(request("/api/auth/verify-email",{code:"123456"}),"verify-email")).status).toBe(401);
+ expect((await auth.action(request("/api/auth/verify-email",{token:"token"}),"verify-email")).status).toBe(200);
 });
 it("refresh uses only internal refresh endpoint and logout revokes backend before clearing cookie",async()=>{
  const res=await login(),cookie=responseCookie(res),id=hashId(cookie.split("=")[1]);store.sessions.get(id)!.accessExpiresAt=0;

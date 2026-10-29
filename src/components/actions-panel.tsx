@@ -1,4 +1,5 @@
 "use client";
+import { Loading, SkeletonRows } from "@/components/ui/skeleton";
 
 import { ListChecks, TriangleAlert } from "lucide-react";
 import Link from "next/link";
@@ -129,11 +130,10 @@ export function ActionsPanel({
         <Card>
           <CardHeader title="Action items" />
           {state === "extracting" ? (
-            <EmptyState
-              icon={<ListChecks className="h-5 w-5" />}
-              title="Looking for action items…"
-              body="This takes a moment. This page updates by itself."
-            />
+            <Loading label="Looking for action items">
+              <p className="px-5 pt-4 text-sm text-muted">Looking for action items. This takes a moment, and the page updates by itself.</p>
+              <SkeletonRows count={3} icon={false} />
+            </Loading>
           ) : (
             <EmptyState
               icon={<ListChecks className="h-5 w-5" />}
@@ -147,7 +147,7 @@ export function ActionsPanel({
                   ? "Available once the transcript is ready."
                   : state === "ready"
                     ? "Nothing in this conversation sounded like something someone agreed to do."
-                    : "MyJooba can look through the transcript for things people said they would do. They are only suggestions: you decide what to keep."
+                    : "Jooba can look through the transcript for things people said they would do. They are only suggestions: you decide what to keep."
               }
               action={
                 ready
@@ -164,7 +164,7 @@ export function ActionsPanel({
           <Card>
             <CardHeader title="To review" action={finder("Look again")} />
             <p className="border-b border-border px-5 py-3 text-xs text-muted">
-              Suggestions from the transcript, as it was said. MyJooba does not
+              Suggestions from the transcript, as it was said. Jooba does not
               guess who owns an item or when it is due, and nothing is sent to
               anyone.
             </p>

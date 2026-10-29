@@ -1,4 +1,6 @@
 import { Suspense } from "react";
-import { AuthAccountAction } from "@/components/auth-account-action";
+import { AuthLayout } from "@/components/auth-layout";
+import { SkeletonForm } from "@/components/ui/skeleton";
+import { VerifyEmail } from "@/components/verify-email";
 export const metadata={referrer:"no-referrer" as const};
-export default function Page(){return <Suspense fallback={<p>Loading…</p>}><AuthAccountAction kind="verify-email"/></Suspense>;}
+export default function Page(){return <Suspense fallback={<AuthLayout><SkeletonForm label="Loading" /></AuthLayout>}><VerifyEmail/></Suspense>;}

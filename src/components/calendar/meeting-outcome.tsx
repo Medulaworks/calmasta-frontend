@@ -1,4 +1,5 @@
 "use client";
+import { Loading, SkeletonLines } from "@/components/ui/skeleton";
 
 import {
   ArrowRight,
@@ -73,7 +74,7 @@ export function MeetingOutcome({
       <div
         role="status"
         aria-label="Loading what this meeting produced"
-        className="h-40 animate-pulse rounded-lg border border-border bg-surface"
+        className="h-40 jb-skel rounded-lg border border-border bg-surface"
       />
     );
   if (loaded.error || !cap) {
@@ -217,7 +218,7 @@ function Summary({ cap, text }: { cap: CaptureView; text: string | null }) {
   return (
     <div className="space-y-2">
       <p className="text-muted">
-        No summary yet. MyJooba can write one from the transcript, which you can
+        No summary yet. Jooba can write one from the transcript, which you can
         edit freely afterwards.
       </p>
       <Button size="sm" onClick={() => void write()} disabled={busy}>
@@ -285,7 +286,7 @@ function Actions({
       <div className="space-y-1">
         <p className="text-muted">
           {cap.actions.state === "extracting"
-            ? "Looking for action items…"
+            ? <Loading label="Looking for action items"><SkeletonLines lines={2} /></Loading>
             : "No action items yet. Open the conversation and choose “Find action items”."}
         </p>
         <Link

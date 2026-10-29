@@ -111,20 +111,20 @@ function PageSkeleton() {
       aria-busy="true"
       className="space-y-6">
       <div className="space-y-2" aria-hidden>
-        <div className="h-6 w-48 animate-pulse rounded bg-border" />
-        <div className="h-3.5 w-80 max-w-full animate-pulse rounded bg-border" />
+        <div className="h-6 w-48 jb-skel rounded bg-border" />
+        <div className="h-3.5 w-80 max-w-full jb-skel rounded bg-border" />
       </div>
       <div aria-hidden className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[0, 1, 2, 3].map((i) => (
           <div
             key={i}
-            className="h-28 animate-pulse rounded-xl border border-border bg-surface"
+            className="h-28 jb-skel rounded-xl border border-border bg-surface"
           />
         ))}
       </div>
       <div
         aria-hidden
-        className="h-64 animate-pulse rounded-xl border border-border bg-surface"
+        className="h-64 jb-skel rounded-xl border border-border bg-surface"
       />
     </div>
   );
@@ -134,7 +134,7 @@ function HomeLink() {
   return (
     <Link
       href="/dashboard"
-      aria-label="MyJooba home"
+      aria-label="Jooba home"
       className="text-lg text-sidebar-fg">
       <Brand size={32} tile="paper" labelClassName="sc:md:hidden" />
     </Link>

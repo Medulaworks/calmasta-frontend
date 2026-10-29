@@ -4,6 +4,7 @@ import { CalendarDays, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Loading, Skeleton } from "@/components/ui/skeleton";
 import { useProfile, useSetProfile } from "@/components/shell/profile-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,7 +35,7 @@ export function ConnectionsCard() {
         {failed ? (
           <p className="text-muted">Couldn&rsquo;t load your connections right now.</p>
         ) : !conns ? (
-          <p className="text-muted">Loading…</p>
+          <Loading label="Loading your connections" className="space-y-2"><Skeleton className="h-4 w-2/3" /><Skeleton className="h-4 w-1/3" /></Loading>
         ) : conns.length === 0 ? (
           <p className="text-muted">No calendar connected. Connect one to see your agenda, avoid double-booking and have meetings captured.</p>
         ) : (
@@ -175,7 +176,7 @@ export function DeleteAccountCard() {
         {unavailable ? (
           <p role="status" className="text-muted">Account deletion is not available yet.</p>
         ) : deletion === undefined ? (
-          <p className="text-muted">Loading…</p>
+          <Loading label="Loading account deletion status" className="space-y-2"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-9 w-32 rounded-lg" /></Loading>
         ) : deletion ? (
           <div role="status" className="space-y-3">
             <p className="flex items-center gap-2 font-medium">

@@ -84,10 +84,12 @@ export class AuthService {
  async action(req:Request,action:string){
   try{
    this.checkOrigin(req);
-   if(!["forgot-password","reset-password","verify-email","verify-email/resend","change-password"].includes(action))throw new HttpError(404,"API route not found");
-   const authenticated=["verify-email/resend","change-password"].includes(action);const session=authenticated?await this.session(req):undefined;
+   if(!["forgot-password","verify-reset-code","reset-password","verify-email","verify-email/resend","change-password"].includes(action))throw new HttpError(404,"API route not found");
+   const body=await readJson(req);
+   // Verifying with a code needs the signed-in account (the code alone doesn't say whose it is); a link token does not.
+   const authenticated=["verify-email/resend","change-password"].includes(action)||(action==="verify-email"&&"code" in body);const session=authenticated?await this.session(req):undefined;
    if(authenticated&&!session)return this.unauthorized();
-   const body=await readJson(req),res=await this.upstream(`/auth/${action}`,"POST",body,session??undefined,undefined,this.clientIp(req));
+   const res=await this.upstream(`/auth/${action}`,"POST",body,session??undefined,undefined,this.clientIp(req));
    if(!res.ok)return this.errorBody(res);const result=await res.json();
    if(action==="change-password"){
     const id=readCookie(req,this.config.sessionCookie);if(id)await this.store.revoke(hashId(id),true);

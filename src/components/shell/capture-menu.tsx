@@ -244,7 +244,7 @@ function ScheduleDialog({ onClose }: { onClose: () => void }) {
         </div>
         <p className="text-xs text-muted">
           Google Calendar events show up under Calendar once you connect it.
-          Outlook isn&rsquo;t connected to MyJooba yet, so for an Outlook
+          Outlook isn&rsquo;t connected to Jooba yet, so for an Outlook
           meeting paste its link into{" "}
           <span className="font-medium">Add to live meeting</span> when it
           starts.

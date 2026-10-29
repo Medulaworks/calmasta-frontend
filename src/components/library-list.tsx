@@ -12,6 +12,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, tabId, tabPanelId } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton, SkeletonRows } from "@/components/ui/skeleton";
 import { type DocumentListItem, listDocuments, templateLabel } from "@/lib/documents-client";
 import { captureStatus, documentStatus, timeAgo } from "@/lib/status";
 import { EMPTY_QUERY, type LibraryQuery, type LibraryResult, isSearching, searchLibrary } from "@/lib/library-client";
@@ -19,21 +20,6 @@ import { type CaptureListItem, listCaptures } from "@/lib/upload-client";
 
 type Tab = "documents" | "recordings";
 
-function Skeleton() {
-  return (
-    <ul className="divide-y divide-border" aria-hidden>
-      {[0, 1, 2, 3].map((i) => (
-        <li key={i} className="flex items-center gap-3 px-5 py-3">
-          <span className="h-9 w-9 animate-pulse rounded-lg bg-border" />
-          <span className="flex-1 space-y-2">
-            <span className="block h-3 w-1/2 animate-pulse rounded bg-border" />
-            <span className="block h-2.5 w-1/4 animate-pulse rounded bg-border" />
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
-}
 
 const TYPE_OPTIONS = [["all", "Everything"], ["documents", "Documents"], ["recordings", "Recordings"], ["meetings", "Meetings"]] as const;
 const STATUS_OPTIONS = [["all", "Any status"], ["ready", "Ready"], ["in_progress", "In progress"], ["attention", "Needs attention"]] as const;
@@ -69,7 +55,7 @@ function ResultRow({ r, q }: { r: LibraryResult; q: string }) {
           <span className="block truncate text-xs text-muted">{KIND_LABEL[r.kind]} · {timeAgo(r.at)}</span>
           {r.snippet && <span className="mt-1 block text-sm text-muted"><Highlight text={r.snippet} query={q} /></span>}
         </span>
-        <Badge tone={st.tone} active={st.active}>{st.label}</Badge>
+        <Badge tone={st.tone} active={st.active} indicator={st.indicator}>{st.label}</Badge>
       </Link>
     </li>
   );
@@ -186,11 +172,11 @@ export function LibraryList() {
         {searchBar}
         {searchError && <p role="alert" className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">{searchError}</p>}
         <p role="status" aria-live="polite" className="text-sm text-muted">
-          {tooShort ? "" : shown === null ? "Searching…" : `${shown.length}${shown.length === 100 ? "+" : ""} ${shown.length === 1 ? "result" : "results"}`}
+          {tooShort ? "" : shown === null ? <><Skeleton className="inline-block h-4 w-24 align-middle" /><span className="sr-only">Searching…</span></> : `${shown.length}${shown.length === 100 ? "+" : ""} ${shown.length === 1 ? "result" : "results"}`}
         </p>
         <Card>
           {shown === null ? (
-            <Skeleton />
+            <SkeletonRows count={5} label="Loading your library" />
           ) : shown.length === 0 ? (
             <EmptyState
               icon={<Search className="h-5 w-5" />}
@@ -221,7 +207,7 @@ export function LibraryList() {
       <Card>
         {tab === "documents" ? (
           docs === null ? (
-            <Skeleton />
+            <SkeletonRows count={5} label="Loading your library" />
           ) : docs.length === 0 ? (
             <EmptyState icon={<FileText className="h-5 w-5" />} title="No documents yet" body="Open a recording and choose a template to write your first document." action={<ButtonLink href="/dashboard/voice" variant="primary">Record a thought</ButtonLink>} />
           ) : (
@@ -236,7 +222,7 @@ export function LibraryList() {
                         <span className="block truncate text-sm font-medium">{d.title}</span>
                         <span className="block truncate text-xs text-muted">{templateLabel(d.template)} · {timeAgo(d.updatedAt)}</span>
                       </span>
-                      <Badge tone={st.tone} active={st.active}>{st.label}</Badge>
+                      <Badge tone={st.tone} active={st.active} indicator={st.indicator}>{st.label}</Badge>
                     </Link>
                   </li>
                 );
@@ -244,7 +230,7 @@ export function LibraryList() {
             </ul>
           )
         ) : caps === null ? (
-          <Skeleton />
+          <SkeletonRows count={5} label="Loading your library" />
         ) : caps.length === 0 ? (
           <EmptyState icon={<Mic className="h-5 w-5" />} title="No recordings yet" body="Record a thought, upload audio or capture a meeting." action={<ButtonLink href="/dashboard/voice" variant="primary">Record a thought</ButtonLink>} />
         ) : (
@@ -260,7 +246,7 @@ export function LibraryList() {
                       <span className="block truncate text-sm font-medium">{c.title}</span>
                       <span className="block truncate text-xs text-muted">{c.source === "meeting_url" ? "Meeting" : c.source === "voice_recording" ? "Recorded in browser" : "Upload"} · {timeAgo(c.createdAt)}</span>
                     </span>
-                    <Badge tone={st.tone} active={st.active}>{st.label}</Badge>
+                    <Badge tone={st.tone} active={st.active} indicator={st.indicator}>{st.label}</Badge>
                   </Link>
                 </li>
               );

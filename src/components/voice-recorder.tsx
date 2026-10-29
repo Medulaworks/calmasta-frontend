@@ -1,4 +1,5 @@
 "use client";
+import { Loading, Skeleton, SkeletonRows } from "@/components/ui/skeleton";
 
 import { Mic, Square, Upload, Video } from "lucide-react";
 import Link from "next/link";
@@ -391,7 +392,7 @@ export function VoiceRecorder() {
           )}
           {job&&"captureId" in job&&job.captureId&&<Link href={`/dashboard/library/recordings/${job.captureId}`} className="block text-sm font-medium text-accent">Review recording and transcript</Link>}
           <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)}/>I have the right to upload and transcribe this recording.</label>
-          {(!policy||!policy.uploadEnabled)&&<p role="status" className="text-sm text-muted">{policyError??(policy?"Uploading is not enabled for this account yet.":"Loading capture limits…")}</p>}
+          {!policy&&!policyError?<Loading label="Loading capture limits"><Skeleton className="h-3.5 w-2/3"/></Loading>:(!policy||!policy.uploadEnabled)&&<p role="status" className="text-sm text-muted">{policyError??"Uploading is not enabled for this account yet."}</p>}
           {job?.kind==="processing"&&policy&&!policy.liveProcessingEnabled&&<p className="text-sm text-muted">Your recording is saved. Processing is currently paused.</p>}
           <div className="flex items-center gap-2">
             <Button variant="primary" onClick={submit} disabled={!consent || !policy?.uploadEnabled || job?.kind === "uploading" || job?.kind === "processing" || job?.kind === "done"}>
@@ -442,14 +443,7 @@ function RecentRecordings({ refreshKey }: { refreshKey: string }) {
       {failed && items === null ? (
         <p role="alert" className="px-5 py-6 text-sm text-danger">Couldn&rsquo;t load your recordings just now.</p>
       ) : items === null ? (
-        <ul aria-hidden className="divide-y divide-border">
-          {[0, 1, 2].map((i) => (
-            <li key={i} className="flex items-center gap-3 px-5 py-3">
-              <span className="h-9 w-9 animate-pulse rounded-lg bg-border" />
-              <span className="h-3 w-1/3 animate-pulse rounded bg-border" />
-            </li>
-          ))}
-        </ul>
+        <SkeletonRows count={3} label="Loading your recordings" />
       ) : items.length === 0 ? (
         <EmptyState icon={<Mic />} title="Nothing recorded yet" body="Your recordings and captured meetings will be listed here." />
       ) : (
@@ -469,7 +463,7 @@ function RecentRecordings({ refreshKey }: { refreshKey: string }) {
                       {c.source === "meeting_url" ? "Meeting" : c.source === "voice_recording" ? "Recorded in browser" : "Upload"} · {timeAgo(c.createdAt)}
                     </span>
                   </span>
-                  <Badge tone={st.tone} active={st.active}>
+                  <Badge tone={st.tone} active={st.active} indicator={st.indicator}>
                     {st.label}
                   </Badge>
                 </Link>
