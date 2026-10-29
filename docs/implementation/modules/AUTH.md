@@ -165,3 +165,10 @@ Core auth/profile/onboarding APIs exist; next work is frontend bootstrap/contrac
 - **Proof (command + result + revision):** `pnpm exec eslint src/components/shell/top-bar.tsx --max-warnings=0 && pnpm typecheck && git diff --check` passed; no live logout request.
 - **What is NOT done:** Browser interaction check; logout API/provider behavior unchanged.
 - **Next action (task ID + files):** FE-A04 — manually confirm loading state and failed-request retry in `src/components/shell/top-bar.tsx`.
+
+## 2026-10-29 — disabled Microsoft sign-in option
+
+- **What was done (files + behavior):** FE-A02 UI refinement IMPLEMENTED in src/components/login.tsx: added Continue with Microsoft below Google on sign-in/signup, using existing secondary button styling and a Microsoft mark; native disabled button has no handler or provider route.
+- **Proof (command + result + revision):** dded46a working tree: pnpm exec eslint src/components/login.tsx, pnpm typecheck and git diff --check passed. Verification PARTIALLY_TESTED for this UI refinement (static checks).
+- **What is NOT done:** Microsoft authentication integration and browser/visual verification; no provider calls, deployment or browser automation.
+- **Next action (task ID + files):** FE-A02 — manually inspect src/components/login.tsx on /auth/login when browser verification is authorized; Microsoft remains disabled.

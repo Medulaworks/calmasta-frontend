@@ -12,6 +12,7 @@ import { prepareAvatar, removeAvatar, uploadAvatar } from "@/lib/avatar-client";
 import { TEMPLATE_CHOICES } from "@/lib/documents-client";
 import { getProfile, saveProfile } from "@/lib/profile-client";
 import { ROLES } from "@/lib/roles";
+import { ChangePasswordDialog } from "@/components/profile/change-password-dialog";
 import { ApiError } from "@/lib/upload-client";
 
 const noSubscribe = () => () => {};
@@ -161,6 +162,7 @@ export function ProfileView() {
   const profile = useProfile();
   const setProfile = useSetProfile();
   const browserTz = useBrowserTimezone();
+  const [showChangePassword, setShowChangePassword] = useState(false);
 
   // `undefined` means "not changed yet": show the saved value, and keep the person's pick once they make one.
   const [name, setName] = useState<string | undefined>(undefined);
@@ -264,7 +266,9 @@ export function ProfileView() {
               <p className="flex items-center gap-2 font-medium"><KeyRound aria-hidden className="h-4 w-4 text-muted" /> Password</p>
               <p className="mt-1 text-muted">Your password is securely hashed. Changing it signs out existing sessions. If you signed in with Google, use Forgot password on the sign-in page to set a password.</p>
             </div>
-            <a href="/auth/change-password" className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 font-medium hover:bg-surface">Change password</a>
+            <Button variant="secondary" onClick={() => setShowChangePassword(true)}>
+              Change password
+            </Button>
           </div>
 
           <div className="border-t border-border pt-5">
@@ -277,6 +281,8 @@ export function ProfileView() {
           </div>
         </div>
       </Card>
+
+      {showChangePassword && <ChangePasswordDialog onClose={() => setShowChangePassword(false)} />}
     </div>
   );
 }

@@ -173,3 +173,17 @@ Internal authentication supersedes hosted-provider setup for FE-A01–FE-A04. Lo
 - **Proof (command + result + revision):** `pnpm exec eslint src/components/shell/top-bar.tsx --max-warnings=0 && pnpm typecheck && git diff --check` passed; no live logout request.
 - **What is NOT done:** Browser interaction check; no auth API changes.
 - **Next action (task ID + files):** FE-A04 — manually verify pending and retry states in `src/components/shell/top-bar.tsx`.
+
+## 2026-10-29 — disabled Microsoft sign-in option
+
+- **What was done (files + behavior):** FE-A02 UI refinement IMPLEMENTED in src/components/login.tsx: added Continue with Microsoft below Google on sign-in/signup, using existing secondary button styling and a Microsoft mark; native disabled button has no handler or provider route.
+- **Proof (command + result + revision):** dded46a working tree: pnpm exec eslint src/components/login.tsx, pnpm typecheck and git diff --check passed. Verification PARTIALLY_TESTED for this UI refinement (static checks).
+- **What is NOT done:** Microsoft authentication integration and browser/visual verification; no provider calls, deployment or browser automation.
+- **Next action (task ID + files):** FE-A02 — manually inspect src/components/login.tsx on /auth/login when browser verification is authorized; Microsoft remains disabled.
+
+## 2026-10-29 — meeting list polling
+
+- **What was done (files + behavior):** FE-C02 refinement IMPLEMENTED in src/components/capture-form.tsx and src/lib/meeting-poller.ts: sequential 15-second polling only while active, hidden-tab pause, 30/60/120-second failure backoff, immediate action refresh, terminal-state stop and unmount cancellation via src/lib/upload-client.ts. List errors remain separate from mutation errors.
+- **Proof (command + result + revision):** dded46a working tree: pnpm test src/lib/meeting-poller.test.ts src/lib/capture-flow.test.ts passed 12/12; pnpm typecheck, targeted eslint and git diff --check passed. Polling refinement verification PARTIALLY_TESTED (fake timers/client checks).
+- **What is NOT done:** Live browser/network and backend/provider verification; no browser automation, paid processing, commits or deployment.
+- **Next action (task ID + files):** FE-C02 — manually verify capture-form.tsx request cadence, tab visibility and failure recovery when browser verification is authorized.

@@ -363,7 +363,7 @@ export function Login() {
           </form>
 
           {mode !== "forgot" && <>
-          {/* Google OAuth alternative */}
+          {/* Social sign-in alternatives */}
           <div className="mt-6">
             <div className="relative flex items-center justify-center">
               <div className="border-t border-border w-full" />
@@ -371,7 +371,7 @@ export function Login() {
               <div className="border-t border-border w-full" />
             </div>
 
-            <div className="mt-4">
+            <div className="mt-4 space-y-3">
               <a
                 href={`/api/auth/login?${q}&provider=google`}
                 aria-disabled={checking || submitting || connectingGoogle}
@@ -413,6 +413,18 @@ export function Login() {
                   ? "Connecting to Google"
                   : "Continue with Google"}
               </a>
+              <button
+                type="button"
+                disabled
+                className={buttonClass("secondary", "w-full", "lg")}>
+                <svg aria-hidden="true" width="18" height="18" viewBox="0 0 21 21">
+                  <path fill="#f25022" d="M0 0h10v10H0z" />
+                  <path fill="#7fba00" d="M11 0h10v10H11z" />
+                  <path fill="#00a4ef" d="M0 11h10v10H0z" />
+                  <path fill="#ffb900" d="M11 11h10v10H11z" />
+                </svg>
+                Continue with Microsoft
+              </button>
             </div>
           </div>
 

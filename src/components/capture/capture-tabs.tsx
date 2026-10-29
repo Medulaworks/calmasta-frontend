@@ -1,11 +1,11 @@
 import Link from "next/link";
 
 const TABS = [
-  { id: "voice", href: "/dashboard/voice", label: "Voice Inbox" },
-  { id: "meeting", href: "/dashboard/capture", label: "Meeting Bot" },
+  { id: "bot", href: "/dashboard/voice?tab=bot", label: "Meeting Bot" },
+  { id: "voice", href: "/dashboard/voice?tab=voice", label: "Voice Inbox" },
 ] as const;
 
-/** The two ways to capture a conversation. A link bar, not client state, so each tab is its own shareable page. */
+/** The two ways to capture a conversation. Tab selection is persisted in the URL via ?tab=bot | ?tab=voice. */
 export function CaptureTabs({ active }: { active: (typeof TABS)[number]["id"] }) {
   return (
     <nav aria-label="Capture type" className="flex gap-6 border-b border-border">

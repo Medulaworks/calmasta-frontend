@@ -1,10 +1,11 @@
 "use client";
 
+import { createMeetingPoller } from "@/lib/meeting-poller";
 import { useCapturePolicy } from "@/hooks/use-capture-policy";
 import { Video } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -28,39 +29,37 @@ export function CaptureForm() {
   const [durationMinutes, setDurationMinutes] = useState(1);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [items, setItems] = useState<CaptureListItem[] | null>(null);
 
-  // Bumping `tick` re-fetches the list; polling and user actions both just bump it.
-  const [tick, setTick] = useState(0);
-  const refresh = useCallback(() => setTick((t) => t + 1), []);
+  const poller = useRef<ReturnType<typeof createMeetingPoller> | null>(null);
+  const refresh = useCallback(() => poller.current?.refresh(), []);
 
   useEffect(() => {
-    let cancelled = false;
-    listCaptures(50, "meetings").then(
-      (all) => {
-        if (!cancelled) setItems(all);
-      },
-      (err) => {
-        if (cancelled) return;
-        setItems((prev) => prev ?? []);
-        setError(
-          err instanceof Error ? err.message : "Could not load your captures.",
-        );
-      },
-    );
+    const controller = new AbortController();
+    poller.current = createMeetingPoller(async () => {
+      try {
+        const all = await listCaptures(50, "meetings", controller.signal);
+        if (!controller.signal.aborted) {
+          setItems(all);
+          setListError(null);
+        }
+        return all.some((capture) => isMeetingActive(capture.status));
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          setItems((prev) => prev ?? []);
+          setListError(err instanceof Error ? err.message : "Could not load your captures.");
+        }
+        throw err;
+      }
+    }, document);
     return () => {
-      cancelled = true;
+      poller.current?.stop();
+      poller.current = null;
+      controller.abort();
     };
-  }, [tick]);
-
-  // Keep status fresh while any meeting is still in flight.
-  const anyActive = items?.some((c) => isMeetingActive(c.status)) ?? false;
-  useEffect(() => {
-    if (!anyActive) return;
-    const id = setInterval(refresh, 3000);
-    return () => clearInterval(id);
-  }, [anyActive, refresh]);
+  }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -189,11 +188,11 @@ export function CaptureForm() {
             {notice}
           </p>
         )}
-        {error && (
+        {(error || listError) && (
           <p
             role="alert"
             className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
-            {error}
+            {error || listError}
           </p>
         )}
       </div>
