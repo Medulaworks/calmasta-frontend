@@ -1,3 +1,10 @@
+## 2026-10-29 — meeting assistant display names
+
+- **What was done (files + behavior):** FE-C01/FE-C02: voice page CaptureForm adds optional assistant-name input using policy botName placeholder, blank-default behavior, maxLength 100, mutation forwarding and submit reset. upload-client trims/validates the override, omits blank names and includes chosen names in existing request fingerprints; useRequestMeeting forwards it. Meeting title remains separate; shared same-origin auth/proxy and consent/video guards retained. Voice page removes hardcoded assistant branding from its description.
+- **Proof (command + result + revision):** cb374de dirty frontend with concurrent auth edits preserved; provider/client regressions first failed, then direct node_modules/.bin/vitest run src/lib/capture-flow.test.ts passed 9/9; frontend tsc --noEmit, targeted eslint and diff checks passed. Backend df32fd0 dirty: migration018, DTO/policy/read models, persisted retry name and worker/provider dispatch verified by 40/40 focused disposable-PG tests and valid 68-path OpenAPI. No live bot/browser/provider test. pnpm auto-synchronized the pre-existing dependency tree during the first test invocation; only its unrelated lockfile edit was restored, with no requested dependency additions.
+- **What is NOT done:** Hosted API/worker/frontend rollout and real custom-name meeting proof pending. No live flags, allowances, paid dispatch, browser automation, commit or deploy. Authenticated Google Meet assistants use their account name; guest custom names follow Recall bot_name.
+- **Next action (task ID + files):** FE-C01/FE-C03 — deploy backend migrations through 018 and updated API/worker before the frontend; optional RECALL_BOT_NAME default, verify policy.botName and chosen name on an authorized live meeting. Acceptance: WORK_PLAN.md; backend runbook ../calmasta-api/docs/runbooks/meeting-bot-names.md (sibling repository).
+
 # Frontend agent handoff
 
 ## 2026-10-29 — backend documentation consolidation

@@ -39,11 +39,46 @@ export class AuthService {
  async login(req:Request){
   if(req.method==="POST")return this.credentials(req,"login");
   try{
-   const res=await this.upstream("/auth/google/url","GET",undefined,undefined,undefined,this.clientIp(req));if(!res.ok)throw Error("Google unavailable");const data=await res.json() as {url:string;state:string};
-   const target=new URL(data.url);if(target.protocol!=="https:"||target.hostname!=="accounts.google.com"||typeof data.state!=="string")throw Error("Invalid authorization URL");
-   const id=opaqueId();await this.store.putTransaction(hashId(id),{state:data.state,returnTo:safeReturnTo(new URL(req.url).searchParams.get("returnTo"))});
+   const provider=new URL(req.url).searchParams.get("provider")==="microsoft"?"microsoft":"google";
+   const endpoint=provider==="microsoft"?"/auth/microsoft/url":"/auth/google/url";
+   const res=await this.upstream(endpoint,"GET",undefined,undefined,undefined,this.clientIp(req));if(!res.ok)throw Error(`${provider} unavailable`);const data=await res.json() as {url:string;state:string};
+   const target=new URL(data.url);const validHost=provider==="microsoft"?target.hostname==="login.microsoftonline.com":target.hostname==="accounts.google.com";if(target.protocol!=="https:"||!validHost||typeof data.state!=="string")throw Error("Invalid authorization URL");
+   const id=opaqueId();await this.store.putTransaction(hashId(id),{state:data.state,returnTo:safeReturnTo(new URL(req.url).searchParams.get("returnTo")),provider});
    return this.setCookie(new Response(null,{status:303,headers:{...headers,Location:target.href}}),this.config.transactionCookie,id,600);
   }catch{return authErrorRedirect("not_configured",this.config.secure);}
+ }
+ async microsoftUrl(req:Request){
+  try{
+   this.checkOrigin(req);
+   const res=await this.upstream("/auth/microsoft/url","GET",undefined,undefined,undefined,this.clientIp(req));if(!res.ok)throw Error("Microsoft unavailable");const data=await res.json() as {url:string;state:string};
+   const target=new URL(data.url);if(target.protocol!=="https:"||target.hostname!=="login.microsoftonline.com"||typeof data.state!=="string")throw Error("Invalid authorization URL");
+   const id=opaqueId();await this.store.putTransaction(hashId(id),{state:data.state,returnTo:safeReturnTo(new URL(req.url).searchParams.get("returnTo")),provider:"microsoft"});
+   const response=Response.json({url:target.href,state:data.state},{headers});
+   return this.setCookie(response,this.config.transactionCookie,id,600);
+  }catch{return Response.json({error:"Sign-in is not configured"}, {status:503,headers});}
+ }
+ async microsoftCallback(req:Request){
+  let stage="transaction";
+  try{
+   const id=readCookie(req,this.config.transactionCookie),txn=id?await this.store.consumeTransaction(hashId(id)):null;
+   const body=await readJson(req) as {code?:unknown;state?:unknown};
+   stage="validation";
+   if(!txn||txn.provider!=="microsoft"||typeof body.code!=="string"||typeof body.state!=="string"||body.state!==txn.state)throw Error("Invalid callback");
+   stage="code_exchange";
+   const upstream=await this.upstream("/auth/microsoft/callback","POST",{state:txn.state,code:body.code},undefined,undefined,this.clientIp(req));
+   if(!upstream.ok){
+    const b=await upstream.json().catch(()=>({}));const diagnosticCode=["account_link_required","invalid_microsoft_transaction","invalid_microsoft_identity","too_many_auth_attempts","internal_error"].includes(b.code)?b.code:"unknown";
+    const correlation=upstream.headers.get("x-correlation-id");const correlationId=correlation&&/^[a-f0-9-]{36}$/i.test(correlation)?correlation:undefined;
+    console.error(JSON.stringify({event:"microsoft_callback_failed",stage,method:"POST",endpoint:"/auth/microsoft/callback",status:upstream.status,diagnosticCode,correlationId}));
+    return this.setCookie(authErrorRedirect(b.code==="account_link_required"?"account_link_required":"invalid_response",this.config.secure),this.config.transactionCookie,"",0);
+   }
+   stage="session";const res=await this.establishSession(req,await upstream.json(),txn.returnTo);
+   return this.setCookie(res,this.config.transactionCookie,"",0);
+  }catch{
+   console.error(JSON.stringify({event:"microsoft_callback_failed",stage,method:"POST",endpoint:"/api/auth/microsoft/callback"}));
+   const res=authErrorRedirect("invalid_response",this.config.secure);
+   return this.setCookie(res,this.config.transactionCookie,"",0);
+  }
  }
  async callback(req:Request){
   let res:Response;
@@ -53,13 +88,17 @@ export class AuthService {
    stage="validation";
    if(!txn||q.getAll("state").length!==1||q.get("state")!==txn.state||q.getAll("code").length!==1||q.getAll("iss").length>1||q.has("error"))throw Error("Invalid callback");
    stage="code_exchange";
-   const upstream=await this.upstream("/auth/google/callback","POST",{state:txn.state,code:q.get("code"),...(q.has("iss")?{iss:q.get("iss")}:{})},undefined,undefined,this.clientIp(req));
+   const isMicrosoft=txn.provider==="microsoft";
+   const endpoint=isMicrosoft?"/auth/microsoft/callback":"/auth/google/callback";
+   const event=isMicrosoft?"microsoft_callback_failed":"google_callback_failed";
+   const upstream=await this.upstream(endpoint,"POST",{state:txn.state,code:q.get("code"),...(q.has("iss")?{iss:q.get("iss")}:{})},undefined,undefined,this.clientIp(req));
    if(!upstream.ok){
     const body=await upstream.json().catch(()=>({}));
-    const diagnosticCode=["account_link_required","invalid_google_transaction","invalid_google_identity","too_many_auth_attempts","internal_error"].includes(body.code)?body.code:"unknown";
+    const codes=isMicrosoft?["account_link_required","invalid_microsoft_transaction","invalid_microsoft_identity","too_many_auth_attempts","internal_error"]:["account_link_required","invalid_google_transaction","invalid_google_identity","too_many_auth_attempts","internal_error"];
+    const diagnosticCode=(codes as string[]).includes(body.code)?body.code:"unknown";
     const correlation=upstream.headers.get("x-correlation-id");
     const correlationId=correlation&&/^[a-f0-9-]{36}$/i.test(correlation)?correlation:undefined;
-    console.error(JSON.stringify({event:"google_callback_failed",stage,method:"POST",endpoint:"/auth/google/callback",status:upstream.status,diagnosticCode,correlationId}));
+    console.error(JSON.stringify({event,stage,method:"POST",endpoint,status:upstream.status,diagnosticCode,correlationId}));
     res=authErrorRedirect(body.code==="account_link_required"?"account_link_required":"invalid_response",this.config.secure);
    }else{stage="session";res=await this.establishSession(req,await upstream.json(),txn.returnTo);}
   }catch{
@@ -138,14 +177,18 @@ export class AuthService {
     try {
       if (!["GET", "POST", "PATCH", "PUT", "DELETE"].includes(request.method)) throw new HttpError(405, "Method not allowed");
       if (request.method !== "GET") this.checkOrigin(request);
-      const allowed = new Set(["uploads", "jobs", "usage", "account", "dashboard", "captures", "documents", "library", "calendar", "booking", "plan", "admin", "notifications"]);
+      const allowed = new Set(["uploads", "jobs", "usage", "account", "dashboard", "captures", "documents", "library", "calendar", "booking", "plan", "admin", "notifications", "public"]);
       if (!allowed.has(segments[0]) || segments.some(s => !/^[A-Za-z0-9_-]+$/.test(s))) throw new HttpError(404, "API route not found");
+      const isPublicRoute = segments[0] === "public";
       const session = await this.session(request);
-      if (!session) return this.unauthorized();
+      if (!session && !isPublicRoute) return this.unauthorized();
       const transcriptEdit=request.method==="PATCH"&&segments.length===4&&segments[0]==="library"&&segments[1]==="captures"&&segments[3]==="transcript";
       const body = request.method === "GET" || request.method === "DELETE" && !request.body ? undefined : await readJson(request,transcriptEdit?262144:16384);
       const url = new URL(request.url);
-      const upstream = await this.api(session, "/" + segments.map(encodeURIComponent).join("/") + url.search, request.method, body, request.headers.get("idempotency-key") ?? undefined);
+      const pathAndQuery = "/" + segments.map(encodeURIComponent).join("/") + url.search;
+      const upstream = isPublicRoute
+        ? await this.upstream(pathAndQuery, request.method, body, undefined, request.headers.get("idempotency-key") ?? undefined)
+        : await this.api(session!, pathAndQuery, request.method, body, request.headers.get("idempotency-key") ?? undefined);
       if (upstream.status === 401) return this.unauthorized();
       if (upstream.status === 204) return new Response(null, { status: 204, headers });
       const result = await upstream.json().catch(() => ({ error: "Invalid API response" }));

@@ -28,7 +28,7 @@ async function VoicePageInner({ searchParams }: Props) {
         description={
           isVoice
             ? "Record a thought or upload audio, then turn it into a brief, minutes or follow-up."
-            : "Add a meeting bot: paste a Google Meet, Teams or Zoom link and a visible MyJooba Assistant will join, record and hand you a transcript."
+            : "Add a meeting bot: paste a Google Meet, Teams or Zoom link and a visible meeting assistant will join, record and hand you a transcript."
         }
       />
       <CaptureTabs active={active} />

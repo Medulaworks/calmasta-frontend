@@ -28,6 +28,7 @@ export function CaptureForm() {
   const [durationMinutes, setDurationMinutes] = useState(30);
   const [titleMode, setTitleMode] = useState<"auto" | "mine">("auto");
   const [title, setTitle] = useState("");
+  const [botName, setBotName] = useState("");
   const [recordVideo, setRecordVideo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -59,19 +60,21 @@ export function CaptureForm() {
         consent,
         title: titleMode === "mine" ? title : undefined,
         video: recordVideo,
+        botName,
         seconds: Math.min(
           Math.round(durationMinutes * 60),
           policy?.maxMeetingDurationSeconds ?? 0,
         ),
       });
       setNotice(
-        `Request queued for ${policy?.botName ?? "the recording assistant"}. ${policy?.liveProcessingEnabled ? "It may need to be admitted by the host." : "Recording will start when processing becomes available."}`,
+        `Request queued for ${botName.trim() || policy?.botName || "the recording assistant"}. ${policy?.liveProcessingEnabled ? "It may need to be admitted by the host." : "Recording will start when processing becomes available."}`,
       );
       setUrl("");
       setConsent(false);
       setTitle("");
       setTitleMode("auto");
       setRecordVideo(false);
+      setBotName("");
     } catch (err) {
       setError(
         err instanceof Error
@@ -110,6 +113,22 @@ export function CaptureForm() {
               />
               <span className="mt-1.5 block text-xs text-muted">
                 Google Meet, Microsoft Teams or Zoom.
+              </span>
+            </label>
+            <label className="block text-sm">
+              <span className="font-medium">Assistant name in the meeting</span>
+              <input
+                type="text"
+                value={botName}
+                onChange={(e) => setBotName(e.target.value)}
+                maxLength={100}
+                placeholder={policy?.botName ?? "CalMasta Notetaker"}
+                autoComplete="off"
+                aria-describedby="meeting-bot-name-help"
+                className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2"
+              />
+              <span id="meeting-bot-name-help" className="mt-1.5 block text-xs text-muted">
+                Leave blank to use {policy?.botName ?? "the default assistant name"}. This is separate from your meeting title.
               </span>
             </label>
             {policy?.meetingEnabled && (

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { seal, unseal } from "./security";
-export interface LoginTransaction { state: string; nonce?: string; verifier?: string; returnTo: string }
+export interface LoginTransaction { state: string; nonce?: string; verifier?: string; returnTo: string; provider?: "google" | "microsoft" }
 export interface SessionData {
   subject: string; accessToken: string; refreshToken?: string; idToken?: string; accessExpiresAt: number;
   email: string; emailVerified: boolean; identityName: string | null;

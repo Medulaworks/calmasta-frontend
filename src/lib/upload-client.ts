@@ -128,12 +128,13 @@ export const listCaptures=async(limit=25,kind?:"meetings"|"recordings",signal?:A
  return page.results.map(c=>({...c,source:c.source==="meeting"?"meeting_url":"audio_upload",status:c.state,platform:null}));
 };
 const meetingKeys=new Map<string,string>(),retryKeys=new Map<string,string>();
-export async function requestMeetingCapture(meetingUrl:string,consentConfirmed:boolean,title?:string,recordVideo=false,options?:{maxDurationSeconds:number;idempotencyKey?:string}){
+export async function requestMeetingCapture(meetingUrl:string,consentConfirmed:boolean,title?:string,recordVideo=false,options?:{maxDurationSeconds:number;idempotencyKey?:string;botName?:string}){
  if(consentConfirmed!==true)throw new Error("Confirm that you have the right to record this meeting.");
  const policy=await getCapturePolicy();if(!policy.meetingEnabled)throw new Error("Meeting capture is not available yet.");
  if(recordVideo && !policy.videoEnabled) throw new Error("Video recording is not enabled for this account yet.");
  const seconds=options?.maxDurationSeconds??policy.maxMeetingDurationSeconds;if(!Number.isSafeInteger(seconds)||seconds<30||seconds>policy.maxMeetingDurationSeconds)throw new Error("Choose a duration within the meeting limit.");
- const body={meetingUrl:meetingUrl.trim(),maxDurationSeconds:seconds,consent:true,...(title?.trim()?{title:title.trim()}:{}),...(recordVideo?{recordVideo:true}:{})} as Record<string, unknown>;const fingerprint=JSON.stringify(body);let key=options?.idempotencyKey??meetingKeys.get(fingerprint);if(!key){key=crypto.randomUUID();meetingKeys.set(fingerprint,key);}
+ const botName=options?.botName?.trim();if(botName&&(botName.length>100||/[\u0000-\u001f\u007f]/.test(botName)))throw new Error("Choose an assistant name of up to 100 characters without control characters.");
+ const body={meetingUrl:meetingUrl.trim(),maxDurationSeconds:seconds,consent:true,...(title?.trim()?{title:title.trim()}:{}),...(recordVideo?{recordVideo:true}:{}),...(botName?{botName}:{})} as Record<string, unknown>;const fingerprint=JSON.stringify(body);let key=options?.idempotencyKey??meetingKeys.get(fingerprint);if(!key){key=crypto.randomUUID();meetingKeys.set(fingerprint,key);}
  const r=await api<{id:string}>("/api/captures/meetings",{method:"POST",headers:{"Content-Type":"application/json","Idempotency-Key":key},body:JSON.stringify(body)});if(meetingKeys.get(fingerprint)===key)meetingKeys.delete(fingerprint);return {captureId:r.id,duplicate:false};
 }
 export const cancelMeetingCapture=(id:string)=>api<{state:string}>(`/api/captures/${encodeURIComponent(id)}/cancel`,{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});

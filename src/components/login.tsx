@@ -35,6 +35,7 @@ export function Login() {
   const [name, setName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [connectingGoogle, setConnectingGoogle] = useState(false);
+  const [connectingMicrosoft, setConnectingMicrosoft] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const expired = params.get("reason") === "expired" && !formError;
   const [forgotSuccess, setForgotSuccess] = useState(false);
@@ -56,6 +57,12 @@ export function Login() {
     const resetGoogle = () => setConnectingGoogle(false);
     window.addEventListener("pageshow", resetGoogle);
     return () => window.removeEventListener("pageshow", resetGoogle);
+  }, []);
+
+  useEffect(() => {
+    const resetMicrosoft = () => setConnectingMicrosoft(false);
+    window.addEventListener("pageshow", resetMicrosoft);
+    return () => window.removeEventListener("pageshow", resetMicrosoft);
   }, []);
 
   // Already signed in? Go straight to where they were headed, taking onboarding into account.
@@ -344,9 +351,9 @@ export function Login() {
             <button
               type={mode === "forgot" && forgotSuccess ? "button" : "submit"}
               onClick={mode === "forgot" && forgotSuccess ? returnToSignIn : undefined}
-              disabled={submitting || checking || connectingGoogle}
+              disabled={submitting || checking || connectingGoogle || connectingMicrosoft}
               className={`${buttonClass("primary", "w-full", "lg")}${
-                submitting || checking || connectingGoogle
+                submitting || checking || connectingGoogle || connectingMicrosoft
                   ? " pointer-events-none opacity-60"
                   : ""
               }`}>
@@ -374,10 +381,10 @@ export function Login() {
             <div className="mt-4 space-y-3">
               <a
                 href={`/api/auth/login?${q}&provider=google`}
-                aria-disabled={checking || submitting || connectingGoogle}
+                aria-disabled={checking || submitting || connectingGoogle || connectingMicrosoft}
                 aria-busy={connectingGoogle}
                 onClick={(event) => {
-                  if (checking || submitting || connectingGoogle) {
+                  if (checking || submitting || connectingGoogle || connectingMicrosoft) {
                     event.preventDefault();
                     return;
                   }
@@ -415,15 +422,36 @@ export function Login() {
               </a>
               <button
                 type="button"
-                disabled
-                className={buttonClass("secondary", "w-full", "lg")}>
-                <svg aria-hidden="true" width="18" height="18" viewBox="0 0 21 21">
-                  <path fill="#f25022" d="M0 0h10v10H0z" />
-                  <path fill="#7fba00" d="M11 0h10v10H11z" />
-                  <path fill="#00a4ef" d="M0 11h10v10H0z" />
-                  <path fill="#ffb900" d="M11 11h10v10H11z" />
-                </svg>
-                Continue with Microsoft
+                aria-busy={connectingMicrosoft}
+                disabled={checking || submitting || connectingGoogle || connectingMicrosoft}
+                onClick={async () => {
+                  if (checking || submitting || connectingGoogle || connectingMicrosoft) return;
+                  setConnectingMicrosoft(true);
+                  setFormError(null);
+                  try {
+                    const res = await fetch(`/api/auth/microsoft/url?returnTo=${encodeURIComponent(returnTo)}`, { cache: "no-store" });
+                    const data = await res.json().catch(() => ({})) as { url?: string; state?: string; error?: string };
+                    if (!res.ok || !data.url || !data.state) throw new Error(data.error || "Microsoft sign-in unavailable");
+                    try { sessionStorage.setItem("microsoft_oauth_state", data.state); } catch {}
+                    try { sessionStorage.setItem("oauth_state", data.state); } catch {}
+                    window.location.assign(data.url);
+                  } catch (e) {
+                    setFormError(e instanceof Error ? e.message : "Microsoft sign-in is temporarily unavailable. Please try again.");
+                    setConnectingMicrosoft(false);
+                  }
+                }}
+                className={`${buttonClass("secondary", "w-full", "lg")}${checking || submitting || connectingGoogle || connectingMicrosoft ? " pointer-events-none opacity-60" : ""}`}>
+                {connectingMicrosoft ? (
+                  <LoaderCircle aria-hidden="true" className="size-4.5 animate-spin" />
+                ) : (
+                  <svg aria-hidden="true" width="18" height="18" viewBox="0 0 21 21">
+                    <path fill="#f25022" d="M0 0h10v10H0z" />
+                    <path fill="#7fba00" d="M11 0h10v10H11z" />
+                    <path fill="#00a4ef" d="M0 11h10v10H0z" />
+                    <path fill="#ffb900" d="M11 11h10v10H11z" />
+                  </svg>
+                )}
+                {connectingMicrosoft ? "Connecting to Microsoft" : "Continue with Microsoft"}
               </button>
             </div>
           </div>
