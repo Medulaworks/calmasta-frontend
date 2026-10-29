@@ -30,7 +30,7 @@ export function DunningView() {
               <tbody>
                 {d.rows.map((r) => (
                   <tr key={r.userId}>
-                    <Td><Link href={`/admin/customers/${r.userId}`} className="font-medium text-accent underline underline-offset-2">{r.email}</Link></Td>
+                    <Td><Link href={`/dashboard/admin/customers/${r.userId}`} className="font-medium text-accent underline underline-offset-2">{r.email}</Link></Td>
                     <Td><Badge tone={r.status === "grace" ? "warning" : r.status === "pending_activation" ? "info" : "neutral"}>{r.status === "grace" ? "Grace period" : r.status === "pending_activation" ? "Waiting for payment" : "Ended"}</Badge></Td>
                     <Td className="whitespace-nowrap">{r.status === "grace" ? fmtUtc(r.endsAt) : "–"}</Td>
                     <Td>{r.storeUrl ? <a href={r.storeUrl} target="_blank" rel="noopener noreferrer" className="text-accent underline underline-offset-2">{r.storeReference}</a> : (r.storeReference ?? "–")}</Td>

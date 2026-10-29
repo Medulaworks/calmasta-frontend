@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createServer, type Server } from "node:http";
-import { createHash } from "node:crypto";
+import { createHash,randomUUID } from "node:crypto";
 import { ApiAuthStore, type SessionData } from "./store";
 import { hashId, unseal } from "./security";
 
@@ -8,7 +8,7 @@ const secret = "c".repeat(64);
 const expectedBffSecret = createHash("sha256").update(`calmasta-bff-store:${secret}`).digest("hex");
 
 interface TxRow { encryptedData: string; expiresAt: number }
-interface SessionRow { subject: string; encryptedData: string; expiresAt: number }
+interface SessionRow { leaseToken?:string;subject: string; encryptedData: string; expiresAt: number }
 
 let server: Server;
 let origin = "";
@@ -61,11 +61,14 @@ describe("API-backed session persistence and encryption", () => {
       if (path === "/internal/auth/sessions/get" && req.method === "POST") {
         const row = sessions.get(body.hash);
         if (!row || row.expiresAt <= Date.now()) return res.end(JSON.stringify({ encryptedData: null }));
-        return res.end(JSON.stringify({ encryptedData: row.encryptedData }));
+        if(row.leaseToken)return res.end(JSON.stringify({busy:true,encryptedData:null}));
+        row.leaseToken=randomUUID();return res.end(JSON.stringify({ encryptedData: row.encryptedData,leaseToken:row.leaseToken }));
       }
       if (path === "/internal/auth/sessions" && req.method === "PATCH") {
         const row = sessions.get(body.hash);
-        if (row && row.expiresAt > Date.now()) row.encryptedData = body.encryptedData;
+        if(!row||row.leaseToken!==body.leaseToken)return res.end(JSON.stringify({ok:false}));
+        if (row.expiresAt > Date.now()) row.encryptedData = body.encryptedData;
+        row.leaseToken=undefined;
         return res.end(JSON.stringify({ ok: true }));
       }
       if (path === "/internal/auth/sessions/revoke" && req.method === "POST") {
@@ -98,7 +101,7 @@ describe("API-backed session persistence and encryption", () => {
 
   it("authenticates with X-Bff-Secret and consumes encrypted login transactions once", async () => {
     const id = hashId("transaction");
-    const transaction = { state: "state", nonce: "nonce", verifier: "private-verifier", returnTo: "/library" };
+    const transaction = { state: "state", nonce: "nonce", verifier: "private-verifier", returnTo: "/dashboard/library" };
     await store.putTransaction(id, transaction);
     const raw = transactions.get(id)!.encryptedData;
     expect(raw).not.toContain("private-verifier");
@@ -143,4 +146,13 @@ describe("API-backed session persistence and encryption", () => {
     await store.revoke(expired, true);
     expect(await store.session(active, async (data) => data)).not.toBeNull();
   });
+
+it("serializes refresh callbacks across store instances and releases leases on transient failure",async()=>{
+ const id=hashId("concurrent-refresh");await store.putSession(id,fixture(),Date.now()+60000);
+ let count=0;const refresh=async(v:SessionData)=>{if(v.refreshToken==="rotated-once")return v;count++;await new Promise(r=>setTimeout(r,30));return {...v,refreshToken:"rotated-once"};};
+ const results=await Promise.all([store.session(id,refresh),new ApiAuthStore(origin,secret).session(id,refresh)]);expect(count).toBe(1);expect(results.every(x=>x?.refreshToken==="rotated-once")).toBe(true);
+ await expect(store.session(id,async()=>{throw Error("temporary failure");})).rejects.toThrow("temporary failure");
+ expect((await store.session(id,async v=>v))?.refreshToken).toBe("rotated-once");
+});
+
 });

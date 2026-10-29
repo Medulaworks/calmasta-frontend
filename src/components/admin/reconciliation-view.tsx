@@ -37,7 +37,7 @@ export function ReconciliationView() {
             </Section>
             <Section title="Needs a person" empty="Nothing needs review.">
               {review.map((f) => (
-                <Item key={f.key} f={f} action={f.webhookId ? <Link href="/admin/webhooks?filter=attention" className="text-sm font-medium text-accent underline underline-offset-2">Open in Webhook health</Link> : f.userId ? <Link href={`/admin/customers/${f.userId}`} className="text-sm font-medium text-accent underline underline-offset-2">Open customer</Link> : null} />
+                <Item key={f.key} f={f} action={f.webhookId ? <Link href="/dashboard/admin/webhooks?filter=attention" className="text-sm font-medium text-accent underline underline-offset-2">Open in Webhook health</Link> : f.userId ? <Link href={`/dashboard/admin/customers/${f.userId}`} className="text-sm font-medium text-accent underline underline-offset-2">Open customer</Link> : null} />
               ))}
             </Section>
             <p className="text-xs text-muted">Nothing here changes amounts, charges, refunds or minutes by itself. The one automatic-style fix only updates a status that is already out of date.</p>

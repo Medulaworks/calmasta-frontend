@@ -5,11 +5,16 @@ import { SIDEBAR_KEY } from "./theme-boot";
 // layout itself follows the data-sidebar attribute on <html> (set before first paint by the boot script), so there is
 // no flash; this hook only lets a button show which way it will go.
 
-const EVENT = "mojooba:sidebar-changed";
-const read = () => (document.documentElement.dataset.sidebar === "collapsed" ? "collapsed" : "expanded");
+const EVENT = "MyJooba:sidebar-changed";
+const read = () =>
+  document.documentElement.dataset.sidebar === "collapsed"
+    ? "collapsed"
+    : "expanded";
 
 export function setSidebarCollapsed(collapsed: boolean) {
-  document.documentElement.dataset.sidebar = collapsed ? "collapsed" : "expanded";
+  document.documentElement.dataset.sidebar = collapsed
+    ? "collapsed"
+    : "expanded";
   try {
     localStorage.setItem(SIDEBAR_KEY, collapsed ? "collapsed" : "expanded");
   } catch {
@@ -24,5 +29,9 @@ function subscribe(cb: () => void) {
 }
 
 export function useSidebarCollapsed(): boolean {
-  return useSyncExternalStore(subscribe, () => read() === "collapsed", () => false);
+  return useSyncExternalStore(
+    subscribe,
+    () => read() === "collapsed",
+    () => false,
+  );
 }

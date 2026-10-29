@@ -54,7 +54,7 @@ export function TestCheckoutView() {
     setError(null);
     try {
       await api("/api/dev/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(pack ? { pack } : { plan: chosen, period }) });
-      router.push("/plan/confirming");
+      router.push("/dashboard/plan/confirming");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not complete the test purchase.");
       setBusy(false);
@@ -63,7 +63,7 @@ export function TestCheckoutView() {
 
   if (error && !plan) return <p role="alert" className="text-sm text-danger">{error}</p>;
   if (!plan) return <div role="status" aria-label="Loading" className="h-48 max-w-xl animate-pulse rounded-xl border border-border bg-surface" />;
-  if (!title) return <p role="alert" className="text-sm text-danger">Nothing to buy here. <ButtonLink href="/plan">Back to plans</ButtonLink></p>;
+  if (!title) return <p role="alert" className="text-sm text-danger">Nothing to buy here. <ButtonLink href="/dashboard/plan">Back to plans</ButtonLink></p>;
 
   return (
     <Card className="max-w-xl">
@@ -83,7 +83,7 @@ export function TestCheckoutView() {
           <Button variant="primary" onClick={() => void pay()} disabled={busy}>
             {busy ? "Completing…" : "Complete test purchase"}
           </Button>
-          <ButtonLink href="/plan" variant="ghost">Cancel</ButtonLink>
+          <ButtonLink href="/dashboard/plan" variant="ghost">Cancel</ButtonLink>
         </div>
       </div>
     </Card>

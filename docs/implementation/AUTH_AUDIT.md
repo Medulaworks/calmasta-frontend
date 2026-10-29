@@ -1,11 +1,13 @@
+> Historical hosted-provider audit. Current authentication uses internal backend sessions; see HANDOFF.md and ../calmasta-api/docs/implementation/modules/M1.md for the replacement and deployment requirements. Core profile/profession boundaries still apply.
+
 # Login and welcome contract audit
 
-Verdict: core login/signup/profile/welcome persistence is supported locally. Do not create password-login, password-reset or duplicate onboarding endpoints in Nest. Real ZITADEL configuration and hosted acceptance are still pending.
+Verdict: core login/signup/profile/welcome persistence is supported locally. Do not create password-login, password-reset or duplicate onboarding endpoints in Nest. Real retired identity provider configuration and hosted acceptance are still pending.
 
 | Frontend action | Implemented support | Remaining work |
 | --- | --- | --- |
 | Login bootstrap | components/login.tsx GET /api/me; BFF resolves session + API GET /account/me | FE-A02: inspect onboarded before redirect; distinguish 401 from 503/config/network failure |
-| Sign in / create account | GET /api/auth/login with safe returnTo; signup=1 requests hosted account creation | Hosted ZITADEL signup/verification settings and real proof; UI link presence alone is not proof |
+| Sign in / create account | GET /api/auth/login with safe returnTo; signup=1 requests hosted account creation | Hosted retired identity provider signup/verification settings and real proof; UI link presence alone is not proof |
 | Callback | GET /api/auth/callback verifies state/PKCE/nonce/signature/UserInfo, immutable subject and verified email, writes encrypted DB session | Correct issuer/client/project/audience/HTTPS callback and migration/grants required |
 | New-user routing | Callback uses API onboarded to choose /welcome; AppShell redirects incomplete profiles to /welcome | /welcome itself currently lacks robust 401/already-onboarded guards |
 | Role step | saveProfile({role}) → PATCH /api/me → PATCH /account/me {profession} | Six role IDs match backend PROFESSIONS; never pass UI role as a workspace role |
@@ -20,7 +22,7 @@ Verdict: core login/signup/profile/welcome persistence is supported locally. Do 
 
 Browser ProfileView.role is profession (consultant/founder/sales/coach/student/other/null). API /account/me.role is DB membership; BFF exposes it as workspaceRole. /api/me email/emailVerified come from verified session UserInfo; name is API-owned. Default templates are derived, not proof document-generation endpoints are available. isStaff stays DB-authoritative.
 
-The BFF PATCH allowlist is role/name/timezone/outputsOnly/complete. It maps role → profession before Nest. `complete` accepts true, not a reset-to-false mechanism. Signup/password/email verification belong to ZITADEL, not a new frontend token/password store.
+The BFF PATCH allowlist is role/name/timezone/outputsOnly/complete. It maps role → profession before Nest. `complete` accepts true, not a reset-to-false mechanism. Signup/password/email verification belong to retired identity provider, not a new frontend token/password store.
 
 ## Immediate next-agent work
 

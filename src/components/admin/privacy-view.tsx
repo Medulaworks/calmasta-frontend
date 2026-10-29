@@ -31,7 +31,7 @@ export function PrivacyView() {
                 {d.deletions.map((x) => (
                   <tr key={x.id}>
                     <Td className="whitespace-nowrap">{fmtUtc(x.requestedAt)}{x.completedAt && <span className="block text-xs text-muted">Done {fmtUtc(x.completedAt)}</span>}</Td>
-                    <Td>{x.customerId ? <Link href={`/admin/customers/${x.customerId}`} className="text-accent underline underline-offset-2">{x.email}</Link> : <span title="The account is gone; only a fingerprint of the email remains">Removed · <code>{x.fingerprint}</code></span>}</Td>
+                    <Td>{x.customerId ? <Link href={`/dashboard/admin/customers/${x.customerId}`} className="text-accent underline underline-offset-2">{x.email}</Link> : <span title="The account is gone; only a fingerprint of the email remains">Removed · <code>{x.fingerprint}</code></span>}</Td>
                     <Td><Badge tone={TONE[x.status] ?? "neutral"}>{x.status.replace("_", " ")}</Badge></Td>
                     <Td className="tabular-nums">{x.filesRemoved} removed{x.filesFailed > 0 && <span className="block text-danger">{x.filesFailed} failed</span>}</Td>
                     <Td className="tabular-nums">{x.attempts}</Td>
@@ -54,7 +54,7 @@ export function PrivacyView() {
                     <Td className="whitespace-nowrap">{fmtUtc(a.at)}</Td>
                     <Td>{a.actor ?? "–"}</Td>
                     <Td>{a.action.replace(/^admin_/, "").replaceAll("_", " ")}</Td>
-                    <Td>{a.customerId ? <Link href={`/admin/customers/${a.customerId}`} className="text-accent underline underline-offset-2"><code>{a.customerId.slice(0, 8)}</code></Link> : <code title={a.target ?? undefined}>{a.target ? a.target.slice(0, 8) : "–"}</code>}</Td>
+                    <Td>{a.customerId ? <Link href={`/dashboard/admin/customers/${a.customerId}`} className="text-accent underline underline-offset-2"><code>{a.customerId.slice(0, 8)}</code></Link> : <code title={a.target ?? undefined}>{a.target ? a.target.slice(0, 8) : "–"}</code>}</Td>
                     <Td className="max-w-xs break-words text-muted">{a.reason ?? "–"}</Td>
                   </tr>
                 ))}

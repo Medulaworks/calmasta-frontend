@@ -56,7 +56,7 @@ it("preserves avatarUrl, avatarExpiresAt, avatarVersion, and passwordUrl when re
         avatarUrl: "https://r2.example.invalid/avatars/profiles/u1/a1.webp?sig=1",
         avatarExpiresAt: "2026-10-28T17:10:00.000Z",
         avatarVersion: 3,
-        passwordUrl: "https://calmasta-api-t6ho0h.us1.zitadel.cloud/ui/console/users/me",
+        passwordUrl: null,
       }),
       { status: 200 },
     ),
@@ -66,7 +66,7 @@ it("preserves avatarUrl, avatarExpiresAt, avatarVersion, and passwordUrl when re
   expect(profile.avatarUrl).toBe("https://r2.example.invalid/avatars/profiles/u1/a1.webp?sig=1");
   expect(profile.avatarExpiresAt).toBe("2026-10-28T17:10:00.000Z");
   expect(profile.avatarVersion).toBe(3);
-  expect(profile.passwordUrl).toBe("https://calmasta-api-t6ho0h.us1.zitadel.cloud/ui/console/users/me");
+  expect(profile.passwordUrl).toBe(null);
 });
 
 it("throws ProfileError with distinct session message on 401", async () => {
@@ -108,4 +108,14 @@ it("sends PATCH /api/me with proper json payload and headers", async () => {
     body: JSON.stringify({ role: "sales", complete: true }),
   });
   expect(updated.onboarded).toBe(true);
+});
+
+it("saves appearance fields and normalizes absent preferences",async()=>{
+ vi.stubGlobal("fetch",fetcher);
+ fetcher.mockResolvedValueOnce(Response.json({theme:"f",mode:"dark"}));
+ const saved=await saveProfile({theme:"f",mode:"dark"});
+ expect(saved).toMatchObject({theme:"f",mode:"dark"});
+ expect(fetcher).toHaveBeenCalledWith("/api/me",expect.objectContaining({body:JSON.stringify({theme:"f",mode:"dark"})}));
+ fetcher.mockResolvedValueOnce(Response.json({}));
+ expect(await getProfile()).toMatchObject({theme:"a",mode:"system"});
 });

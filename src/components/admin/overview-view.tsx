@@ -18,7 +18,7 @@ export function OverviewView() {
     <ResourceBoundary resource={res}>
       {(o) => (
         <div className="space-y-6">
-          {o.banner && <Notice tone={o.banner.level}>{o.banner.text} {o.paused && <Link href="/admin/usage" className="font-medium underline">Open usage and cost to resume</Link>}</Notice>}
+          {o.banner && <Notice tone={o.banner.level}>{o.banner.text} {o.paused && <Link href="/dashboard/admin/usage" className="font-medium underline">Open usage and cost to resume</Link>}</Notice>}
 
           <section aria-labelledby="q" className="space-y-3">
             <h2 id="q" className="text-sm font-semibold">Queue</h2>

@@ -1,160 +1,139 @@
-import * as oidc from "openid-client";
+import { isIP } from "node:net";
+import { authErrorRedirect } from "./flash";
 import type { AuthConfig } from "./config";
 import type { AuthStore, SessionData } from "./store";
-import { cookie, hashId, HttpError, opaqueId, readCookie, readJson, safeReturnTo, sameOrigin } from "./security";
-
-type Profile = Record<string, unknown> & { subject: string; role: string; onboarded: boolean };
-const headers = { "Cache-Control": "no-store", "Pragma": "no-cache" };
-const json = (body: unknown, status = 200) => Response.json(body, { status, headers });
-class LoginError extends Error {}
-
+import { cookie,hashId,HttpError,opaqueId,readCookie,readJson,safeReturnTo,sameOrigin } from "./security";
+type Profile=Record<string,unknown>&{userId:string;subject:string;role:string;onboarded:boolean};
+type Credentials={accessToken:string;refreshToken:string;expiresIn:number;user:{id:string;email:string;name:string|null;emailVerified:boolean}};
+const headers={"Cache-Control":"no-store","Pragma":"no-cache"};
+const json=(body:unknown,status=200)=>Response.json(body,{status,headers});
 export class AuthService {
-  private configuration?: Promise<oidc.Configuration>;
-  constructor(private config: AuthConfig, private store: AuthStore) {}
-  private oidc() {
-    if (!this.configuration) {
-      const execute = [oidc.enableNonRepudiationChecks];
-      if (process.env.NODE_ENV === "test" && this.config.issuer.startsWith("http://127.0.0.1:")) execute.push(oidc.allowInsecureRequests);
-      this.configuration = oidc.discovery(new URL(this.config.issuer), this.config.clientId,
-        { id_token_signed_response_alg: "RS256" },
-        this.config.clientSecret ? oidc.ClientSecretPost(this.config.clientSecret) : oidc.None(), { execute, timeout: 10 })
-        .catch(error => { this.configuration = undefined; throw error; });
-    }
-    return this.configuration;
+ constructor(private config:AuthConfig,private store:AuthStore){}
+ private setCookie(res:Response,name:string,value:string,age:number){res.headers.append("Set-Cookie",cookie(name,value,this.config.secure,age));return res;}
+ private redirect(path:string){return new Response(null,{status:303,headers:{...headers,Location:new URL(path,this.config.appOrigin).href}});}
+ private checkOrigin(req:Request){if(!sameOrigin(req,this.config.appOrigin))throw new HttpError(403,"Request origin not allowed");}
+ private clientIp(req:Request){
+  if(this.config.trustProxy){const ip=req.headers.get("x-forwarded-for")?.split(",").at(-1)?.trim();if(ip&&isIP(ip))return ip;throw new HttpError(503,"Trusted client IP is unavailable");}
+  if(this.config.secure)throw new HttpError(503,"Trusted proxy is not configured");return "127.0.0.1";
+ }
+ private async upstream(path:string,method="GET",body?:Record<string,unknown>,session?:SessionData,key?:string,clientIp?:string){
+  const h:Record<string,string>={Accept:"application/json"};if(body!==undefined)h["Content-Type"]="application/json";if(session)h.Authorization=`Bearer ${session.accessToken}`;if(key)h["Idempotency-Key"]=key;
+  if(clientIp){h["X-Auth-Client-IP"]=clientIp;h["X-Bff-Secret"]=hashId(`calmasta-bff-store:${this.config.sessionSecret}`);}
+  return fetch(new URL(path,this.config.apiOrigin),{method,headers:h,body:body===undefined?undefined:JSON.stringify(body),cache:"no-store",redirect:"error",signal:AbortSignal.timeout(15000)});
+ }
+ private api(session:SessionData,path:string,method="GET",body?:Record<string,unknown>,key?:string){return this.upstream(path,method,body,session,key);}
+ private async errorBody(res:Response){const data=await res.json().catch(()=>({}));return json({error:data.code??"Authentication request failed"},res.status);}
+ private async establishSession(req:Request,data:Credentials,returnTo?:string){
+  const value:SessionData={subject:data.user.id,accessToken:data.accessToken,refreshToken:data.refreshToken,accessExpiresAt:Date.now()+data.expiresIn*1000,email:data.user.email,emailVerified:data.user.emailVerified,identityName:data.user.name};
+  const profile=await this.profile(value);const id=opaqueId();
+  await this.store.putSession(hashId(id),value,Date.now()+30*86400000);
+  const previous=readCookie(req,this.config.sessionCookie);if(previous)await this.store.revoke(hashId(previous),false);
+  const destination=!profile.emailVerified?"/auth/verify-email":profile.onboarded?safeReturnTo(returnTo??null):"/dashboard/welcome";
+  const res=returnTo!==undefined?this.redirect(destination):json({ok:true,onboarded:profile.onboarded,emailVerified:profile.emailVerified});
+  return this.setCookie(res,this.config.sessionCookie,id,30*86400);
+ }
+ async register(req:Request){return this.credentials(req,"register");}
+ private async credentials(req:Request,action:"register"|"login"){
+  try{this.checkOrigin(req);const body=await readJson(req);const res=await this.upstream(`/auth/${action}`,"POST",body,undefined,undefined,this.clientIp(req));if(!res.ok)return this.errorBody(res);return await this.establishSession(req,await res.json());}catch(e){return this.error(e);}
+ }
+ async login(req:Request){
+  if(req.method==="POST")return this.credentials(req,"login");
+  try{
+   const res=await this.upstream("/auth/google/url","GET",undefined,undefined,undefined,this.clientIp(req));if(!res.ok)throw Error("Google unavailable");const data=await res.json() as {url:string;state:string};
+   const target=new URL(data.url);if(target.protocol!=="https:"||target.hostname!=="accounts.google.com"||typeof data.state!=="string")throw Error("Invalid authorization URL");
+   const id=opaqueId();await this.store.putTransaction(hashId(id),{state:data.state,returnTo:safeReturnTo(new URL(req.url).searchParams.get("returnTo"))});
+   return this.setCookie(new Response(null,{status:303,headers:{...headers,Location:target.href}}),this.config.transactionCookie,id,600);
+  }catch{return authErrorRedirect("not_configured",this.config.secure);}
+ }
+ async callback(req:Request){
+  let res:Response;
+  let stage="transaction";
+  try{
+   const id=readCookie(req,this.config.transactionCookie),txn=id?await this.store.consumeTransaction(hashId(id)):null,q=new URL(req.url).searchParams;
+   stage="validation";
+   if(!txn||q.getAll("state").length!==1||q.get("state")!==txn.state||q.getAll("code").length!==1||q.getAll("iss").length>1||q.has("error"))throw Error("Invalid callback");
+   stage="code_exchange";
+   const upstream=await this.upstream("/auth/google/callback","POST",{state:txn.state,code:q.get("code"),...(q.has("iss")?{iss:q.get("iss")}:{})},undefined,undefined,this.clientIp(req));
+   if(!upstream.ok){
+    const body=await upstream.json().catch(()=>({}));
+    const diagnosticCode=["account_link_required","invalid_google_transaction","invalid_google_identity","too_many_auth_attempts","internal_error"].includes(body.code)?body.code:"unknown";
+    const correlation=upstream.headers.get("x-correlation-id");
+    const correlationId=correlation&&/^[a-f0-9-]{36}$/i.test(correlation)?correlation:undefined;
+    console.error(JSON.stringify({event:"google_callback_failed",stage,method:"POST",endpoint:"/auth/google/callback",status:upstream.status,diagnosticCode,correlationId}));
+    res=authErrorRedirect(body.code==="account_link_required"?"account_link_required":"invalid_response",this.config.secure);
+   }else{stage="session";res=await this.establishSession(req,await upstream.json(),txn.returnTo);}
+  }catch{
+   console.error(JSON.stringify({event:"google_callback_failed",stage,method:"GET",endpoint:"/api/auth/callback"}));
+   res=authErrorRedirect("invalid_response",this.config.secure);
   }
-  private setCookie(response: Response, name: string, value: string, age: number) {
-    response.headers.append("Set-Cookie", cookie(name, value, this.config.secure, age));
-    return response;
-  }
-  private redirect(path: string) {
-    return new Response(null, { status: 303, headers: { ...headers, Location: new URL(path, this.config.appOrigin).href } });
-  }
-  private failure(code: string) { return this.redirect(`/login?error=${encodeURIComponent(code)}`); }
-  private checkOrigin(request: Request) {
-    if (!sameOrigin(request, this.config.appOrigin)) throw new HttpError(403, "Request origin not allowed");
-  }
-  async login(request: Request) {
-    try {
-      const configuration = await this.oidc();
-      const query = new URL(request.url).searchParams;
-      const transaction = { verifier: oidc.randomPKCECodeVerifier(), state: oidc.randomState(), nonce: oidc.randomNonce(), returnTo: safeReturnTo(query.get("returnTo")) };
-      const id = opaqueId();
-      const authorization = oidc.buildAuthorizationUrl(configuration, {
-        response_type: "code", redirect_uri: this.config.callbackUrl,
-        scope: `openid email profile offline_access urn:zitadel:iam:org:project:id:${this.config.projectId}:aud`,
-        code_challenge: await oidc.calculatePKCECodeChallenge(transaction.verifier), code_challenge_method: "S256",
-        state: transaction.state, nonce: transaction.nonce,
-        ...(query.get("signup") === "1" ? { prompt: "create" } : query.get("prompt") === "login" ? { prompt: "login" } : {}),
-      });
-      const previous = readCookie(request, this.config.transactionCookie);
-      if (previous) {
-        try {
-          await this.store.consumeTransaction(hashId(previous));
-        } catch {
-          // Failure to consume an old cookie must never block initiating a new login.
-        }
-      }
-      await this.store.putTransaction(hashId(id), transaction);
-      return this.setCookie(new Response(null, { status: 303, headers: { ...headers, Location: authorization.href } }), this.config.transactionCookie, id, 600);
-    } catch (error) {
-      console.error("[AUTH_LOGIN_ERROR]", error instanceof Error ? error.message : error);
-      return this.failure("not_configured");
-    }
-  }
-  async callback(request: Request) {
-    let response: Response;
-    try {
-      const id = readCookie(request, this.config.transactionCookie);
-      const transaction = id ? await this.store.consumeTransaction(hashId(id)) : null;
-      if (!transaction) throw new LoginError("login_expired");
-      const callback = new URL(this.config.callbackUrl);
-      callback.search = new URL(request.url).search;
-      if (callback.searchParams.getAll("state").length !== 1 || callback.searchParams.get("state") !== transaction.state) throw new LoginError("invalid_response");
-      const error = callback.searchParams.get("error");
-      if (error) throw new LoginError(error === "access_denied" ? "access_denied" : "idp_error");
-      const configuration = await this.oidc();
-      const tokens = await oidc.authorizationCodeGrant(configuration, callback, {
-        pkceCodeVerifier: transaction.verifier, expectedState: transaction.state, expectedNonce: transaction.nonce, idTokenExpected: true,
-      });
-      const claims = tokens.claims();
-      if (!claims?.sub || !tokens.id_token) throw new LoginError("invalid_response");
-      const info = await oidc.fetchUserInfo(configuration, tokens.access_token, claims.sub);
-      if (typeof info.email !== "string" || !info.email.trim() || info.email.length > 320) throw new LoginError("no_email");
-      if (info.email_verified !== true) throw new LoginError("email_unverified");
-      const apiToken = tokens.access_token.split(".").length === 3 || process.env.NODE_ENV === "test" ? tokens.access_token : tokens.id_token;
-      const session: SessionData = {
-        subject: claims.sub, accessToken: apiToken, refreshToken: tokens.refresh_token,
-        idToken: tokens.id_token, accessExpiresAt: Date.now() + (tokens.expires_in ?? 60) * 1000,
-        email: info.email, emailVerified: true, identityName: typeof info.name === "string" ? info.name.slice(0, 200) : null,
-      };
-      // This validates the API token/audience and provisions local identity before the session FK is written.
-      const profile = await this.profile(session);
-      const sessionId = opaqueId();
-      await this.store.putSession(hashId(sessionId), session, Date.now() + 8 * 3600_000);
-      const previous = readCookie(request, this.config.sessionCookie);
-      if (previous) await this.store.revoke(hashId(previous), false);
-      response = this.setCookie(this.redirect(profile.onboarded ? transaction.returnTo : "/welcome"), this.config.sessionCookie, sessionId, 8 * 3600);
-    } catch (error) {
-      console.error("[AUTH_CALLBACK_ERROR]", error instanceof Error ? `${error.name}: ${error.message}` : error);
-      response = this.failure(error instanceof LoginError ? error.message : "invalid_response");
-    }
-    return this.setCookie(response, this.config.transactionCookie, "", 0);
-  }
-  private async session(request: Request) {
-    const id = readCookie(request, this.config.sessionCookie);
-    if (!id) return null;
-    return this.store.session(hashId(id), async previous => {
-      if (previous.accessExpiresAt > Date.now() + 30_000) return previous;
-      if (!previous.refreshToken) return null;
-      try {
-        const tokens = await oidc.refreshTokenGrant(await this.oidc(), previous.refreshToken);
-        const claims = tokens.claims();
-        if (claims && claims.sub !== previous.subject) return null;
-        const nextIdToken = tokens.id_token ?? previous.idToken;
-        const nextApiToken = tokens.access_token.split(".").length === 3 || process.env.NODE_ENV === "test" ? tokens.access_token : nextIdToken;
-        return { ...previous, accessToken: nextApiToken, refreshToken: tokens.refresh_token ?? previous.refreshToken,
-          idToken: nextIdToken, accessExpiresAt: Date.now() + (tokens.expires_in ?? 60) * 1000 };
-      } catch { return null; }
-    });
-  }
-  private async api(session: SessionData, path: string, method = "GET", body?: Record<string, unknown>, idempotencyKey?: string) {
-    const requestHeaders: Record<string, string> = { Authorization: `Bearer ${session.accessToken}`, Accept: "application/json" };
-    if (body !== undefined) requestHeaders["Content-Type"] = "application/json";
-    if (idempotencyKey) requestHeaders["Idempotency-Key"] = idempotencyKey;
-    return fetch(new URL(path, this.config.apiOrigin), { method, headers: requestHeaders, body: body === undefined ? undefined : JSON.stringify(body),
-      cache: "no-store", redirect: "error", signal: AbortSignal.timeout(15_000) });
-  }
-  private async profile(session: SessionData): Promise<Profile> {
-    const response = await this.api(session, "/account/me");
-    if (!response.ok) throw new HttpError(response.status === 401 ? 401 : 502, `Account is unavailable (status=${response.status})`);
-    const profile = await response.json() as Profile;
-    if (profile.subject !== session.subject) throw new HttpError(401, "Account identity mismatch");
-    return profile;
-  }
-  private view(profile: Profile, session: SessionData) {
-    // Browser's legacy role means profession. Workspace authorization is explicitly separate.
-    return { ...profile, role: profile.profession ?? null, workspaceRole: profile.role,
-      email: session.email, emailVerified: session.emailVerified, name: profile.name };
-  }
+  return this.setCookie(res,this.config.transactionCookie,"",0);
+ }
+ private async session(req:Request){
+  const id=readCookie(req,this.config.sessionCookie);if(!id)return null;
+  return this.store.session(hashId(id),async previous=>{
+   if(previous.accessExpiresAt>Date.now()+30000)return previous;if(!previous.refreshToken)return null;
+   const res=await this.upstream("/auth/refresh","POST",{refreshToken:previous.refreshToken},undefined,undefined,this.clientIp(req));if(res.status===401){console.warn(JSON.stringify({event:"auth_session_rejected",endpoint:"/auth/refresh",reason:"refresh_rejected"}));return null;}if(!res.ok)throw new HttpError(503,"Authentication service unavailable");
+   const tokens=await res.json();return {...previous,accessToken:tokens.accessToken,refreshToken:tokens.refreshToken,accessExpiresAt:Date.now()+tokens.expiresIn*1000};
+  });
+ }
+ private async profile(session:SessionData):Promise<Profile>{
+  const res=await this.api(session,"/account/me");if(!res.ok){if(res.status===401)console.warn(JSON.stringify({event:"profile_session_rejected",endpoint:"/account/me",reason:"access_token_rejected"}));throw new HttpError(res.status===401?401:502,"Account is unavailable");}const p=await res.json() as Profile;
+  if(p.userId!==session.subject)throw new HttpError(401,"Account identity mismatch");return p;
+ }
+ private view(profile:Profile){return {...profile,role:profile.profession??null,workspaceRole:profile.role};}
+ async action(req:Request,action:string){
+  try{
+   this.checkOrigin(req);
+   if(!["forgot-password","reset-password","verify-email","verify-email/resend","change-password"].includes(action))throw new HttpError(404,"API route not found");
+   const authenticated=["verify-email/resend","change-password"].includes(action);const session=authenticated?await this.session(req):undefined;
+   if(authenticated&&!session)return this.unauthorized();
+   const body=await readJson(req),res=await this.upstream(`/auth/${action}`,"POST",body,session??undefined,undefined,this.clientIp(req));
+   if(!res.ok)return this.errorBody(res);const result=await res.json();
+   if(action==="change-password"){
+    const id=readCookie(req,this.config.sessionCookie);if(id)await this.store.revoke(hashId(id),true);
+    return this.setCookie(json(result),this.config.sessionCookie,"",0);
+   }return json(result);
+  }catch(e){return this.error(e);}
+ }
   async me(request: Request) {
+    let stage = "request";
     try {
       const method = request.method;
       if (method !== "GET" && method !== "PATCH") throw new HttpError(405, "Method not allowed");
       if (method === "PATCH") this.checkOrigin(request);
+      stage = "session";
       const session = await this.session(request);
-      if (!session) return this.unauthorized();
-      if (method === "GET") return json(this.view(await this.profile(session), session));
+      if (!session) {
+        console.warn(JSON.stringify({ event: "profile_session_rejected", endpoint: "/api/me", reason: readCookie(request, this.config.sessionCookie) ? "session_unavailable" : "missing_cookie" }));
+        return this.unauthorized();
+      }
+      if (method === "GET") { stage = "profile_load"; return json(this.view(await this.profile(session))); }
+      stage = "request_body";
       const input = await readJson(request);
-      const allowed = new Set(["role", "name", "timezone", "outputsOnly", "complete"]);
+      const allowed = new Set(["role", "name", "timezone", "outputsOnly", "complete", "theme", "mode"]);
       if (Object.keys(input).some(key => !allowed.has(key))) throw new HttpError(400, "Unknown profile field");
       const patch = { ...input };
       if ("role" in patch) { patch.profession = patch.role; delete patch.role; }
+      stage = "profile_update";
       const response = await this.api(session, "/account/me", "PATCH", patch);
+      stage = "response_decode";
       const body = await response.json();
       if (response.status === 401) return this.unauthorized();
-      return response.ok ? json(this.view(body as Profile, session)) : json({ error: response.status === 400 ? "Invalid profile update" : "Profile update failed" }, response.status);
-    } catch (error) { return this.error(error); }
+      return response.ok ? json(this.view(body as Profile)) : json({ error: response.status === 400 ? "Invalid profile update" : "Profile update failed" }, response.status);
+    } catch (error) {
+      if (!(error instanceof HttpError) || error.status >= 500) {
+        const cause = error instanceof Error ? error.cause as { code?: unknown } | undefined : undefined;
+        const transportCode = typeof cause?.code === "string" && ["ECONNREFUSED", "ECONNRESET", "ETIMEDOUT", "ENOTFOUND", "EAI_AGAIN", "UND_ERR_CONNECT_TIMEOUT"].includes(cause.code) ? cause.code : undefined;
+        const knownErrors: Record<string, string> = { "Session refresh busy": "session_refresh_busy", "Session lease expired": "session_lease_expired" };
+        const diagnosticCode = transportCode ?? (error instanceof Error && Object.hasOwn(knownErrors, error.message) ? knownErrors[error.message] : "unknown");
+        const errorType = error instanceof TypeError ? "TypeError" : error instanceof SyntaxError ? "SyntaxError" : error instanceof Error && error.name === "TimeoutError" ? "TimeoutError" : "Error";
+        const storeStatus = error instanceof Error ? /^Auth store request failed \(([1-5][0-9]{2})\)$/.exec(error.message) : null;
+        console.error(JSON.stringify({ event: "profile_request_failed", endpoint: "/api/me", method: request.method === "PATCH" ? "PATCH" : "GET", stage, errorType, diagnosticCode, upstreamStatus: storeStatus ? Number(storeStatus[1]) : undefined }));
+      }
+      return this.error(error);
+    }
   }
+
   async proxy(request: Request, segments: string[]) {
     try {
       if (!["GET", "POST", "PATCH", "PUT", "DELETE"].includes(request.method)) throw new HttpError(405, "Method not allowed");
@@ -173,36 +152,18 @@ export class AuthService {
       return json(result, upstream.status);
     } catch (error) { return this.error(error); }
   }
-  async logout(request: Request) {
-    try {
-      this.checkOrigin(request);
-      const body = await readJson(request);
-      if (Object.keys(body).some(key => key !== "all") || body.all !== undefined && typeof body.all !== "boolean") throw new HttpError(400, "Invalid logout request");
-      const id = readCookie(request, this.config.sessionCookie);
-      const sessions = id ? await this.store.revoke(hashId(id), body.all === true) : [];
-      let redirectTo = this.config.appOrigin + "/login", providerRevocation = "not_requested";
-      if (sessions.length) {
-        try {
-          const configuration = await this.oidc();
-          // Local deletion succeeds even if the provider is unavailable. Never claim global IdP logout.
-          const results = await Promise.allSettled(sessions.flatMap(session => [session.accessToken, session.refreshToken].filter((t): t is string => Boolean(t)).map(token => oidc.tokenRevocation(configuration, token))));
-          providerRevocation = results.every(result => result.status === "fulfilled") ? "completed" : "failed";
-          const current = sessions[0];
-          if (configuration.serverMetadata().end_session_endpoint) redirectTo = oidc.buildEndSessionUrl(configuration, {
-            id_token_hint: current.idToken, post_logout_redirect_uri: this.config.appOrigin + "/login",
-          }).href;
-        } catch { providerRevocation = "failed"; }
-      }
-      const response = json({ redirectTo, scope: body.all === true ? "all_calmasta_sessions" : "current_session", providerRevocation });
-      this.setCookie(response, this.config.sessionCookie, "", 0);
-      return this.setCookie(response, this.config.transactionCookie, "", 0);
-    } catch (error) { return this.error(error); }
-  }
-  private unauthorized() {
-    return this.setCookie(json({ error: "Your session expired. Please sign in again." }, 401), this.config.sessionCookie, "", 0);
-  }
-  private error(error: unknown) {
-    if (error instanceof HttpError && error.status === 401) return this.unauthorized();
-    return json({ error: error instanceof HttpError ? error.message : "Authentication service unavailable" }, error instanceof HttpError ? error.status : 503);
-  }
+
+
+ async logout(req:Request){
+  try{
+   this.checkOrigin(req);const body=await readJson(req);if(Object.keys(body).some(k=>k!=="all")||(body.all!==undefined&&typeof body.all!=="boolean"))throw new HttpError(400,"Invalid logout request");
+   const session=await this.session(req);if(body.all===true&&!session)return this.unauthorized();
+   if(session){const res=await this.upstream("/auth/logout","POST",{all:body.all===true},session,undefined,this.clientIp(req));if(!res.ok&&res.status!==401)throw new HttpError(503,"Logout failed; please retry");}
+   const id=readCookie(req,this.config.sessionCookie);if(id)await this.store.revoke(hashId(id),body.all===true);
+   const res=json({redirectTo:this.config.appOrigin+"/auth/login",scope:body.all===true?"all_calmasta_sessions":"current_session"});
+   this.setCookie(res,this.config.sessionCookie,"",0);return this.setCookie(res,this.config.transactionCookie,"",0);
+  }catch(e){return this.error(e);}
+ }
+ private unauthorized(){return this.setCookie(json({error:"Your session expired. Please sign in again."},401),this.config.sessionCookie,"",0);}
+ private error(error:unknown){if(error instanceof HttpError&&error.status===401)return this.unauthorized();return json({error:error instanceof HttpError?error.message:"Authentication service unavailable"},error instanceof HttpError?error.status:503);}
 }
