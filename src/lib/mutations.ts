@@ -20,6 +20,7 @@ import {
   saveMeetingType,
   deleteMeetingType,
   cancelBookingAsHost,
+  rescheduleBookingAsHost,
 } from "./booking-client";
 import { connectDevCalendar, disconnectCalendar } from "./calendar-client";
 import {
@@ -225,6 +226,13 @@ export function useCancelBookingHost() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => cancelBookingAsHost(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["booking"] }),
+  });
+}
+export function useRescheduleBookingHost() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, start }: { id: string; start: string }) => rescheduleBookingAsHost(id, start),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["booking"] }),
   });
 }

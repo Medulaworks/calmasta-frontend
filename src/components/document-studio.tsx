@@ -374,9 +374,15 @@ export function DocumentStudio({ id }: { id: string }) {
           className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
           {loadError}
         </p>
-        <Link href="/dashboard/library" className="text-sm text-accent">
-          Back to Library
-        </Link>
+        <button
+          type="button"
+          onClick={() => {
+            if (typeof window !== "undefined" && window.history.length > 1) router.back();
+            else router.push("/dashboard/library");
+          }}
+          className="text-sm text-accent">
+          Go back
+        </button>
       </div>
     );
   }

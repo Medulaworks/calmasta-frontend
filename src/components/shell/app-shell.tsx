@@ -17,6 +17,7 @@ import {
   ACCOUNT_CHANGED,
   type DeletionView,
   type PlanSummary,
+  DUMMY_PLAN,
   fetchDeletion,
   fetchPlan,
 } from "@/lib/plan-client";
@@ -149,7 +150,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const qc = useQueryClient();
-  const { data: profileData, error: profileError, isLoading } = useQuery(profileQuery);
+  const {
+    data: profileData,
+    error: profileError,
+    isLoading,
+  } = useQuery(profileQuery);
   const ready = !isLoading;
   const profile = (profileData as ProfileView | undefined) ?? null;
 
@@ -158,7 +163,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (profile && !profile.onboarded) router.replace("/dashboard/welcome");
     if (profileError instanceof ProfileError && profileError.status === 401) {
       const here = window.location.pathname + window.location.search;
-      router.replace(`/auth/login?returnTo=${encodeURIComponent(here)}&reason=expired`);
+      router.replace(
+        `/auth/login?returnTo=${encodeURIComponent(here)}&reason=expired`,
+      );
     }
   }, [ready, profile, profileError, router]);
 
@@ -167,7 +174,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (!avatarExpiresAt) return;
     const ms = new Date(avatarExpiresAt).getTime() - Date.now() - 30_000;
     if (!Number.isFinite(ms)) return;
-    const timer = window.setTimeout(() => qc.invalidateQueries({ queryKey: ["profile"] }), Math.max(1_000, ms));
+    const timer = window.setTimeout(
+      () => qc.invalidateQueries({ queryKey: ["profile"] }),
+      Math.max(1_000, ms),
+    );
     return () => window.clearTimeout(timer);
   }, [avatarExpiresAt, qc]);
 
@@ -187,7 +197,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!profileReady) return;
     let cancelled = false;
-    Promise.all([fetchPlan().catch(() => null), fetchDeletion().catch(() => null)]).then(([plan, deletion]) => {
+    Promise.all([
+      fetchPlan().catch(() => DUMMY_PLAN),
+      fetchDeletion().catch(() => null),
+    ]).then(([plan, deletion]) => {
       if (!cancelled) setAccount({ plan, deletion });
     });
     return () => {
@@ -246,7 +259,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 tone="sidebar"
               />
               {profile?.isStaff && (
-                <NavLink href="/dashboard/admin" label="Staff area" Icon={ShieldCheck} pathname={pathname} tone="sidebar" />
+                <NavLink
+                  href="/dashboard/admin"
+                  label="Staff area"
+                  Icon={ShieldCheck}
+                  pathname={pathname}
+                  tone="sidebar"
+                />
               )}
             </div>
           </aside>

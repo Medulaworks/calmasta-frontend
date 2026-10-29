@@ -4,7 +4,7 @@ import { dashboardPath } from "@/lib/app-routes";
 
 import { Sparkles, Zap } from "lucide-react";
 import Link from "next/link";
-import { type DeletionView, type PlanSummary, formatDate } from "@/lib/plan-client";
+import { DUMMY_PLAN, type DeletionView, type PlanSummary, formatDate } from "@/lib/plan-client";
 import { PLAN_LABEL, isPaidPlan } from "@/lib/plan-types";
 import { formatMinutes } from "@/lib/status";
 
@@ -97,23 +97,24 @@ function Ring({ pct, health }: { pct: number; health: Health }) {
  * upgrade. In the narrow rail it shrinks to a ring with the same facts in its tooltip.
  */
 export function SidebarPlanCard({ plan }: { plan: PlanSummary | null }) {
-  if (!plan) {
+  const displayPlan = plan ?? DUMMY_PLAN;
+  if (!displayPlan) {
     return <div aria-hidden className="mb-1 h-[7.5rem] animate-pulse rounded-xl bg-black/15 sc:md:h-12 sc:md:w-12 sc:md:self-center" />;
   }
-  const pro = isPaidPlan(plan.plan.plan);
-  const planName = PLAN_LABEL[plan.plan.plan];
-  const health = healthOf(plan);
-  const total = plan.allowanceMinutes + plan.purchasedMinutes;
-  const leftPct = total > 0 ? Math.round((plan.remainingMinutes / total) * 100) : 0;
+  const pro = isPaidPlan(displayPlan.plan.plan);
+  const planName = PLAN_LABEL[displayPlan.plan.plan];
+  const health = healthOf(displayPlan);
+  const total = displayPlan.allowanceMinutes + displayPlan.purchasedMinutes;
+  const leftPct = total > 0 ? Math.round((displayPlan.remainingMinutes / total) * 100) : 0;
   const usedPct = 100 - leftPct;
   const headline =
     health === "out" ? "Allowance used up"
     : health === "grace" ? "Payment needs attention"
     : health === "pending" ? "Waiting for payment"
-    : `${formatMinutes(plan.remainingMinutes)} left`;
+    : `${formatMinutes(displayPlan.remainingMinutes)} left`;
   const cta = health === "out" ? "Buy hours or upgrade" : health === "grace" ? "Fix payment" : health === "pending" ? "Check status" : pro ? "Manage plan" : "Upgrade to Pro";
   const href = health === "pending" ? "/dashboard/plan/confirming" : "/dashboard/plan";
-  const label = `${planName} plan, ${headline}${plan.exhausted ? "" : ` of ${formatMinutes(total)}`}. ${cta}.`;
+  const label = `${planName} plan, ${headline}${displayPlan.exhausted ? "" : ` of ${formatMinutes(total)}`}. ${cta}.`;
 
   return (
     <>
@@ -128,11 +129,11 @@ export function SidebarPlanCard({ plan }: { plan: PlanSummary | null }) {
           <span className="rounded-full bg-sidebar-fg/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-sidebar-fg">{health === "out" ? "Used up" : health === "low" ? "Running low" : health === "grace" ? "Action needed" : health === "pending" ? "Pending" : "Active"}</span>
         </div>
         <p className="relative mt-3 text-xl font-semibold leading-none tracking-tight text-sidebar-fg tabular-nums">{headline}</p>
-        {!plan.exhausted && health !== "grace" && health !== "pending" && <p className="relative mt-1 text-xs text-sidebar-muted">of {formatMinutes(total)} this month</p>}
+        {!displayPlan.exhausted && health !== "grace" && health !== "pending" && <p className="relative mt-1 text-xs text-sidebar-muted">of {formatMinutes(total)} this month</p>}
         <div role="progressbar" aria-label="Allowance used this month" aria-valuemin={0} aria-valuemax={100} aria-valuenow={usedPct} className="relative mt-3 h-2 overflow-hidden rounded-full bg-sidebar-fg/20">
-          <div className={`h-full rounded-full transition-[width] ${FILL[health]}`} style={{ width: `${Math.max(usedPct, plan.exhausted ? 100 : 3)}%` }} />
+          <div className={`h-full rounded-full transition-[width] ${FILL[health]}`} style={{ width: `${Math.max(usedPct, displayPlan.exhausted ? 100 : 3)}%` }} />
         </div>
-        <p className="relative mt-2 text-xs text-sidebar-muted">Resets {formatDate(plan.resetsAt, plan.timezone)}</p>
+        <p className="relative mt-2 text-xs text-sidebar-muted">Resets {formatDate(displayPlan.resetsAt, displayPlan.timezone)}</p>
         <Link href={dashboardPath(href)} className="relative mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg bg-sidebar-fg px-3 py-2 text-sm font-semibold text-sidebar transition-opacity hover:opacity-90">
           {pro && health === "ok" ? null : <Zap aria-hidden className="h-3.5 w-3.5" />} {cta}
         </Link>

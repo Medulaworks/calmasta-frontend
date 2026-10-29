@@ -1,7 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Video } from "lucide-react";
+import { RefreshCw, Video } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -25,7 +26,7 @@ export function CaptureForm() {
   const [consent, setConsent] = useState(false);
   const { data: policy, error: policyErrorRaw } = useQuery(capturePolicyQuery);
   const policyError = policyErrorRaw instanceof Error ? policyErrorRaw.message : policyErrorRaw ? String(policyErrorRaw) : null;
-  const [durationMinutes, setDurationMinutes] = useState(30);
+  const [durationMinutes] = useState(30);
   const [titleMode, setTitleMode] = useState<"auto" | "mine">("auto");
   const [title, setTitle] = useState("");
   const [botName, setBotName] = useState("");
@@ -33,20 +34,26 @@ export function CaptureForm() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
+  const [q, setQ] = useState("");
   const requestMutation = useRequestMeeting();
   const cancelMutation = useCancelMeeting();
 
   const captures = useQuery({
     ...capturesQuery(50, "meetings"),
     refetchInterval: (q) => {
-      const data = q.state.data as Array<{ status: string }> | undefined;
-      if (!data) return 15000;
-      const hasActive = data.some((capture) => isMeetingActive(capture.status));
-      return hasActive ? 15000 : false;
+      const data = q.state.data as Array<{ source: string; state: string; status: string }> | undefined;
+      if (!data) return 8000;
+      const hasActive = data.some((c) => {
+        if (isMeetingActive(c.status)) return true;
+        const st = captureStatus({ source: c.source ?? "meeting_url", state: c.state ?? c.status, status: c.status });
+        return st.active;
+      });
+      return hasActive ? 8000 : false;
     },
   });
   const items = captures.data ?? null;
   const listError = captures.isError ? (captures.error instanceof Error ? captures.error.message : "Could not load your captures.") : null;
+  const filtered = items ? items.filter((c) => !q.trim() || (c.title ?? "").toLowerCase().includes(q.trim().toLowerCase())) : null;
 
   const busy = requestMutation.isPending;
 
@@ -136,16 +143,10 @@ export function CaptureForm() {
                 Maximum recording minutes
                 <input
                   type="number"
-                  min={0.5}
-                  step={0.5}
-                  max={policy.maxMeetingDurationSeconds / 60}
-                  required
-                  value={Math.min(
-                    durationMinutes,
-                    policy.maxMeetingDurationSeconds / 60,
-                  )}
-                  onChange={(e) => setDurationMinutes(Number(e.target.value))}
-                  className="mt-1 block w-full rounded-lg border border-border bg-background px-3 py-2"
+                  disabled
+                  value={30}
+                  className="mt-1 block w-full rounded-lg border border-border bg-background px-3 py-2 disabled:cursor-not-allowed disabled:opacity-60"
+                  aria-disabled="true"
                 />
               </label>
             )}
@@ -174,17 +175,19 @@ export function CaptureForm() {
                 </label>
               )}
             </div>
-            <label className="flex items-start gap-3 text-sm">
+            <label className={`flex items-start gap-3 text-sm ${!policy?.videoEnabled ? "opacity-60" : ""}`}>
               <input
                 type="checkbox"
                 checked={recordVideo}
                 onChange={(e) => setRecordVideo(e.target.checked)}
-                className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent-solid)]"
+                disabled={!policy?.videoEnabled}
+                title={!policy?.videoEnabled ? "Video recording is not enabled for this account yet — see backend doc" : undefined}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent-solid)] disabled:cursor-not-allowed"
               />
               <span>
                 <span className="font-medium">Also record the video</span>
                 <span className="mt-0.5 block text-xs text-muted">
-                  Off unless you choose it. Private to you, and removed on the same schedule as audio.
+                  {policy?.videoEnabled ? "Off unless you choose it. Private to you, and removed on the same schedule as audio." : "Video recording is not enabled for this account yet."}
                 </span>
               </span>
             </label>
@@ -201,6 +204,13 @@ export function CaptureForm() {
                 need to be admitted by the host.
               </span>
             </label>
+            {error && (
+              <p
+                role="alert"
+                className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+                {error}
+              </p>
+            )}
             <Button
               type="submit"
               variant="primary"
@@ -232,11 +242,11 @@ export function CaptureForm() {
             {notice}
           </p>
         )}
-        {(error || listError) && (
+        {listError && (
           <p
             role="alert"
             className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
-            {error || listError}
+            {listError}
           </p>
         )}
       </div>
@@ -246,14 +256,35 @@ export function CaptureForm() {
           title="Your meeting captures"
           id="history-heading"
           action={
-            items && items.length > 0 ? (
-              <span className="text-xs tabular-nums text-muted">
-                {items.length}
-              </span>
-            ) : undefined
+            <span className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => void captures.refetch()}
+                disabled={captures.isFetching}
+                aria-label="Refresh captures"
+                title="Refresh"
+                className="grid h-7 w-7 place-items-center rounded-md border border-border text-muted transition-colors hover:bg-surface hover:text-foreground disabled:opacity-50">
+                <RefreshCw aria-hidden className={`h-3.5 w-3.5 ${captures.isFetching ? "animate-spin" : ""}`} />
+              </button>
+              {items && items.length > 0 && (
+                <span className="text-xs tabular-nums text-muted">{items.length}</span>
+              )}
+            </span>
           }
         />
-        {items === null ? (
+        <div className="border-b border-border px-5 py-3">
+          <label className="block">
+            <span className="sr-only">Search meetings</span>
+            <input
+              type="search"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search by meeting title…"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted"
+            />
+          </label>
+        </div>
+        {filtered === null ? (
           <ul aria-hidden className="divide-y divide-border">
             {[0, 1, 2].map((i) => (
               <li key={i} className="flex items-center gap-3 px-5 py-3">
@@ -262,17 +293,17 @@ export function CaptureForm() {
               </li>
             ))}
           </ul>
-        ) : items.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <EmptyState
             icon={<Video />}
-            title="No meetings yet"
-            body="Paste a meeting link and the assistant will join, record and write it up. Your captured meetings are listed here."
+            title={q.trim() ? "No matches" : "No meetings yet"}
+            body={q.trim() ? `No meeting titles match “${q.trim()}”.` : "Paste a meeting link and the assistant will join, record and write it up. Your captured meetings are listed here."}
           />
         ) : (
           <ul
             aria-labelledby="history-heading"
             className="divide-y divide-border">
-            {items.map((c: CaptureListItem) => {
+            {filtered.map((c: CaptureListItem) => {
               const st = captureStatus({
                 source: c.source,
                 state: c.state,
@@ -298,8 +329,20 @@ export function CaptureForm() {
                         <Badge tone={st.tone} active={st.active}>
                           {st.label}
                         </Badge>
-                        <span>
-                          {c.platform ? PLATFORM_LABELS[c.platform] : "Meeting"}{" "}
+                        <span className="inline-flex items-center gap-1.5">
+                          {c.platform ? (
+                            <>
+                              <Image src={c.platform === "microsoft_teams" ? "/icons/icons8-teams-96.png" : c.platform === "zoom" ? "/icons/icons8-zoom-96.png" : "/icons/icons8-google-meet-96.png"} alt={PLATFORM_LABELS[c.platform] ?? c.platform} width={16} height={16} className="h-4 w-4 shrink-0" />
+                              {PLATFORM_LABELS[c.platform] ?? c.platform}
+                            </>
+                          ) : c.source === "meeting_url" ? (
+                            <>
+                              <Image src="/icons/icons8-google-meet-96.png" alt="Meet" width={16} height={16} className="h-4 w-4 shrink-0" />
+                              Meet
+                            </>
+                          ) : (
+                            "Meeting"
+                          )}{" "}
                           · {timeAgo(c.createdAt)}
                         </span>
                       </span>

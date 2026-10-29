@@ -47,7 +47,7 @@ export const deleteMeetingType = (id: string) => api<void>(`/api/booking/meeting
 export const listBookings = (scope: "upcoming" | "past") => api<{ bookings: HostBooking[] }>(`/api/booking/bookings?scope=${scope}`).then((r) => r.bookings);
 export const cancelBookingAsHost = (id: string) => api<HostBooking>(`/api/booking/bookings/${id}/cancel`, { method: "POST" });
 export const rescheduleBookingAsHost = (id: string, start: string) => api<HostBooking>(`/api/booking/bookings/${id}/reschedule`, json("POST", { start }));
-export const hostSlots = (id: string, from: string, days: number) => api<SlotsResponse>(`/api/booking/bookings/${id}/slots?from=${from}&days=${days}`);
+export const hostSlots = (id: string, from: string, days: number) => api<SlotsResponse>(`/api/booking/bookings/${encodeURIComponent(id)}/slots?from=${encodeURIComponent(from)}&days=${days}`);
 
 // --- guests (no sign-in) ---
 export interface PublicPage { title: string; description: string; hostName: string | null; meetingTypes: Array<{ id: string; name: string; description: string; durationMin: number }> }

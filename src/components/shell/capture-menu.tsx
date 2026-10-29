@@ -12,8 +12,10 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Dialog } from "@/components/ui/dialog";
 import { useDismiss } from "@/components/ui/use-dismiss";
+import { capturePolicyQuery } from "@/lib/queries";
 import { requestMeetingCapture } from "@/lib/upload-client";
 
 // Where each calendar opens its "new event" page. MyJooba doesn't write to either calendar: the person schedules the
@@ -24,17 +26,19 @@ const OUTLOOK_NEW_EVENT =
 
 const PLATFORMS = ["Google Meet", "Zoom", "Microsoft Teams"];
 
-/** "Add to live meeting": paste a link, say you may record, and a visible assistant joins. */
+/** "Add to live meeting": paste a link, say you may record, and a visible assistant joins. — mirrors /dashboard/voice?tab=bot */
 function LiveMeetingDialog({ onClose }: { onClose: () => void }) {
   const router = useRouter();
   const [url, setUrl] = useState("");
   const [namedByMe, setNamedByMe] = useState(false);
   const [title, setTitle] = useState("");
+  const [botName, setBotName] = useState("");
   const [consent, setConsent] = useState(false);
   const [video, setVideo] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ duplicate: boolean } | null>(null);
+  const { data: policy } = useQuery(capturePolicyQuery);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -46,6 +50,10 @@ function LiveMeetingDialog({ onClose }: { onClose: () => void }) {
         consent,
         namedByMe ? title : undefined,
         video,
+        {
+          botName: botName.trim() || undefined,
+          maxDurationSeconds: Math.min(30 * 60, policy?.maxMeetingDurationSeconds ?? 1800),
+        },
       );
       setDone({ duplicate: r.duplicate });
     } catch (err) {
@@ -138,20 +146,30 @@ function LiveMeetingDialog({ onClose }: { onClose: () => void }) {
             )}
           </div>
 
-          <label className="flex items-start gap-3 text-sm">
+          <label className={`flex items-start gap-3 text-sm ${!policy?.videoEnabled ? "opacity-60" : ""}`}>
             <input
               type="checkbox"
               checked={video}
               onChange={(e) => setVideo(e.target.checked)}
-              className="mt-1 h-4 w-4 accent-[var(--accent-solid)]"
+              disabled={!policy?.videoEnabled}
+              className="mt-1 h-4 w-4 accent-[var(--accent-solid)] disabled:cursor-not-allowed"
             />
             <span>
               <span className="font-medium">Also record the video</span>
               <span className="mt-0.5 block text-xs text-muted">
-                Off unless you choose it. Private to you, and removed on the
-                same schedule as audio.
+                {policy?.videoEnabled ? "Off unless you choose it. Private to you, and removed on the same schedule as audio." : "Video recording is not enabled for this account yet."}
               </span>
             </span>
+          </label>
+          <label className="block text-sm">
+            Assistant name <span className="text-muted">(optional)</span>
+            <input
+              value={botName}
+              onChange={(e) => setBotName(e.target.value)}
+              maxLength={100}
+              placeholder={policy?.botName ?? "MyJooba Assistant"}
+              className="mt-1 block w-full rounded-lg border border-border bg-background px-3 py-2"
+            />
           </label>
 
           <label className="flex items-start gap-3 text-sm">

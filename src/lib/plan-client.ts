@@ -44,6 +44,36 @@ export interface DeletionView {
 const unavailable = async <T>(message: string): Promise<T> => {
   throw new ApiError(503, message, "feature_unavailable");
 };
+
+// Dummy billing data until FE-X07 is implemented — keep in UI only.
+export const DUMMY_PLAN: PlanSummary = {
+  plan: { plan: "free", status: "active", renewsAt: null, graceUntil: null },
+  allowanceMinutes: 180,
+  usedMinutes: 47,
+  includedRemainingMinutes: 133,
+  purchasedMinutes: 30,
+  remainingMinutes: 163,
+  resetsAt: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toISOString(),
+  breakdown: [],
+  inProgress: 1,
+  exhausted: false,
+  paused: false,
+  timezone: "UTC",
+  packs: [{ sku: "pack-60", minutes: 60, label: "60 minutes" }],
+  checkoutUrl: null,
+  checkoutUrlAnnual: null,
+  checkoutUrlBusiness: null,
+  checkoutUrlBusinessAnnual: null,
+  testCheckout: true,
+  enterpriseUrl: null,
+  freeAllowanceMinutes: 120,
+  proAllowanceMinutes: 600,
+  businessAllowanceMinutes: 3000,
+  pricing: { currency: "USD", proMonthly: 19, businessMonthly: 49, annualDiscountPct: 20 },
+  billingUrl: null,
+  placeholder: true,
+};
+
 export const fetchPlan = () => unavailable<PlanSummary>("Plan and billing are not available yet.");
 export const fetchDeletion = () => unavailable<DeletionView | null>("Account deletion is not available yet.");
 /** Tells the app shell (banners, sidebar) to re-read the account status. */

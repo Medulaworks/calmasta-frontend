@@ -2,8 +2,9 @@
 
 import { CalendarDays, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useProfile, useSetProfile } from "@/components/shell/profile-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,11 +13,34 @@ import { type ConnectionView, getConnections } from "@/lib/calendar-client";
 import { type DeletionView, cancelDeletion, fetchDeletion, formatDate, requestDeletion } from "@/lib/plan-client";
 import { saveProfile } from "@/lib/profile-client";
 import { ApiError } from "@/lib/upload-client";
+import { qk } from "@/lib/queries";
 
 /** Connected accounts, in one place. Managing them happens on the Calendar page. */
 export function ConnectionsCard() {
   const [conns, setConns] = useState<ConnectionView[] | null>(null);
   const [failed, setFailed] = useState(false);
+  const [calendarOutcome, setCalendarOutcome] = useState<{ ok: boolean; text: string } | null>(null);
+  const search = useSearchParams();
+  const qc = useQueryClient();
+  useEffect(() => {
+    const cal = search.get("calendar");
+    if (!cal) return;
+    const map: Record<string, { ok: boolean; text: string }> = {
+      connected: { ok: true, text: "Google Calendar connected." },
+      denied: { ok: false, text: "Calendar connection was cancelled." },
+      missing_scope: { ok: false, text: "Required calendar permissions were not granted. Please reconnect and allow them." },
+      missing_grant: { ok: false, text: "Google did not return the credentials needed to keep the calendar connected. Please reconnect." },
+      error: { ok: false, text: "Could not connect your calendar. Please try again." },
+    };
+    setCalendarOutcome(map[cal] ?? { ok: false, text: "Could not connect your calendar. Please try again." });
+    const url = new URL(window.location.href);
+    url.searchParams.delete("calendar");
+    window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+    void qc.invalidateQueries({ queryKey: qk.calendarConnections() });
+    void qc.invalidateQueries({ queryKey: ["calendar", "agenda"] });
+    // also refresh local list
+    getConnections().then((r) => setConns(r.connections), () => {});
+  }, [search, qc]);
   useEffect(() => {
     let cancelled = false;
     getConnections().then(
@@ -31,6 +55,11 @@ export function ConnectionsCard() {
     <Card>
       <CardHeader title="Connections" />
       <div className="space-y-3 p-5 text-sm">
+        {calendarOutcome && (
+          <p role={calendarOutcome.ok ? "status" : "alert"} className={`rounded-lg border px-4 py-3 text-sm ${calendarOutcome.ok ? "border-success/30 bg-success/10" : "border-border bg-surface"}`}>
+            {calendarOutcome.text}
+          </p>
+        )}
         {failed ? (
           <p className="text-muted">Couldn&rsquo;t load your connections right now.</p>
         ) : !conns ? (

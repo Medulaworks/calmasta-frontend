@@ -8,6 +8,7 @@ import {
   Trash2,
   Video,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -88,8 +89,10 @@ export function CaptureDetail({
       if (!data) return false;
       const st = captureStatus({ source: data.source, state: data.state, status: data.status });
       const extracting = data.actions.state === "extracting";
-      const videoComing = data.videoStatus === "processing";
-      if (st.active || extracting || videoComing) return 3000;
+      const videoPending = data.videoStatus === "requested" || data.videoStatus === "processing";
+      // signed URLs expire ~5m; refresh while active or video still coming, even if capture says completed
+      const needsVideo = videoPending;
+      if (st.active || extracting || needsVideo) return 3000;
       return false;
     },
   });
@@ -151,17 +154,19 @@ export function CaptureDetail({
   }
 
   if (notFound) {
+    const goBack = () => {
+      if (typeof window !== "undefined" && window.history.length > 1) router.back();
+      else router.push("/dashboard/library");
+    };
     return (
       <Card>
         <EmptyState
           title="Recording not found"
           body="It may have been deleted."
           action={
-            <Link
-              href="/dashboard/library?tab=recordings"
-              className="text-sm text-accent">
-              Back to Library
-            </Link>
+            <button type="button" onClick={goBack} className="text-sm text-accent">
+              Go back
+            </button>
           }
         />
       </Card>
@@ -231,6 +236,8 @@ export function CaptureDetail({
               </span>
               <span aria-hidden>·</span>
               <span>{timeAgo(cap.createdAt)}</span>
+              {(cap as unknown as {durationSeconds?:number|null}).durationSeconds ? <><span aria-hidden>·</span><span>{formatDuration((cap as unknown as {durationSeconds:number}).durationSeconds)}</span></> : null}
+              {cap.platform ? <><span aria-hidden>·</span><span>{PLATFORM_LABELS[cap.platform] ?? cap.platform}</span></> : null}
             </p>
           </div>
         </div>
@@ -248,6 +255,32 @@ export function CaptureDetail({
           )}
         </div>
       </header>
+
+      {(() => {
+        const ext = cap as unknown as {botName?:string|null;meetingUrl?:string|null;meeting_url?:string|null;durationSeconds?:number|null;participants?:Array<{name:string;role?:string}>;metadata?:Record<string,unknown>};
+        const meetingUrl = ext.meetingUrl ?? ext.meeting_url ?? null;
+        const usage = ext.durationSeconds != null ? formatDuration(ext.durationSeconds) : null;
+        const joinAt = new Date(cap.createdAt).toLocaleString();
+        return (
+          <Card>
+            <div className="space-y-4 p-5 text-sm">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div><p className="text-muted">Platform</p><p className="flex items-center gap-2 font-medium">{cap.platform ? <><Image src={cap.platform === "microsoft_teams" ? "/icons/icons8-teams-96.png" : cap.platform === "zoom" ? "/icons/icons8-zoom-96.png" : "/icons/icons8-google-meet-96.png"} alt={PLATFORM_LABELS[cap.platform] ?? cap.platform} width={20} height={20} className="h-5 w-5 shrink-0" />{PLATFORM_LABELS[cap.platform] ?? cap.platform}</> : "—"}</p></div>
+                <div><p className="text-muted">Status</p><p className="font-medium">{status.label}</p></div>
+                <div><p className="text-muted">Usage</p><p className="font-medium">{usage ?? "—"}</p></div>
+              </div>
+              <dl className="divide-y divide-border rounded-lg border border-border">
+                <div className="grid grid-cols-[8rem_1fr] gap-3 px-4 py-3"><dt className="text-muted">Join At</dt><dd>{joinAt}</dd></div>
+                <div className="grid grid-cols-[8rem_1fr] gap-3 px-4 py-3"><dt className="text-muted">Bot Name</dt><dd>{ext.botName ?? "—"}</dd></div>
+                <div className="grid grid-cols-[8rem_1fr] gap-3 px-4 py-3"><dt className="text-muted">Metadata</dt><dd>{ext.metadata ? `${Object.keys(ext.metadata).length} field${Object.keys(ext.metadata).length===1?"":"s"}` : "—"}</dd></div>
+                <div className="grid grid-cols-[8rem_1fr] gap-3 px-4 py-3"><dt className="text-muted">Meeting</dt><dd className="truncate">{meetingUrl ? <a href={meetingUrl} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">{meetingUrl}</a> : "—"}</dd></div>
+                <div className="px-4 py-3"><p className="text-muted">Participants · {(ext.participants?.length ?? 0) || 0}</p>{ext.participants?.length ? <ul className="mt-2 flex flex-wrap gap-2">{ext.participants.map((p,i)=><li key={i} className="rounded-full bg-surface px-3 py-1 text-xs">{p.name}{p.role ? ` · ${p.role}` : ""}</li>)}</ul> : <p className="mt-1 text-muted">No participant list yet.</p>}</div>
+              </dl>
+              {cap.events?.length ? <ul className="space-y-1 text-xs text-muted">{cap.events.slice(0,4).map((e,i)=><li key={i}>{e.at ? new Date(e.at).toLocaleString() : ""} — {e.status}{e.detail ? `: ${e.detail}` : ""}</li>)}</ul> : null}
+            </div>
+          </Card>
+        );
+      })()}
 
       {displayError && (
         <p
@@ -312,14 +345,39 @@ export function CaptureDetail({
           id={tabPanelId("recording")}
           aria-labelledby={tabId("recording")}>
           <div className="space-y-4">
-            {cap.recordVideo && (
+            {cap.recordVideo ? (
               <Card>
                 <CardHeader title="Video" />
                 <div className="p-5">
                   <MeetingVideo cap={cap} />
                 </div>
               </Card>
-            )}
+            ) : null}
+            {cap.audio?.url ? (
+              <Card>
+                <CardHeader title="Audio" />
+                <div className="space-y-4 p-5 text-sm">
+                  <audio controls preload="metadata" src={cap.audio.url} onLoadedMetadata={(e) => setAudioSeconds(Number.isFinite(e.currentTarget.duration) ? e.currentTarget.duration : null)} className="w-full" aria-label="Meeting audio" />
+                  <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
+                    <div><dt className="text-muted">Source</dt><dd>Meeting</dd></div>
+                    <div><dt className="text-muted">Added</dt><dd>{timeAgo(cap.createdAt)}</dd></div>
+                    {audioSeconds !== null && <div><dt className="text-muted">Length</dt><dd>{formatDuration(audioSeconds)}</dd></div>}
+                    <div><dt className="text-muted">Size</dt><dd>{formatBytes(cap.audio.sizeBytes)}</dd></div>
+                  </dl>
+                  <p className="text-xs text-muted">Signed link expires in a few minutes — page refresh renews it. Audio stays usable when video fails.</p>
+                </div>
+              </Card>
+            ) : cap.audioStatus === "unavailable" ? (
+              <Card>
+                <CardHeader title="Audio" />
+                <div className="p-5 text-sm">
+                  <div role="status" className="flex items-start gap-3 rounded-lg border border-border bg-surface px-4 py-3">
+                    <TriangleAlert aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+                    <div><p className="font-medium">Audio no longer available</p><p className="mt-0.5 text-muted">It was removed as the privacy settings say. The transcript and documents are still here.</p></div>
+                  </div>
+                </div>
+              </Card>
+            ) : null}
             <MeetingPanel cap={cap} devTools={devTools} onChanged={refresh} />
           </div>
         </div>
@@ -334,9 +392,9 @@ export function CaptureDetail({
           <Card>
             <CardHeader title="Recording" />
             <div className="space-y-4 p-5 text-sm">
-              {cap.audio ? (
+              {cap.audio?.url ? (
                 <>
-                  {/* A short-lived, signed link: the audio is private to this user and the link stops working soon after. */}
+                  {/* Signed URL valid ~5m — detail polling renews it. */}
                   <audio
                     controls
                     preload="metadata"
@@ -402,13 +460,6 @@ export function CaptureDetail({
                     </p>
                   </div>
                 </div>
-              ) : cap.source === "meeting_url" ? (
-                <p className="text-muted">
-                  Meetings are captured by the MyJooba Assistant. There is no
-                  audio file to play here; the transcript appears in the
-                  Transcript tab once the meeting has ended and a capture
-                  provider is connected.
-                </p>
               ) : (
                 <p className="text-muted">The audio is still being uploaded.</p>
               )}

@@ -12,9 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { type HostBooking, type Slot, hostSlots } from "@/lib/booking-client";
-import { useCancelBookingHost } from "@/lib/mutations";
+import { useCancelBookingHost, useRescheduleBookingHost } from "@/lib/mutations";
 import { bookingsQuery } from "@/lib/queries";
-import { rescheduleBookingAsHost } from "@/lib/booking-client";
 import { browserTimeZone, formatDateTime, formatTime } from "@/lib/tz";
 
 type Scope = "upcoming" | "past";
@@ -32,7 +31,8 @@ export function BookingsTab() {
   const [moving, setMoving] = useState<HostBooking | null>(null);
   const [slot, setSlot] = useState<Slot | null>(null);
   const cancelM = useCancelBookingHost();
-  const busy = cancelM.isPending;
+  const moveM = useRescheduleBookingHost();
+  const busy = cancelM.isPending || moveM.isPending;
 
   async function cancel() {
     if (!confirm) return;
@@ -48,13 +48,14 @@ export function BookingsTab() {
     if (!moving || !slot) return;
     setLocalError(null);
     try {
-      await rescheduleBookingAsHost(moving.id, slot.start);
-      bookingsQ.refetch();
+      await moveM.mutateAsync({ id: moving.id, start: slot.start });
       setMoving(null);
       setSlot(null);
     } catch (err) {
-      setLocalError(err instanceof Error ? err.message : "Could not move the booking.");
-      setSlot(null);
+      const msg = err instanceof Error ? err.message : "Could not move the booking.";
+      // slot_conflict -> clear selection and let picker reload on next open
+      if (msg.toLowerCase().includes("slot") || msg.toLowerCase().includes("conflict") || msg.toLowerCase().includes("taken")) setSlot(null);
+      setLocalError(msg);
     }
   }
   const loadSlots = useCallback(

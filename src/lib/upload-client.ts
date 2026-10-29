@@ -34,6 +34,9 @@ export interface CaptureView {
   documents: Array<{ id: string; title: string; template: string; status: string; editedByUser: boolean; updatedAt: string }>;
   source: string;
   platform: string | null;
+  meetingUrl?: string | null;
+  botName?: string | null;
+  durationSeconds?: number | null;
   status: string;
   provider: string | null;
   state: string;
@@ -47,14 +50,14 @@ export interface CaptureView {
   transcriptVersion: number | null;
   /** The user's names for the provider's speaker labels, e.g. { S1: "Maya" }. */
   speakerNames: Record<string, string>;
-  /** A short-lived link to play the recording; null when there is none to play. */
-  audio: { url: string; contentType: string; sizeBytes: number } | null;
+  /** Signed URL valid ~5 minutes; refetch detail to renew. */
+  audio: { url: string; expiresAt?: string; contentType: string; sizeBytes: number } | null;
   /** "unavailable" = the file is gone (removed or expired); the transcript and documents remain. */
   audioStatus: "available" | "unavailable" | "none";
   /** Whether video was asked for on this meeting. */
   recordVideo: boolean;
-  /** A short-lived link to watch the meeting; null until it is saved (or if it has been removed). */
-  video: { url: string; contentType: string; sizeBytes: number } | null;
+  /** Signed URL valid ~5 minutes; refetch detail to renew. */
+  video: { url: string; expiresAt?: string; contentType: string; sizeBytes: number } | null;
   /** none: not asked for. requested/processing: on its way. ready. failed (see videoFailure). unavailable: removed, as the privacy settings say. */
   videoStatus: "none" | "requested" | "processing" | "ready" | "failed" | "unavailable";
   videoFailure: string | null;
@@ -124,8 +127,8 @@ export interface CaptureListItem {
 
 export const listCaptures=async(limit=25,kind?:"meetings"|"recordings",signal?:AbortSignal)=>{
  const p=new URLSearchParams({limit:String(limit)});if(kind)p.set("type",kind==="meetings"?"meeting":"recording");
- const page=await api<{results:Array<{id:string;source:string;title:string;state:string;failureReason:string|null;createdAt:string}>}>(`/api/library/search?${p}`,{signal});
- return page.results.map(c=>({...c,source:c.source==="meeting"?"meeting_url":"audio_upload",status:c.state,platform:null}));
+ const page=await api<{results:Array<{id:string;source:string;title:string;state:string;failureReason:string|null;createdAt:string;platform?:string|null;durationSeconds?:number|null}>}>(`/api/library/search?${p}`,{signal});
+ return page.results.map(c=>({...c,source:c.source==="meeting"?"meeting_url":"audio_upload",status:c.state,platform:(c as unknown as {platform?:string|null}).platform ?? (c.source==="meeting"?"google_meet":null)}));
 };
 const meetingKeys=new Map<string,string>(),retryKeys=new Map<string,string>();
 export async function requestMeetingCapture(meetingUrl:string,consentConfirmed:boolean,title?:string,recordVideo=false,options?:{maxDurationSeconds:number;idempotencyKey?:string;botName?:string}){
@@ -139,10 +142,9 @@ export async function requestMeetingCapture(meetingUrl:string,consentConfirmed:b
 }
 export const cancelMeetingCapture=(id:string)=>api<{state:string}>(`/api/captures/${encodeURIComponent(id)}/cancel`,{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});
 export async function getCapture(id:string,signal?:AbortSignal):Promise<CaptureView>{
- const c=await api<{id:string;title:string;source:string;state:string;createdAt:string;transcript:TranscriptSegmentView[];transcriptVersion:number|null;speakerNames:Record<string,string>;cancelRequestedAt?:string|null;failureReason?:string|null;maxDurationSeconds?:number|null}>(`/api/library/captures/${encodeURIComponent(id)}`,{signal});
- return {...c,source:c.source==="meeting"?"meeting_url":"audio_upload",status:c.state,failureReason:c.failureReason?messages[c.failureReason]??"Processing needs attention.":null,filename:null,platform:null,provider:null,documents:[],events:[],actions:{state:"none",error:null,items:[]},audio:null,audioStatus:"none",recordVideo:false,video:null,videoStatus:"none",videoFailure:null};
+ const c=await api<{id:string;title:string|null;source:string;state:string;createdAt:string;transcript:TranscriptSegmentView[];transcriptVersion:number|null;speakerNames:Record<string,string>;cancelRequestedAt?:string|null;failureReason?:string|null;maxDurationSeconds?:number|null;platform?:string|null;provider?:string|null;durationSeconds?:number|null;botName?:string|null;meetingUrl?:string|null;meeting_url?:string|null;recordVideo?:boolean;videoStatus?:string;videoFailure?:string|null;video?:{url:string;expiresAt:string;contentType:string;sizeBytes:number}|null;audio?:{url:string;expiresAt:string;contentType:string;sizeBytes:number}|null;audioStatus?:string;events?:Array<{status:string;detail:string|null;at:string}>;documents?:CaptureView["documents"];actions?:CaptureView["actions"];participants?:Array<{name:string;role?:string}>;metadata?:Record<string,unknown>;}>(`/api/library/captures/${encodeURIComponent(id)}`,{signal});
+ return {...c,title:c.title,source:c.source==="meeting"?"meeting_url":"audio_upload",status:c.state as string,failureReason:c.failureReason?messages[c.failureReason as string]??"Processing needs attention.":null,filename:null,platform:(c as unknown as {platform?:string|null}).platform ?? (c.source==="meeting"?"google_meet":null),provider:(c as unknown as {provider?:string|null}).provider ?? null,documents:(c as unknown as {documents?:CaptureView["documents"]}).documents ?? [],events:(c as unknown as {events?:CaptureView["events"]}).events ?? [],actions:(c as unknown as {actions?:CaptureView["actions"]}).actions ?? {state:"none",error:null,items:[]},audio:(c as unknown as {audio?:CaptureView["audio"]}).audio ?? null,audioStatus:((c as unknown as {audioStatus?:string}).audioStatus as CaptureView["audioStatus"]) ?? "none",recordVideo:!!(c as unknown as {recordVideo?:boolean}).recordVideo,video:(c as unknown as {video?:CaptureView["video"]}).video ?? null,videoStatus:((c as unknown as {videoStatus?:string}).videoStatus as CaptureView["videoStatus"]) ?? "none",videoFailure:(c as unknown as {videoFailure?:string|null}).videoFailure ?? null,maxDurationSeconds:(c as unknown as {maxDurationSeconds?:number|null}).maxDurationSeconds ?? null,meetingUrl:(c as unknown as {meetingUrl?:string|null;meeting_url?:string|null}).meetingUrl ?? (c as unknown as {meeting_url?:string|null}).meeting_url ?? null,botName:(c as unknown as {botName?:string|null}).botName ?? null,durationSeconds:(c as unknown as {durationSeconds?:number|null;duration_seconds?:number|null}).durationSeconds ?? (c as unknown as {duration_seconds?:number|null}).duration_seconds ?? null} as CaptureView;
 }
-
 export const deleteCapture = (id: string) => api<void>(`/api/captures/${id}`, { method: "DELETE" });
 
 const STATE_LABELS: Record<string, string> = {

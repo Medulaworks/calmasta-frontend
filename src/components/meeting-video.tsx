@@ -11,11 +11,11 @@ import type { CaptureView } from "@/lib/upload-client";
 export function MeetingVideo({ cap, compact = false }: { cap: Pick<CaptureView, "recordVideo" | "video" | "videoStatus" | "videoFailure" | "status">; compact?: boolean }) {
   if (!cap.recordVideo) return null;
 
-  if (cap.video) {
+  if (cap.video?.url) {
     return (
       <div className="space-y-2">
-        {/* A short-lived, signed link: the video is private to this person and the link stops working later. */}
-        <video controls preload="metadata" src={cap.video.url} aria-label="Meeting video" className="aspect-video w-full rounded-lg bg-black" />
+        {/* Inline signed URL — valid ~5m; detail polling renews it. */}
+        <video controls preload="metadata" src={cap.video.url} aria-label="Meeting video" className="aspect-video w-full rounded-lg bg-black" onError={(e) => { const v = e.currentTarget; if (v.networkState === HTMLMediaElement.NETWORK_NO_SOURCE) v.load(); }} />
         <p className="text-xs text-muted">Video · {formatBytes(cap.video.sizeBytes)}{compact ? "" : ". Only you can watch this. If it's ever removed, the transcript and your documents stay."}</p>
       </div>
     );
@@ -45,6 +45,14 @@ export function MeetingVideo({ cap, compact = false }: { cap: Pick<CaptureView, 
     );
   }
 
+  if (cap.videoStatus === "requested") {
+    return (
+      <div role="status" className="flex items-start gap-3 rounded-lg border border-border bg-surface px-4 py-3 text-sm">
+        <Loader2 aria-hidden className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-muted" />
+        <div><p className="font-medium">Video requested</p><p className="mt-0.5 text-muted">The meeting is being recorded with video. It appears after processing, usually a few minutes. This page refreshes automatically.</p></div>
+      </div>
+    );
+  }
   const ended = ["completed", "processing"].includes(cap.status);
   return (
     <div role="status" className="flex items-start gap-3 rounded-lg border border-border bg-surface px-4 py-3 text-sm">

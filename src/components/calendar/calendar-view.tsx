@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useProfile } from "@/components/shell/profile-context";
 import { Badge } from "@/components/ui/badge";
@@ -70,24 +70,46 @@ const minutesText = (m: number) =>
 export function CalendarView() {
   const profile = useProfile();
   const search = useSearchParams();
-  const outcome = search.get("connected")
-    ? { ok: true, text: "Calendar connected." }
-    : search.get("error")
-      ? {
-          ok: false,
-          text:
-            (
-              {
-                cancelled: "Connecting was cancelled, so nothing changed.",
-                not_available: "This setup has no real calendar to sign in to.",
-              } as Record<string, string>
-            )[search.get("error")!] ??
-            "We couldn't connect your calendar. Please try again.",
-        }
-      : null;
+  const queryClient = useQueryClient();
+  const calParam = search.get("calendar");
+  const outcome = calParam
+    ? (() => {
+        const map: Record<string, { ok: boolean; text: string }> = {
+          connected: { ok: true, text: "Google Calendar connected." },
+          denied: { ok: false, text: "Calendar connection was cancelled." },
+          missing_scope: { ok: false, text: "Required calendar permissions were not granted. Please reconnect and allow them." },
+          missing_grant: { ok: false, text: "Google did not return the credentials needed to keep the calendar connected. Please reconnect." },
+          error: { ok: false, text: "Could not connect your calendar. Please try again." },
+        };
+        return map[calParam] ?? { ok: false, text: "Could not connect your calendar. Please try again." };
+      })()
+    : search.get("connected")
+      ? { ok: true, text: "Calendar connected." }
+      : search.get("error")
+        ? {
+            ok: false,
+            text:
+              (
+                {
+                  cancelled: "Connecting was cancelled, so nothing changed.",
+                  not_available: "This setup has no real calendar to sign in to.",
+                } as Record<string, string>
+              )[search.get("error")!] ??
+              "We couldn't connect your calendar. Please try again.",
+          }
+        : null;
   const timeZone = profile?.timezone || browserTimeZone();
 
-  const queryClient = useQueryClient();
+  // consume calendar=<outcome> once, refetch, and remove only that param
+  useEffect(() => {
+    if (!calParam) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete("calendar");
+    window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+    void queryClient.invalidateQueries({ queryKey: calendarConnectionsQuery.queryKey });
+    void queryClient.invalidateQueries({ queryKey: ["calendar", "agenda"] });
+  }, [calParam, queryClient]);
+
   const {
     data: connsRaw,
     error: connsError,
