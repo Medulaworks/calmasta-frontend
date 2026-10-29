@@ -1,5 +1,7 @@
 "use client";
 
+import { dashboardPath } from "@/lib/app-routes";
+
 import { FileText, Mic, Search, Video, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -50,7 +52,7 @@ function urlFor(f: LibraryQuery, tab: Tab) {
   if (f.from) p.set("from", f.from);
   if (f.to) p.set("to", f.to);
   const qs = p.toString();
-  return qs ? `/library?${qs}` : "/library";
+  return qs ? `/dashboard/library?${qs}` : "/dashboard/library";
 }
 
 const KIND_LABEL = { document: "Document", recording: "Recording", meeting: "Meeting" } as const;
@@ -60,7 +62,7 @@ function ResultRow({ r, q }: { r: LibraryResult; q: string }) {
   const Icon = r.kind === "document" ? FileText : r.kind === "meeting" ? Video : Mic;
   return (
     <li>
-      <Link href={r.href} className="flex items-start gap-3 px-5 py-3 transition-colors hover:bg-surface">
+      <Link href={dashboardPath(r.href)} className="flex items-start gap-3 px-5 py-3 transition-colors hover:bg-surface">
         <span aria-hidden className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-surface text-muted"><Icon className="h-4 w-4" /></span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-medium"><Highlight text={r.title} query={q} /></span>
@@ -194,7 +196,7 @@ export function LibraryList() {
               icon={<Search className="h-5 w-5" />}
               title="No results"
               body={filters.q.trim() ? `Nothing in your library matches “${filters.q.trim()}” with these filters. Try fewer words, or clear the filters.` : "Nothing matches these filters."}
-              action={<button type="button" onClick={() => router.replace("/library", { scroll: false })} className="text-sm font-medium text-accent">Clear search and filters</button>}
+              action={<button type="button" onClick={() => router.replace("/dashboard/library", { scroll: false })} className="text-sm font-medium text-accent">Clear search and filters</button>}
             />
           ) : (
             <ul className="divide-y divide-border">{shown.map((r) => <ResultRow key={`${r.kind}-${r.id}`} r={r} q={filters.q} />)}</ul>
@@ -211,7 +213,7 @@ export function LibraryList() {
         label="Library"
         items={tabs.map((t) => ({ id: t.id, label: t.label, count: t.count ?? undefined }))}
         active={tab}
-        onChange={(id) => router.replace(id === "documents" ? "/library" : "/library?tab=recordings")}
+        onChange={(id) => router.replace(id === "documents" ? "/dashboard/library" : "/dashboard/library?tab=recordings")}
       />
 
       {error && <p role="alert" className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">{error}</p>}
@@ -221,14 +223,14 @@ export function LibraryList() {
           docs === null ? (
             <Skeleton />
           ) : docs.length === 0 ? (
-            <EmptyState icon={<FileText className="h-5 w-5" />} title="No documents yet" body="Open a recording and choose a template to write your first document." action={<ButtonLink href="/voice" variant="primary">Record a thought</ButtonLink>} />
+            <EmptyState icon={<FileText className="h-5 w-5" />} title="No documents yet" body="Open a recording and choose a template to write your first document." action={<ButtonLink href="/dashboard/voice" variant="primary">Record a thought</ButtonLink>} />
           ) : (
             <ul className="divide-y divide-border" role="tabpanel" id={tabPanelId("documents")} aria-labelledby={tabId("documents")}>
               {docs.map((d) => {
                 const st = documentStatus({ status: d.status, failureReason: d.failureReason, editedByUser: d.editedByUser });
                 return (
                   <li key={d.id}>
-                    <Link href={`/library/${d.id}`} className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-surface">
+                    <Link href={`/dashboard/library/${d.id}`} className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-surface">
                       <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-surface text-muted"><FileText className="h-4 w-4" /></span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium">{d.title}</span>
@@ -244,7 +246,7 @@ export function LibraryList() {
         ) : caps === null ? (
           <Skeleton />
         ) : caps.length === 0 ? (
-          <EmptyState icon={<Mic className="h-5 w-5" />} title="No recordings yet" body="Record a thought, upload audio or capture a meeting." action={<ButtonLink href="/voice" variant="primary">Record a thought</ButtonLink>} />
+          <EmptyState icon={<Mic className="h-5 w-5" />} title="No recordings yet" body="Record a thought, upload audio or capture a meeting." action={<ButtonLink href="/dashboard/voice" variant="primary">Record a thought</ButtonLink>} />
         ) : (
           <ul className="divide-y divide-border" role="tabpanel" id={tabPanelId("recordings")} aria-labelledby={tabId("recordings")}>
             {caps.map((c) => {
@@ -252,7 +254,7 @@ export function LibraryList() {
               const Icon = c.source === "meeting_url" ? Video : Mic;
               return (
                 <li key={c.id}>
-                  <Link href={`/captures/${c.id}`} className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-surface">
+                  <Link href={`/dashboard/captures/${c.id}`} className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-surface">
                     <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-surface text-muted"><Icon className="h-4 w-4" /></span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium">{c.title}</span>

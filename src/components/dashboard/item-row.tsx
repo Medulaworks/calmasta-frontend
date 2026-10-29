@@ -1,3 +1,4 @@
+import { dashboardPath } from "@/lib/app-routes";
 import { FileText, Mic, Video } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +21,7 @@ export function ItemRow({ item, showReason = false }: { item: DashboardItem; sho
   const status = statusFor(item);
   return (
     <li>
-      <Link href={item.href} className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-surface">
+      <Link href={dashboardPath(item.href)} className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-surface">
         <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-surface text-muted">
           <Icon className="h-4 w-4" />
         </span>

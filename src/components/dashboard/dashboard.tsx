@@ -1,5 +1,7 @@
 "use client";
 
+import { dashboardPath } from "@/lib/app-routes";
+
 import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, CheckCircle2, Circle, Clock, Gauge, ListChecks, Mic, Video } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
@@ -38,7 +40,7 @@ function Delta({ now, before, format = String }: { now: number; before: number; 
 
 function Metric({ label, value, icon, href, children, tone }: { label: string; value: React.ReactNode; icon: React.ReactNode; href: string; children: React.ReactNode; tone?: "warning" }) {
   return (
-    <Link href={href} className="group block rounded-xl border border-border bg-background p-5 transition-colors hover:bg-surface focus-visible:bg-surface">
+    <Link href={dashboardPath(href)} className="group block rounded-xl border border-border bg-background p-5 transition-colors hover:bg-surface focus-visible:bg-surface">
       <span className="flex items-center justify-between text-muted">
         <span className="text-sm">{label}</span>
         <span aria-hidden className="group-hover:text-foreground">{icon}</span>
@@ -77,7 +79,7 @@ function ListCard({ title, id, items, empty, action, showReason }: { title: stri
 }
 
 const viewAll = (href: string) => (
-  <Link href={href} className="inline-flex items-center gap-1 text-xs text-muted hover:text-foreground">
+  <Link href={dashboardPath(href)} className="inline-flex items-center gap-1 text-xs text-muted hover:text-foreground">
     View all <ArrowRight aria-hidden className="h-3 w-3" />
   </Link>
 );
@@ -92,7 +94,7 @@ function ActionItems({ d }: { d: Dashboard }) {
       <ul aria-labelledby="actions" className="divide-y divide-border">
         {d.actionItems.slice(0, 3).map((a) => (
           <li key={a.id}>
-            <Link href={a.href} className="block px-5 py-3 transition-colors hover:bg-surface">
+            <Link href={dashboardPath(a.href)} className="block px-5 py-3 transition-colors hover:bg-surface">
               <span className="flex items-start justify-between gap-3">
                 <span className="line-clamp-2 text-sm">{a.text}</span>
                 <Badge tone={a.status === "suggested" ? "warning" : "info"}>{a.status === "suggested" ? "To review" : "Open"}</Badge>
@@ -109,11 +111,11 @@ function ActionItems({ d }: { d: Dashboard }) {
 function GettingStarted({ d }: { d: Dashboard }) {
   const latest = d.recentRecordings.find((r) => r.kind === "recording");
   const steps = [
-    { done: d.progress.hasRecording, title: "Record or upload audio", body: "Speak for a minute or upload a file.", href: "/voice" },
+    { done: d.progress.hasRecording, title: "Record or upload audio", body: "Speak for a minute or upload a file.", href: "/dashboard/voice" },
     ...(d.progress.hasDocument !== null
-      ? [{ done: d.progress.hasDocument, title: "Turn it into a document", body: "Pick a template and edit the result.", href: latest?.href ?? "/voice" }]
+      ? [{ done: d.progress.hasDocument, title: "Turn it into a document", body: "Pick a template and edit the result.", href: latest?.href ?? "/dashboard/voice" }]
       : []),
-    { done: d.progress.hasMeetingCapture, title: "Capture a meeting", body: "Send a visible assistant to a call.", href: "/capture" },
+    { done: d.progress.hasMeetingCapture, title: "Capture a meeting", body: "Send a visible assistant to a call.", href: "/dashboard/capture" },
   ];
   if (steps.every((s) => s.done)) return null;
   const done = steps.filter((s) => s.done).length;
@@ -123,7 +125,7 @@ function GettingStarted({ d }: { d: Dashboard }) {
       <ol className="divide-y divide-border">
         {steps.map((s) => (
           <li key={s.title}>
-            <Link href={s.href} className="flex items-start gap-3 px-5 py-3 transition-colors hover:bg-surface">
+            <Link href={dashboardPath(s.href)} className="flex items-start gap-3 px-5 py-3 transition-colors hover:bg-surface">
               {s.done ? <CheckCircle2 aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-success" /> : <Circle aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-muted" />}
               <span className="min-w-0">
                 <span className={`block text-sm font-medium ${s.done ? "text-muted line-through" : ""}`}>{s.title}</span>
@@ -192,10 +194,10 @@ export function Dashboard() {
         description={today ? `${today}. Here's what's coming up and what needs you.` : "Here's what's coming up and what needs you."}
         actions={
           <>
-            <ButtonLink href="/capture" variant="secondary">
+            <ButtonLink href="/dashboard/capture" variant="secondary">
               <Video aria-hidden className="h-4 w-4" /> Capture a meeting
             </ButtonLink>
-            <ButtonLink href="/voice" variant="primary">
+            <ButtonLink href="/dashboard/voice" variant="primary">
               <Mic aria-hidden className="h-4 w-4" /> Record a thought
             </ButtonLink>
           </>
@@ -212,30 +214,30 @@ export function Dashboard() {
       <section aria-label="This month" className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {m && data ? (
           <>
-            <Metric label="Meetings captured" value={m.meetingsCaptured.thisMonth} icon={<Video className="h-4 w-4" />} href="/library?tab=recordings">
+            <Metric label="Meetings captured" value={m.meetingsCaptured.thisMonth} icon={<Video className="h-4 w-4" />} href="/dashboard/library?tab=recordings">
               <Delta now={m.meetingsCaptured.thisMonth} before={m.meetingsCaptured.lastMonth} />
             </Metric>
-            <Metric label="Time transcribed" value={formatMinutes(m.minutesTranscribed.thisMonth)} icon={<Clock className="h-4 w-4" />} href="/plan">
+            <Metric label="Time transcribed" value={formatMinutes(m.minutesTranscribed.thisMonth)} icon={<Clock className="h-4 w-4" />} href="/dashboard/plan">
               <Delta now={m.minutesTranscribed.thisMonth} before={m.minutesTranscribed.lastMonth} format={formatMinutes} />
             </Metric>
             {m.actionItems !== null ? (
-              <Metric label="Action items to review" value={m.actionItems.toReview} icon={<ListChecks className="h-4 w-4" />} href={data.actionItems[0]?.href ?? "/library"} tone={m.actionItems.toReview > 0 ? "warning" : undefined}>
+              <Metric label="Action items to review" value={m.actionItems.toReview} icon={<ListChecks className="h-4 w-4" />} href={data.actionItems[0]?.href ?? "/dashboard/library"} tone={m.actionItems.toReview > 0 ? "warning" : undefined}>
                 <span className="text-xs text-muted">{m.actionItems.open} open · accepted, not done</span>
               </Metric>
             ) : (
-              <Metric label="Recordings this month" value={data.stats.recordingsThisMonth} icon={<Mic className="h-4 w-4" />} href="/library?tab=recordings">
+              <Metric label="Recordings this month" value={data.stats.recordingsThisMonth} icon={<Mic className="h-4 w-4" />} href="/dashboard/library?tab=recordings">
                 <span className="text-xs text-muted">Uploads and meetings created</span>
               </Metric>
             )}
             {plan ? (
-              <Metric label="Allowance left" value={formatMinutes(plan.remainingMinutes)} icon={<Gauge className="h-4 w-4" />} href="/plan" tone={plan.exhausted ? "warning" : undefined}>
+              <Metric label="Allowance left" value={formatMinutes(plan.remainingMinutes)} icon={<Gauge className="h-4 w-4" />} href="/dashboard/plan" tone={plan.exhausted ? "warning" : undefined}>
                 <span className="block h-1.5 overflow-hidden rounded-full bg-border" aria-hidden>
                   <span className={`block h-full rounded-full ${plan.exhausted ? "bg-danger-solid" : "bg-accent-solid"}`} style={{ width: `${Math.min(100, Math.round((plan.usedMinutes / Math.max(1, plan.allowanceMinutes)) * 100))}%` }} />
                 </span>
                 <span className="mt-1.5 block text-xs text-muted">{PLAN_LABEL[plan.plan.plan]} · resets {formatDate(plan.resetsAt, plan.timezone)}</span>
               </Metric>
             ) : (
-              <Metric label="In progress" value={data.stats.inProgress} icon={<Gauge className="h-4 w-4" />} href="/library?tab=recordings">
+              <Metric label="In progress" value={data.stats.inProgress} icon={<Gauge className="h-4 w-4" />} href="/dashboard/library?tab=recordings">
                 <span className="text-xs text-muted">{data.stats.inProgress === 0 ? "Nothing running right now" : "Currently recording or transcribing"}</span>
               </Metric>
             )}
@@ -250,7 +252,7 @@ export function Dashboard() {
           <ul className="divide-y divide-danger/15">
             {data.needsAttention.slice(0, 2).map((it) => (
               <li key={`${it.kind}-${it.id}`}>
-                <Link href={it.href} className="flex items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-danger/5">
+                <Link href={dashboardPath(it.href)} className="flex items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-danger/5">
                   <AlertTriangle aria-hidden className="h-4 w-4 shrink-0 text-danger" />
                   <span className="min-w-0 flex-1 truncate"><span className="font-medium">{it.title}</span> <span className="text-muted">· {it.failureReason ?? "needs a look"}</span></span>
                   <ArrowRight aria-hidden className="h-4 w-4 shrink-0 text-muted" />
@@ -270,8 +272,8 @@ export function Dashboard() {
             title="Recent conversations"
             id="recent-conversations"
             items={conversations}
-            action={viewAll("/library?tab=recordings")}
-            empty={<EmptyState icon={<Mic className="h-5 w-5" />} title="No conversations yet" body="Record a thought, upload audio or send an assistant to a meeting. The transcript lands here." action={<ButtonLink href="/voice" variant="primary">Record a thought</ButtonLink>} />}
+            action={viewAll("/dashboard/library?tab=recordings")}
+            empty={<EmptyState icon={<Mic className="h-5 w-5" />} title="No conversations yet" body="Record a thought, upload audio or send an assistant to a meeting. The transcript lands here." action={<ButtonLink href="/dashboard/voice" variant="primary">Record a thought</ButtonLink>} />}
           />
         </div>
 

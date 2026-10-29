@@ -1,5 +1,7 @@
 "use client";
 
+import { dashboardPath } from "@/lib/app-routes";
+
 import { Sparkles, Zap } from "lucide-react";
 import Link from "next/link";
 import { type DeletionView, type PlanSummary, formatDate } from "@/lib/plan-client";
@@ -31,19 +33,19 @@ export function bannersFor(plan: PlanSummary | null, deletion: DeletionView | nu
         : deletion.status === "partial_failure"
           ? "Your account deletion is still finishing: some files could not be removed yet. We keep trying, and your account stays until everything is gone."
           : "Your account is being deleted.";
-    out.push({ id: "deletion", level: "danger", text, href: "/settings#delete-account", cta: deletion.canCancel ? "Review or cancel" : "See progress" });
+    out.push({ id: "deletion", level: "danger", text, href: "/dashboard/settings#delete-account", cta: deletion.canCancel ? "Review or cancel" : "See progress" });
   }
   if (!plan) return out;
   if (plan.paused) out.push({ id: "paused", level: "warning", text: "New processing is paused for a short while. Everything you already have is safe, and work already under way will finish." });
   if (plan.plan.status === "grace" && plan.plan.graceUntil) {
-    out.push({ id: "grace", level: "warning", text: `Your last payment didn't go through. ${PLAN_LABEL[plan.plan.plan]} stays on until ${formatDate(plan.plan.graceUntil, plan.timezone)}. After that you'll move to Free and keep all your work.`, href: plan.billingUrl ?? "/plan", cta: "Fix payment" });
+    out.push({ id: "grace", level: "warning", text: `Your last payment didn't go through. ${PLAN_LABEL[plan.plan.plan]} stays on until ${formatDate(plan.plan.graceUntil, plan.timezone)}. After that you'll move to Free and keep all your work.`, href: plan.billingUrl ?? "/dashboard/plan", cta: "Fix payment" });
   } else if (plan.plan.status === "expired") {
-    out.push({ id: "expired", level: "info", text: "Your paid plan has ended, so you're on Free. All your recordings, transcripts and documents are kept.", href: "/plan", cta: "See plans" });
+    out.push({ id: "expired", level: "info", text: "Your paid plan has ended, so you're on Free. All your recordings, transcripts and documents are kept.", href: "/dashboard/plan", cta: "See plans" });
   } else if (plan.plan.status === "pending_activation") {
-    out.push({ id: "pending", level: "info", text: "We're waiting for the store to confirm your payment. Your plan starts as soon as it does.", href: "/plan/confirming", cta: "Check status" });
+    out.push({ id: "pending", level: "info", text: "We're waiting for the store to confirm your payment. Your plan starts as soon as it does.", href: "/dashboard/plan/confirming", cta: "Check status" });
   }
-  if (plan.exhausted) out.push({ id: "exhausted", level: "warning", text: "You've used this month's allowance, so new recordings can't be processed. Everything you have stays available.", href: "/plan", cta: "Buy hours or upgrade" });
-  else if (plan.allowanceMinutes > 0 && plan.remainingMinutes <= plan.allowanceMinutes * 0.2) out.push({ id: "low", level: "info", text: `${formatMinutes(plan.remainingMinutes)} left this month.`, href: "/plan", cta: "See usage" });
+  if (plan.exhausted) out.push({ id: "exhausted", level: "warning", text: "You've used this month's allowance, so new recordings can't be processed. Everything you have stays available.", href: "/dashboard/plan", cta: "Buy hours or upgrade" });
+  else if (plan.allowanceMinutes > 0 && plan.remainingMinutes <= plan.allowanceMinutes * 0.2) out.push({ id: "low", level: "info", text: `${formatMinutes(plan.remainingMinutes)} left this month.`, href: "/dashboard/plan", cta: "See usage" });
   return out;
 }
 
@@ -56,9 +58,9 @@ export function AccountBanners({ plan, deletion, hide = [] }: { plan: PlanSummar
         <div key={b.id} role={b.level === "info" ? "status" : "alert"} className={`flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-xl border px-4 py-3 text-sm ${LEVELS[b.level]}`}>
           <p className="min-w-0 flex-1">{b.text}</p>
           {b.href && b.cta && (b.href.startsWith("/") ? (
-            <Link href={b.href} className="shrink-0 font-medium underline underline-offset-2">{b.cta}</Link>
+            <Link href={dashboardPath(b.href)} className="shrink-0 font-medium underline underline-offset-2">{b.cta}</Link>
           ) : (
-            <a href={b.href} className="shrink-0 font-medium underline underline-offset-2" rel="noopener noreferrer">{b.cta}</a>
+            <a href={dashboardPath(b.href)} className="shrink-0 font-medium underline underline-offset-2" rel="noopener noreferrer">{b.cta}</a>
           ))}
         </div>
       ))}
@@ -110,7 +112,7 @@ export function SidebarPlanCard({ plan }: { plan: PlanSummary | null }) {
     : health === "pending" ? "Waiting for payment"
     : `${formatMinutes(plan.remainingMinutes)} left`;
   const cta = health === "out" ? "Buy hours or upgrade" : health === "grace" ? "Fix payment" : health === "pending" ? "Check status" : pro ? "Manage plan" : "Upgrade to Pro";
-  const href = health === "pending" ? "/plan/confirming" : "/plan";
+  const href = health === "pending" ? "/dashboard/plan/confirming" : "/dashboard/plan";
   const label = `${planName} plan, ${headline}${plan.exhausted ? "" : ` of ${formatMinutes(total)}`}. ${cta}.`;
 
   return (
@@ -131,13 +133,13 @@ export function SidebarPlanCard({ plan }: { plan: PlanSummary | null }) {
           <div className={`h-full rounded-full transition-[width] ${FILL[health]}`} style={{ width: `${Math.max(usedPct, plan.exhausted ? 100 : 3)}%` }} />
         </div>
         <p className="relative mt-2 text-xs text-sidebar-muted">Resets {formatDate(plan.resetsAt, plan.timezone)}</p>
-        <Link href={href} className="relative mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg bg-sidebar-fg px-3 py-2 text-sm font-semibold text-sidebar transition-opacity hover:opacity-90">
+        <Link href={dashboardPath(href)} className="relative mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg bg-sidebar-fg px-3 py-2 text-sm font-semibold text-sidebar transition-opacity hover:opacity-90">
           {pro && health === "ok" ? null : <Zap aria-hidden className="h-3.5 w-3.5" />} {cta}
         </Link>
       </div>
 
       {/* The rail: a ring that opens the plan page */}
-      <Link href={href} aria-label={label} className="group relative mb-1 hidden h-12 w-12 items-center justify-center self-center rounded-xl transition-colors hover:bg-sidebar-active/60 sc:md:flex">
+      <Link href={dashboardPath(href)} aria-label={label} className="group relative mb-1 hidden h-12 w-12 items-center justify-center self-center rounded-xl transition-colors hover:bg-sidebar-active/60 sc:md:flex">
         <Ring pct={leftPct} health={health} />
         <span className="absolute inset-0 grid place-items-center text-sidebar-fg">{pro ? <Sparkles aria-hidden className="h-4 w-4" /> : <Zap aria-hidden className="h-4 w-4" />}</span>
         <span aria-hidden className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -translate-y-1/2 whitespace-nowrap rounded-md bg-foreground px-2 py-1.5 text-xs font-medium text-background shadow-lg group-hover:block group-focus-visible:block">

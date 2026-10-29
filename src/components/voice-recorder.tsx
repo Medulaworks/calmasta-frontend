@@ -389,7 +389,7 @@ export function VoiceRecorder() {
               </ol>
             </div>
           )}
-          {job&&"captureId" in job&&job.captureId&&<Link href={`/library/recordings/${job.captureId}`} className="block text-sm font-medium text-accent">Review recording and transcript</Link>}
+          {job&&"captureId" in job&&job.captureId&&<Link href={`/dashboard/library/recordings/${job.captureId}`} className="block text-sm font-medium text-accent">Review recording and transcript</Link>}
           <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)}/>I have the right to upload and transcribe this recording.</label>
           {(!policy||!policy.uploadEnabled)&&<p role="status" className="text-sm text-muted">{policyError??(policy?"Uploading is not enabled for this account yet.":"Loading capture limits…")}</p>}
           {job?.kind==="processing"&&policy&&!policy.liveProcessingEnabled&&<p className="text-sm text-muted">Your recording is saved. Processing is currently paused.</p>}
@@ -434,7 +434,7 @@ function RecentRecordings({ refreshKey }: { refreshKey: string }) {
         title="Recent recordings"
         id="recent-recordings"
         action={
-          <Link href="/library?tab=recordings" className="text-xs text-muted hover:text-foreground">
+          <Link href="/dashboard/library?tab=recordings" className="text-xs text-muted hover:text-foreground">
             View all
           </Link>
         }
@@ -459,7 +459,7 @@ function RecentRecordings({ refreshKey }: { refreshKey: string }) {
             const Icon = c.source === "meeting_url" ? Video : Mic;
             return (
               <li key={c.id}>
-                <Link href={`/captures/${c.id}`} className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-surface">
+                <Link href={`/dashboard/captures/${c.id}`} className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-surface">
                   <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-surface text-muted">
                     <Icon className="h-4 w-4" />
                   </span>

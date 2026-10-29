@@ -1,26 +1,15 @@
 export interface AuthConfig {
-  appOrigin: string; apiOrigin: string; issuer: string; clientId: string; clientSecret?: string;
-  projectId: string; sessionSecret: string; secure: boolean;
-  callbackUrl: string; sessionCookie: string; transactionCookie: string;
+ trustProxy?:boolean;appOrigin:string;apiOrigin:string;sessionSecret:string;secure:boolean;
+ callbackUrl:string;sessionCookie:string;transactionCookie:string;
 }
-export function authConfig(env: NodeJS.ProcessEnv = process.env): AuthConfig {
-  const required = (name: string) => { const value = env[name]?.trim(); if (!value) throw new Error(`Missing ${name}`); return value; };
-  const url = (name: string, allowLoopback: boolean) => {
-    const parsed = new URL(required(name));
-    if (parsed.username || parsed.password || parsed.search || parsed.hash || parsed.pathname !== "/") throw new Error(`Invalid ${name}`);
-    const local = ["localhost", "127.0.0.1", "[::1]"].includes(parsed.hostname);
-    if (parsed.protocol !== "https:" && !(allowLoopback && local && parsed.protocol === "http:")) throw new Error(`${name} requires HTTPS`);
-    return parsed.origin;
-  };
-  const appOrigin = url("APP_URL", env.NODE_ENV !== "production");
-  // Same-host private HTTP is allowed; public HTTP would expose bearer tokens.
-  const apiOrigin = url("CALMASTA_API_URL", true);
-  const issuer = url("ZITADEL_ISSUER", env.NODE_ENV === "test");
-  const sessionSecret = required("SESSION_SECRET");
-  if (!/^[a-f\d]{64}$/i.test(sessionSecret)) throw new Error("Invalid SESSION_SECRET");
-  const secure = appOrigin.startsWith("https:");
-  return { appOrigin, apiOrigin, issuer, clientId: required("ZITADEL_CLIENT_ID"), clientSecret: env.ZITADEL_CLIENT_SECRET || undefined,
-    projectId: required("ZITADEL_PROJECT_ID"), sessionSecret, secure,
-    callbackUrl: appOrigin + "/api/auth/callback", sessionCookie: secure ? "__Host-calmasta_session" : "calmasta_session",
-    transactionCookie: secure ? "__Host-calmasta_oidc" : "calmasta_oidc" };
+export function authConfig(env:NodeJS.ProcessEnv=process.env):AuthConfig {
+ const required=(name:string)=>{const v=env[name]?.trim();if(!v)throw Error(`Missing ${name}`);return v;};
+ const origin=(name:string,allowLocal:boolean)=>{
+  const u=new URL(required(name));const local=["localhost","127.0.0.1","[::1]"].includes(u.hostname);
+  if(u.username||u.password||u.search||u.hash||u.pathname!=="/"||(u.protocol!=="https:"&&!(allowLocal&&local&&u.protocol==="http:")))throw Error(`Invalid ${name}`);return u.origin;
+ };
+ const appOrigin=origin("APP_URL",env.NODE_ENV!=="production"),apiOrigin=origin("CALMASTA_API_URL",true),sessionSecret=required("SESSION_SECRET");
+ if(!/^[a-f0-9]{64}$/i.test(sessionSecret))throw Error("Invalid SESSION_SECRET");
+ if(env.NODE_ENV==="production"&&env.AUTH_TRUST_PROXY!=="true")throw Error("AUTH_TRUST_PROXY=true requires a trusted platform proxy that appends client IP");
+ const secure=appOrigin.startsWith("https:");return {trustProxy:env.AUTH_TRUST_PROXY==="true",appOrigin,apiOrigin,sessionSecret,secure,callbackUrl:appOrigin+"/api/auth/callback",sessionCookie:secure?"__Host-calmasta_session":"calmasta_session",transactionCookie:secure?"__Host-calmasta_oauth":"calmasta_oauth"};
 }

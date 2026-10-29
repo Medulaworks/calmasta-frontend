@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import { seal, unseal } from "./security";
-export interface LoginTransaction { state: string; nonce: string; verifier: string; returnTo: string }
+export interface LoginTransaction { state: string; nonce?: string; verifier?: string; returnTo: string }
 export interface SessionData {
-  subject: string; accessToken: string; refreshToken?: string; idToken: string; accessExpiresAt: number;
+  subject: string; accessToken: string; refreshToken?: string; idToken?: string; accessExpiresAt: number;
   email: string; emailVerified: boolean; identityName: string | null;
 }
 export interface AuthStore {
@@ -58,25 +58,23 @@ export class ApiAuthStore implements AuthStore {
       expiresAt,
     });
   }
-  async session(hash: string, refresh: (value: SessionData) => Promise<SessionData | null>) {
-    const res = await this.call<{ encryptedData: string | null }>("/internal/auth/sessions/get", "POST", { hash });
-    if (!res.encryptedData) return null;
-    let previous: SessionData;
-    try {
-      previous = unseal<SessionData>(res.encryptedData, this.secret);
-    } catch {
-      await this.call("/internal/auth/sessions/revoke", "POST", { hash, all: false }).catch(() => undefined);
-      return null;
+  async session(hash: string, refresh: (value:SessionData)=>Promise<SessionData|null>) {
+    let res:{encryptedData:string|null;leaseToken?:string;busy?:boolean}|undefined;
+    for(let i=0;i<100;i++){
+      res=await this.call<{encryptedData:string|null;leaseToken?:string;busy?:boolean}>("/internal/auth/sessions/get","POST",{hash});
+      if(!res.busy)break;await new Promise(resolve=>setTimeout(resolve,100));
     }
-    const value = await refresh(previous);
-    if (!value) {
-      await this.call("/internal/auth/sessions/revoke", "POST", { hash, all: false }).catch(() => undefined);
-      return null;
+    if(res?.busy)throw new Error("Session refresh busy");
+    if(!res?.encryptedData||!res.leaseToken)return null;
+    let previous:SessionData;
+    try{previous=unseal<SessionData>(res.encryptedData,this.secret);}catch{await this.revoke(hash,false);return null;}
+    let value:SessionData|null;
+    try{value=await refresh(previous);}catch(error){
+      await this.call("/internal/auth/sessions","PATCH",{hash,encryptedData:res.encryptedData,leaseToken:res.leaseToken}).catch(()=>undefined);throw error;
     }
-    if (value !== previous) {
-      await this.call("/internal/auth/sessions", "PATCH", { hash, encryptedData: seal(value, this.secret) });
-    }
-    return value;
+    if(!value){await this.revoke(hash,false);return null;}
+    const released=await this.call<{ok:boolean}>("/internal/auth/sessions","PATCH",{hash,encryptedData:seal(value,this.secret),leaseToken:res.leaseToken});
+    if(!released.ok)throw new Error("Session lease expired");return value;
   }
   async revoke(hash: string, all: boolean) {
     const res = await this.call<{ rows: Array<{ encryptedData: string }> }>(

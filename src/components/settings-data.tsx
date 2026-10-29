@@ -50,7 +50,7 @@ export function ConnectionsCard() {
             ))}
           </ul>
         )}
-        <Link href="/calendar" className="inline-block font-medium text-accent underline underline-offset-2">
+        <Link href="/dashboard/calendar" className="inline-block font-medium text-accent underline underline-offset-2">
           {conns && conns.length > 0 ? "Manage on the Calendar page" : "Go to Calendar"}
         </Link>
       </div>
@@ -112,6 +112,7 @@ export function DeleteAccountCard() {
   const router = useRouter();
   const profile = useProfile();
   const [deletion, setDeletion] = useState<DeletionView | null | undefined>(undefined); // undefined = still loading
+  const [unavailable, setUnavailable] = useState(false);
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState("");
   const [busy, setBusy] = useState(false);
@@ -128,8 +129,8 @@ export function DeleteAccountCard() {
         setDeletion(d);
         if (d && d.status !== "requested") timer = setTimeout(() => void load(), 5000);
       } catch (err) {
-        // Once the account is gone the session goes with it: that is the "done" signal.
-        if (err instanceof ApiError && err.status === 401 && !cancelled) router.replace("/deleted");
+        if (!cancelled && err instanceof ApiError && err.code === "feature_unavailable") setUnavailable(true);
+        else if (err instanceof ApiError && err.status === 401 && !cancelled) router.replace("/auth/login?returnTo=/dashboard/settings&reason=expired");
         else if (!cancelled) setDeletion((d) => d ?? null);
       }
     };
@@ -171,7 +172,9 @@ export function DeleteAccountCard() {
     <Card className="border-danger/30">
       <CardHeader id="delete-account" title="Delete account" />
       <div className="space-y-4 p-5 text-sm">
-        {deletion === undefined ? (
+        {unavailable ? (
+          <p role="status" className="text-muted">Account deletion is not available yet.</p>
+        ) : deletion === undefined ? (
           <p className="text-muted">Loading…</p>
         ) : deletion ? (
           <div role="status" className="space-y-3">

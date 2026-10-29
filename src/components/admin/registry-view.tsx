@@ -26,7 +26,7 @@ export function RegistryView() {
       <Notice>Entitlements are what a customer can <strong>use</strong>. Changing them here never charges or refunds anyone: payments and charges are managed in the store.</Notice>
       <section aria-labelledby="find" className="space-y-3">
         <h2 id="find" className="text-sm font-semibold">Find a customer to change</h2>
-        <CustomerSearch basePath="/admin/customers" />
+        <CustomerSearch basePath="/dashboard/admin/customers" />
       </section>
       <section aria-labelledby="reg" className="space-y-3">
         <h2 id="reg" className="text-sm font-semibold">Plan registry</h2>
@@ -47,7 +47,7 @@ export function RegistryView() {
                 <tbody>
                   {rows.map((r) => (
                     <tr key={r.id}>
-                      <Td><Link href={`/admin/customers/${r.id}`} className="font-medium text-accent underline underline-offset-2">{r.email}</Link><code className="block text-xs text-muted">{shortId(r.id)}</code></Td>
+                      <Td><Link href={`/dashboard/admin/customers/${r.id}`} className="font-medium text-accent underline underline-offset-2">{r.email}</Link><code className="block text-xs text-muted">{shortId(r.id)}</code></Td>
                       <Td className="capitalize">{r.plan}</Td>
                       <Td><Badge tone={r.status === "active" ? "success" : r.status === "grace" ? "warning" : "neutral"}>{r.status.replace("_", " ")}</Badge></Td>
                       <Td>{r.source ?? "–"}</Td>

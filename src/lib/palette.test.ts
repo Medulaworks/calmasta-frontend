@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import type { LibraryResult } from "./library-client";
 import { COMMANDS, groupResults, isOpenShortcut, libraryUrl, matchCommands, matchScore, parseRecent, pushRecent } from "./palette";
@@ -20,12 +21,12 @@ describe("matchCommands", () => {
   });
 
   it("finds a page by its label, ignoring case and surrounding space", () => {
-    expect(matchCommands("  CALEN ")[0].href).toBe("/calendar");
+    expect(matchCommands("  CALEN ")[0].href).toBe("/dashboard/calendar");
   });
 
   it("finds a page by a keyword that isn't in its name", () => {
-    expect(matchCommands("billing")[0].href).toBe("/plan");
-    expect(matchCommands("password")[0].href).toBe("/profile");
+    expect(matchCommands("billing")[0].href).toBe("/dashboard/plan");
+    expect(matchCommands("password")[0].href).toBe("/dashboard/profile");
   });
 
   it("puts a label match ahead of a keyword match", () => {
@@ -41,7 +42,10 @@ describe("matchCommands", () => {
   });
 
   it("only points at routes that exist in the app", () => {
-    for (const c of COMMANDS) expect(c.href).toMatch(/^\/[a-z]+$/);
+    for (const c of COMMANDS) {
+      expect(c.href).toMatch(/^\/dashboard(?:\/[a-z]+)?$/);
+      expect(existsSync(`src/app/dashboard/(app)${c.href.slice("/dashboard".length)}/page.tsx`)).toBe(true);
+    }
   });
 });
 
@@ -62,9 +66,9 @@ describe("groupResults", () => {
 
 describe("libraryUrl", () => {
   it("carries the words and a type filter, encoded", () => {
-    expect(libraryUrl("budget & plan")).toBe("/library?q=budget+%26+plan");
-    expect(libraryUrl("budget", "documents")).toBe("/library?q=budget&type=documents");
-    expect(libraryUrl("  ")).toBe("/library");
+    expect(libraryUrl("budget & plan")).toBe("/dashboard/library?q=budget+%26+plan");
+    expect(libraryUrl("budget", "documents")).toBe("/dashboard/library?q=budget&type=documents");
+    expect(libraryUrl("  ")).toBe("/dashboard/library");
   });
 });
 

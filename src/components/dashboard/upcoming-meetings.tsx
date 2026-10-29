@@ -54,7 +54,7 @@ export function UpcomingMeetings({ timeZone }: { timeZone: string }) {
         id="upcoming"
         action={
           <span className="flex items-center gap-3">
-            <Link href="/calendar" className="inline-flex items-center gap-1 text-xs text-muted hover:text-foreground">Calendar <ArrowRight aria-hidden className="h-3 w-3" /></Link>
+            <Link href="/dashboard/calendar" className="inline-flex items-center gap-1 text-xs text-muted hover:text-foreground">Calendar <ArrowRight aria-hidden className="h-3 w-3" /></Link>
           </span>
         }
       />
@@ -63,9 +63,9 @@ export function UpcomingMeetings({ timeZone }: { timeZone: string }) {
       ) : state.error ? (
         <p role="alert" className="px-5 py-6 text-sm text-danger">Couldn&rsquo;t load your calendar just now. Try refreshing in a moment.</p>
       ) : !state.data?.connected ? (
-        <EmptyState icon={<CalendarDays className="h-5 w-5" />} title="Connect your calendar" body="See what's coming up here, avoid double-booking, and send the assistant to a meeting in one click." action={<ButtonLink href="/calendar" variant="primary">Connect a calendar</ButtonLink>} />
+        <EmptyState icon={<CalendarDays className="h-5 w-5" />} title="Connect your calendar" body="See what's coming up here, avoid double-booking, and send the assistant to a meeting in one click." action={<ButtonLink href="/dashboard/calendar" variant="primary">Connect a calendar</ButtonLink>} />
       ) : shown.length === 0 ? (
-        <EmptyState icon={<CalendarDays className="h-5 w-5" />} title="Nothing in the next week" body="Meetings from your calendars and bookings will show up here." action={<ButtonLink href="/booking" variant="secondary">Set up booking</ButtonLink>} />
+        <EmptyState icon={<CalendarDays className="h-5 w-5" />} title="Nothing in the next week" body="Meetings from your calendars and bookings will show up here." action={<ButtonLink href="/dashboard/booking" variant="secondary">Set up booking</ButtonLink>} />
       ) : (
         <ul aria-labelledby="upcoming" className="divide-y divide-border">
           {shown.map((e, i) => {
@@ -75,7 +75,7 @@ export function UpcomingMeetings({ timeZone }: { timeZone: string }) {
             const rec = recordingOf(e);
             return (
               <li key={e.id} className={`flex items-stretch ${i === 0 ? "bg-accent/5" : ""}`}>
-                <Link href="/calendar" className="flex min-w-0 flex-1 items-center gap-4 px-5 py-3 transition-colors hover:bg-surface">
+                <Link href="/dashboard/calendar" className="flex min-w-0 flex-1 items-center gap-4 px-5 py-3 transition-colors hover:bg-surface">
                   <span className="w-20 shrink-0 text-xs">
                     <span className="block font-medium text-foreground">{w.day}</span>
                     <span className="block tabular-nums text-muted">{w.time}</span>

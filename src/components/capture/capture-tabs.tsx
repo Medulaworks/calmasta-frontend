@@ -1,8 +1,8 @@
 import Link from "next/link";
 
 const TABS = [
-  { id: "voice", href: "/voice", label: "Voice Inbox" },
-  { id: "meeting", href: "/capture", label: "Meeting Bot" },
+  { id: "voice", href: "/dashboard/voice", label: "Voice Inbox" },
+  { id: "meeting", href: "/dashboard/capture", label: "Meeting Bot" },
 ] as const;
 
 /** The two ways to capture a conversation. A link bar, not client state, so each tab is its own shareable page. */
