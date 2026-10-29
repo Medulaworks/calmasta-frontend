@@ -122,9 +122,9 @@ export interface CaptureListItem {
   createdAt: string;
 }
 
-export const listCaptures=async(limit=25,kind?:"meetings"|"recordings")=>{
+export const listCaptures=async(limit=25,kind?:"meetings"|"recordings",signal?:AbortSignal)=>{
  const p=new URLSearchParams({limit:String(limit)});if(kind)p.set("type",kind==="meetings"?"meeting":"recording");
- const page=await api<{results:Array<{id:string;source:string;title:string;state:string;failureReason:string|null;createdAt:string}>}>(`/api/library/search?${p}`);
+ const page=await api<{results:Array<{id:string;source:string;title:string;state:string;failureReason:string|null;createdAt:string}>}>(`/api/library/search?${p}`,{signal});
  return page.results.map(c=>({...c,source:c.source==="meeting"?"meeting_url":"audio_upload",status:c.state,platform:null}));
 };
 const meetingKeys=new Map<string,string>(),retryKeys=new Map<string,string>();
