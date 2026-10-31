@@ -55,7 +55,7 @@ function ResultRow({ r, q }: { r: LibraryResult; q: string }) {
           <span className="block truncate text-xs text-muted">{KIND_LABEL[r.kind]} · {timeAgo(r.at)}</span>
           {r.snippet && <span className="mt-1 block text-sm text-muted"><Highlight text={r.snippet} query={q} /></span>}
         </span>
-        <Badge tone={st.tone} active={st.active}>{st.label}</Badge>
+        <Badge tone={st.tone} active={st.active} indicator={st.indicator}>{st.label}</Badge>
       </Link>
     </li>
   );
@@ -214,7 +214,7 @@ export function LibraryList() {
                         <span className="block truncate text-sm font-medium">{d.title}</span>
                         <span className="block truncate text-xs text-muted">{templateLabel(d.template)} · {timeAgo(d.updatedAt)}</span>
                       </span>
-                      <Badge tone={st.tone} active={st.active}>{st.label}</Badge>
+                      <Badge tone={st.tone} active={st.active} indicator={st.indicator}>{st.label}</Badge>
                     </Link>
                   </li>
                 );
@@ -238,7 +238,7 @@ export function LibraryList() {
                       <span className="block truncate text-sm font-medium">{c.title}</span>
                       <span className="block truncate text-xs text-muted">{c.source === "meeting_url" ? "Meeting" : c.source === "voice_recording" ? "Recorded in browser" : "Upload"} · {timeAgo(c.createdAt)}</span>
                     </span>
-                    <Badge tone={st.tone} active={st.active}>{st.label}</Badge>
+                    <Badge tone={st.tone} active={st.active} indicator={st.indicator}>{st.label}</Badge>
                   </Link>
                 </li>
               );

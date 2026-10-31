@@ -219,7 +219,7 @@ export function CaptureDetail({
               {titleOf(cap)}
             </h1>
             <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted">
-              <Badge tone={status.tone} active={status.active}>
+              <Badge tone={status.tone} active={status.active} indicator={status.indicator}>
                 {status.label}
               </Badge>
               <span>
@@ -557,7 +557,7 @@ export function CaptureDetail({
                               ?.label ||
                             "Document"}
                         </span>
-                        <Badge tone={ds.tone} active={ds.active}>
+                        <Badge tone={ds.tone} active={ds.active} indicator={ds.indicator}>
                           {ds.label}
                         </Badge>
                       </Link>

@@ -488,7 +488,7 @@ function RecentRecordings() {
                       {c.source === "meeting_url" ? "Meeting" : c.source === "voice_recording" ? "Recorded in browser" : "Upload"} · {timeAgo(c.createdAt)}
                     </span>
                   </span>
-                  <Badge tone={st.tone} active={st.active}>
+                  <Badge tone={st.tone} active={st.active} indicator={st.indicator}>
                     {st.label}
                   </Badge>
                 </Link>

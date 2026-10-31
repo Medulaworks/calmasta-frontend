@@ -1,12 +1,15 @@
 // One place that turns internal states into the words and colours users see.
 // Never show a success state until the work is really done (blueprint §12.3).
 
+import type { Indicator } from "@/components/ui/status-indicator";
+
 export type Tone = "neutral" | "info" | "success" | "warning" | "danger";
 export interface StatusView {
   label: string;
   tone: Tone;
   /** True while work is still happening, so lists can show activity and keep refreshing. */
   active: boolean;
+  indicator?: Indicator;
 }
 
 const MEETING_ACTIVE = new Set(["requested", "queued", "scheduled", "joining", "waiting_for_admission", "recording", "processing"]);
@@ -32,7 +35,7 @@ const RECORDING_LABELS: Record<string, string> = {
   recorded: "Waiting for transcription",
 };
 
-export function captureStatus(c: { source: string; state: string; status: string }): StatusView {
+function baseCaptureStatus(c: { source: string; state: string; status: string }): StatusView {
   if(c.state==="reconciliation_required")return {label:"Needs attention",tone:"warning",active:false};
   if(c.state==="transcription_failed")return {label:"Transcription failed",tone:"danger",active:false};
   if(c.state==="host_denied")return {label:"Host declined",tone:"warning",active:false};
@@ -53,6 +56,16 @@ export function captureStatus(c: { source: string; state: string; status: string
   if (c.state in RECORDING_LABELS) return { label: RECORDING_LABELS[c.state], tone: "info", active: true };
   if (c.state === "ready_to_review" || c.state === "completed") return { label: "Ready", tone: "success", active: false };
   return { label: c.state, tone: "neutral", active: false };
+}
+
+/** Add visual marks only after existing failure/attention/status precedence has been resolved. */
+export function captureStatus(c: { source: string; state: string; status: string }): StatusView {
+  const view = baseCaptureStatus(c);
+  if (!view.active) return view.tone === "success" ? { ...view, indicator: "check" } : view;
+  const indicator: Indicator = view.label === "Recording" ? "recording"
+    : view.label === "Waiting to be let in" ? "dots"
+    : ["Requested", "Queued", "Scheduled"].includes(view.label) ? "pulse" : "spinner";
+  return { ...view, indicator };
 }
 
 export function documentStatus(d: { status: string; failureReason?: string | null; editedByUser?: boolean }): StatusView {

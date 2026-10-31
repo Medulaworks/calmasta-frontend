@@ -515,7 +515,7 @@ function MeetingRow({
           <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
             {e.source === "booking" && <Badge tone="info">Booking</Badge>}
             {st && rec !== "not_recorded" && (
-              <Badge tone={st.tone} active={st.active}>
+              <Badge tone={st.tone} active={st.active} indicator={st.indicator}>
                 {rec === "recorded" ? "Recorded" : st.label}
               </Badge>
             )}

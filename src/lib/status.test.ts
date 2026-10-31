@@ -68,3 +68,15 @@ describe("formatting", () => {
     expect([2, 8, 14, 21].map(greeting)).toEqual(["Working late", "Good morning", "Good afternoon", "Good evening"]);
   });
 });
+
+it("adds stage indicators without overriding attention/failure outcomes", () => {
+  const meeting = (state: string, status: string) => ({ source: "meeting_url", state, status });
+  expect(captureStatus(meeting("processing_audio", "recording"))).toMatchObject({ label: "Recording", indicator: "recording", active: true });
+  expect(captureStatus(meeting("processing_audio", "waiting_for_admission"))).toMatchObject({ indicator: "dots" });
+  expect(captureStatus(meeting("processing_audio", "joining"))).toMatchObject({ indicator: "spinner" });
+  expect(captureStatus(meeting("completed", "completed"))).toMatchObject({ indicator: "check", active: false });
+  for (const state of ["reconciliation_required", "failed", "transcription_failed", "cancelled"]) {
+    const view = captureStatus(meeting(state, "recording"));
+    expect(view.active).toBe(false);expect(view.indicator).toBeUndefined();
+  }
+});

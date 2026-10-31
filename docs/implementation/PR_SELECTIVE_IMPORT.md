@@ -6,7 +6,7 @@ Source reviewed: feature/local-backend-connection at 3f57939. Staging remains au
 | --- | --- | --- | --- |
 | Auth codes and compatibility fixes | Adapted onto staging; local checkpoint49d7482 | IMPLEMENTED | PASSED (focused fixtures + user-reported local acceptance; hosted pending) |
 | Shared skeletons/shimmer | Import reusable skeletons and exact loading-class changes; retain screen/query logic | IMPLEMENTED | PARTIALLY_TESTED (types/lint/source; visual acceptance pending) |
-| Status indicators | Adapt onto existing status precedence | IN_PROGRESS | NOT_TESTED |
+| Status indicators | Adapted onto existing status precedence | IMPLEMENTED | PARTIALLY_TESTED (17 status tests; visual pending) |
 | Meeting notifications | Adapt to staging query results and real lifecycle outcomes | NOT_STARTED | NOT_TESTED |
 | MyJooba→Jooba rebrand | Separate product/design decision; excluded | DEFERRED | NOT_TESTED |
 | Auth layout/showcase/illustration redesign | Separate design decision; excluded | DEFERRED | NOT_TESTED |

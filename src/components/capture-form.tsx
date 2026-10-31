@@ -320,7 +320,7 @@ export function CaptureForm() {
                         {c.title ?? "Meeting"}
                       </span>
                       <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-                        <Badge tone={st.tone} active={st.active}>
+                        <Badge tone={st.tone} active={st.active} indicator={st.indicator}>
                           {st.label}
                         </Badge>
                         <span className="inline-flex items-center gap-1.5">

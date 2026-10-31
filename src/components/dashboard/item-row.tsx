@@ -31,7 +31,7 @@ export function ItemRow({ item, showReason = false }: { item: DashboardItem; sho
             {showReason && item.failureReason ? item.failureReason : `${item.kind === "meeting" && item.platform && PLATFORM_LABELS[item.platform] ? PLATFORM_LABELS[item.platform] : KIND_LABEL[item.kind]} · ${timeAgo(item.at)}`}
           </span>
         </span>
-        <Badge tone={status.tone} active={status.active}>
+        <Badge tone={status.tone} active={status.active} indicator={status.indicator}>
           {status.label}
         </Badge>
       </Link>
