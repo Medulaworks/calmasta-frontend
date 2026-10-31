@@ -248,3 +248,8 @@
 - **Proof (command + result + revision):**7c87052 dirty; targeted lint/diff and52-route production build/TypeScript passed, including /privacy-policy.
 - **What is NOT done:** Final policy/manual page review, browser automation, backend edits, commit/push/deploy.
 - **Next action (task ID + files):** FE-A02 review new public page; approved policy copy replaces placeholders when ready.
+
+- **What was done (files + behavior):**2026-10-31 FE-A02 privacy draft expanded with user business/contact; pnpm lockfile repaired for missing TanStack dependencies; shared commit aff752b appeared during checks, not agent-created.
+- **Proof (command + result + revision):**aff752b; isolated pnpm10 frozen install463packages, frozen lockfile validation, privacy lint/TypeScript/diff and52-route production build passed; see implementation evidence.
+- **What is NOT done:**Final policy approval, Vercel deployment/hosted acceptance, backend/auth changes, agent commit/push/deploy.
+- **Next action (task ID + files):**FE-A02 release owner syncs pnpm-lock.yaml to deploy/main and redeploys; confirm policy jurisdiction/retention/providers.

@@ -8,7 +8,7 @@ Vercel's reported frozen installation failed because three declared TanStack dep
 
 `corepack pnpm@10 install --lockfile-only --frozen-lockfile --offline --ignore-scripts`: exit0, pnpm10.34.9. This preserves frozen-lockfile enforcement rather than disabling it. Initial pnpm11 lockfile-only/offline invocation did not update the wanted lockfile; the existing complete node_modules/.pnpm/lock.yaml resolution was used and validated with pnpm10.
 
-A separate temporary project at /private/tmp/calmasta-vercel-lock-check-20261031 received only package.json, pnpm-lock.yaml and pnpm-workspace.yaml. Its offline full install accepted the lockfile but could not finish because tarballs were not cached. The online frozen install is being checked separately; project node_modules and production/deployment services are not involved. Install scripts are disabled for this isolated dependency-resolution check.
+A separate temporary project at /private/tmp/calmasta-vercel-lock-check-20261031 received only package.json, pnpm-lock.yaml and pnpm-workspace.yaml. Its offline full install accepted the lockfile but could not finish because tarballs were not cached. `corepack pnpm@10.34.9 install --frozen-lockfile --ignore-scripts` in that isolated directory completed exit0:463packages installed,55seconds, pnpm10.34.9; project node_modules and production/deployment services are not involved. Install scripts are disabled for this isolated dependency-resolution check.
 
 ## Privacy page checks
 
