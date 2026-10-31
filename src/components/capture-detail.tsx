@@ -1,4 +1,6 @@
 "use client";
+import { ToastStack, useToasts } from "@/components/ui/toast";
+import { useMeetingToasts } from "@/hooks/use-meeting-toasts";
 import { SkeletonDetail } from "@/components/ui/skeleton";
 
 import {
@@ -12,7 +14,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useProfile } from "@/components/shell/profile-context";
 import { Badge } from "@/components/ui/badge";
@@ -97,6 +99,10 @@ export function CaptureDetail({
       return false;
     },
   });
+
+  const toasts = useToasts(id);
+  const watched = useMemo(() => cap ? [{ id: cap.id, title: titleOf(cap), source: cap.source, state: cap.state, status: cap.status }] : null, [cap]);
+  useMeetingToasts(watched, toasts.push, id);
 
   const errorMessage = queryError
     ? queryError instanceof Error
@@ -201,6 +207,7 @@ export function CaptureDetail({
 
   return (
     <div className="space-y-6">
+      <ToastStack items={toasts.items} onDismiss={toasts.dismiss} />
       <Link
         href="/dashboard/library?tab=recordings"
         className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground">

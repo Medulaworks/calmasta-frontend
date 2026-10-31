@@ -1,4 +1,6 @@
 "use client";
+import { ToastStack, useToasts } from "@/components/ui/toast";
+import { useMeetingToasts } from "@/hooks/use-meeting-toasts";
 import { SkeletonRows } from "@/components/ui/skeleton";
 
 import { useQuery } from "@tanstack/react-query";
@@ -53,6 +55,8 @@ export function CaptureForm() {
     },
   });
   const items = captures.data ?? null;
+  const toasts = useToasts();
+  useMeetingToasts(items, toasts.push);
   const listError = captures.isError ? (captures.error instanceof Error ? captures.error.message : "Could not load your captures.") : null;
   const filtered = items ? items.filter((c) => !q.trim() || (c.title ?? "").toLowerCase().includes(q.trim().toLowerCase())) : null;
 
@@ -103,6 +107,7 @@ export function CaptureForm() {
 
   return (
     <div className="grid items-start gap-6 lg:grid-cols-5">
+      <ToastStack items={toasts.items} onDismiss={toasts.dismiss} />
       <div className="space-y-4 lg:col-span-2">
         <Card>
           <CardHeader title="Capture a meeting" />

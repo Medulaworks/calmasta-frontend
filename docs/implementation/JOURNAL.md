@@ -233,3 +233,8 @@
 - **Proof (command + result + revision):**9c72d1f dirty;17status tests, TypeScript, focused status lint/diff passed; existing screen lint issues unchanged.
 - **What is NOT done:** Notifications/live visual proof, rebrand/redesign, merge/push/deploy.
 - **Next action (task ID + files):** FE-C02 lib/meeting-phase.ts/hooks/use-meeting-toasts.ts/ui/toast.tsx notifications group.
+
+- **What was done (files + behavior):** 2026-10-31 FE-C02/FE-L02 adapted meeting toasts onto current queries; canonical outcomes, stable history and capture scope retained; design/rebrand separately deferred in PR_SELECTIVE_IMPORT.
+- **Proof (command + result + revision):**78f02a1 dirty;141focused tests, TypeScript, new-file lint/diff and51-route build passed; review no blockers; existing baseline1lint error/7warnings unchanged. See implementation evidence.
+- **What is NOT done:** Browser/live/hosted acceptance, original PR merge, rebrand/redesign, backend edits, push/deploy.
+- **Next action (task ID + files):** FE-C03/FE-A04 manual visual/live checks within existing authorization; separate design review only if selected.
