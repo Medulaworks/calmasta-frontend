@@ -362,7 +362,7 @@ export function PlanView() {
         <PlanCard
           name="Free"
           current={current === "free"}
-          blurb="For trying MyJooba and for occasional recordings."
+          blurb="For trying Jooba and for occasional recordings."
           price={formatPrice(currency, 0)}
           priceNote="Free, no card needed"
           action={

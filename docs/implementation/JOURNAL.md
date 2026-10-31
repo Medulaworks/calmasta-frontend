@@ -238,3 +238,13 @@
 - **Proof (command + result + revision):**78f02a1 dirty;141focused tests, TypeScript, new-file lint/diff and51-route build passed; review no blockers; existing baseline1lint error/7warnings unchanged. See implementation evidence.
 - **What is NOT done:** Browser/live/hosted acceptance, original PR merge, rebrand/redesign, backend edits, push/deploy.
 - **Next action (task ID + files):** FE-C03/FE-A04 manual visual/live checks within existing authorization; separate design review only if selected.
+
+- **What was done (files + behavior):** 2026-10-31 FE-A02 user-approved Moses auth layout/showcase and Jooba display rebrand adapted onto existing forms; compatibility identifiers/logic preserved.
+- **Proof (command + result + revision):**7c87052 dirty;141focused tests, TypeScript, targeted lint/diff,51-route build and auth callback-body comparison passed; review no logic blockers. See auth-design evidence.
+- **What is NOT done:** Manual visual/hosted acceptance, browser automation, backend/env edits, live calls, commit/push/deploy.
+- **Next action (task ID + files):** FE-A02 manually review auth pages/legacy links/focus/responsive layout before design checkpoint; FE-A04 hosted work pending.
+
+- **What was done (files + behavior):** 2026-10-31 FE-A02 public /privacy-policy draft placeholder added with Jooba styling; prior design edits preserved.
+- **Proof (command + result + revision):**7c87052 dirty; targeted lint/diff and52-route production build/TypeScript passed, including /privacy-policy.
+- **What is NOT done:** Final policy/manual page review, browser automation, backend edits, commit/push/deploy.
+- **Next action (task ID + files):** FE-A02 review new public page; approved policy copy replaces placeholders when ready.

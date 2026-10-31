@@ -5,22 +5,22 @@ export const MEETING_STEPS = [
   {
     status: "requested",
     label: "Requested",
-    text: "Your request is in. The MyJooba Assistant has not joined yet.",
+    text: "Your request is in. The recording assistant has not joined yet.",
   },
   {
     status: "joining",
     label: "Joining",
-    text: "The MyJooba Assistant is joining the meeting.",
+    text: "The recording assistant is joining the meeting.",
   },
   {
     status: "waiting_for_admission",
     label: "Waiting to be let in",
-    text: "The host needs to admit the MyJooba Assistant. Nothing is being recorded yet.",
+    text: "The host needs to admit the recording assistant. Nothing is being recorded yet.",
   },
   {
     status: "recording",
     label: "Recording",
-    text: "The MyJooba Assistant is in the meeting and recording.",
+    text: "The recording assistant is in the meeting and recording.",
   },
   {
     status: "processing",
@@ -33,11 +33,11 @@ export const MEETING_OUTCOMES: Record<string, { title: string; text: string }> =
   {
     denied: {
       title: "The host declined",
-      text: "The host did not let the MyJooba Assistant in, so nothing was recorded. If that was a mistake, ask the host to admit “MyJooba Assistant” and send it again. It will not try again on its own.",
+      text: "The host did not let the recording assistant in, so nothing was recorded. If that was a mistake, ask the host to admit the recording assistant and send it again. It will not try again on its own.",
     },
     timed_out: {
       title: "Not let in in time",
-      text: "The host did not admit the MyJooba Assistant before the wait ended, so nothing was recorded. Ask the host to watch for it, then send it again. It will not try again on its own.",
+      text: "The host did not admit the recording assistant before the wait ended, so nothing was recorded. Ask the host to watch for it, then send it again. It will not try again on its own.",
     },
     failed: {
       title: "The capture stopped",

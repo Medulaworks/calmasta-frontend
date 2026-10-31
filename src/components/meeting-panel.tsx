@@ -25,7 +25,7 @@ const label = (status: string) =>
 const time = (iso: string) =>
   new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-/** What the MyJooba Assistant is doing in this meeting, in plain words. Waiting is never shown as recording. */
+/** What the recording assistant is doing in this meeting, in plain words. Waiting is never shown as recording. */
 export function MeetingPanel({
   cap,
   devTools,
@@ -96,7 +96,7 @@ export function MeetingPanel({
               <Video className="h-4 w-4" />
             </span>
             <div>
-              <p className="font-medium">MyJooba Assistant</p>
+              <p className="font-medium">Recording assistant</p>
               <p className="text-muted">
                 Joins as a visible participant, named so everyone can see it. It
                 cannot get in unless the host lets it.
@@ -192,7 +192,7 @@ export function MeetingPanel({
                 />
                 <span className="text-muted">
                   I have the right to record this meeting and will tell its
-                  participants. The MyJooba Assistant may need the host to admit
+                  participants. The recording assistant may need the host to admit
                   it again.
                 </span>
               </label>

@@ -19,7 +19,7 @@ function googleCalendarLink(b: GuestBooking) {
     action: "TEMPLATE",
     text: b.hostName ? `${b.meetingName} with ${b.hostName}` : b.meetingName,
     dates: `${t(b.startAt)}/${t(b.endAt)}`,
-    details: "Booked through MyJooba.",
+    details: "Booked through Jooba.",
   });
   if (b.locationText) p.set("location", b.locationText);
   return `https://calendar.google.com/calendar/render?${p}`;

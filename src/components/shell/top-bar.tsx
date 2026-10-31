@@ -562,7 +562,7 @@ export function TopBar({
     <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-topbar px-4 text-topbar-fg sm:px-6 md:px-8">
       <Link
         href="/dashboard"
-        aria-label="MyJooba home"
+        aria-label="Jooba home"
         className="text-lg text-topbar-fg md:hidden">
         <Brand size={28} />
       </Link>

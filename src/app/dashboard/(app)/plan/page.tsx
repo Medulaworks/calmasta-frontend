@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/ui/page-header";
 import { PlanView } from "@/components/plan/plan-view";
 
-export const metadata = { title: "Plan and usage · MyJooba" };
+export const metadata = { title: "Plan and usage · Jooba" };
 
 export default function PlanPage() {
   return (

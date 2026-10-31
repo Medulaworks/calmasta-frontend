@@ -264,9 +264,9 @@ export function ManageBooking({ token }: { token: string }) {
         </section>
       )}
       <p className="text-xs text-muted">
-        Booked through MyJooba.{" "}
+        Booked through Jooba.{" "}
         <Link href="/" className="underline">
-          What is MyJooba?
+          What is Jooba?
         </Link>
       </p>
     </div>

@@ -203,7 +203,7 @@ export function Onboarding() {
       <main className="flex flex-col px-6 py-8 sm:px-12 md:px-16">
         <header className="flex items-center gap-4">
           <Link href="/" className="text-lg font-semibold tracking-tight">
-            MyJooba
+            Jooba
           </Link>
           <ol
             className="flex items-center gap-1.5"
@@ -377,7 +377,7 @@ export function Onboarding() {
                     Start with your first conversation
                   </h1>
                   <p className="mt-3 text-muted">
-                    The quickest way to see MyJooba work is to give it something
+                    The quickest way to see Jooba work is to give it something
                     to write about.
                   </p>
                   <ul className="mt-6 space-y-3">

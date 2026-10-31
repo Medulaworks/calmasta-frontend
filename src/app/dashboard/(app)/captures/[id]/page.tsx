@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { LibraryRecording } from "@/components/library-recording";
 
-export const metadata = { title: "Recording · MyJooba" };
+export const metadata = { title: "Recording · Jooba" };
 
 async function Detail(props: PageProps<"/dashboard/captures/[id]">) {
   const { id } = await props.params;

@@ -134,7 +134,7 @@ function HomeLink() {
   return (
     <Link
       href="/dashboard"
-      aria-label="MyJooba home"
+      aria-label="Jooba home"
       className="text-lg text-sidebar-fg">
       <Brand size={32} tile="paper" labelClassName="sc:md:hidden" />
     </Link>

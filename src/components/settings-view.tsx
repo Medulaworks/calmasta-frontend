@@ -15,7 +15,7 @@ import { formatMinutes } from "@/lib/status";
 
 const PRIVACY = [
   "Recordings, transcripts and documents are private to you.",
-  "Meeting assistants are always visible and join as “MyJooba Assistant”.",
+  "Meeting assistants join as visible participants using the configured assistant name.",
   "You confirm you have the right to record every meeting. Nothing records automatically.",
   "Deleting a recording deletes its audio and transcript. Documents you made from it are kept.",
 ];

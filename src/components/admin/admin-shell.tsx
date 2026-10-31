@@ -101,7 +101,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <Link
               href="/dashboard"
               className="mt-0 inline-flex items-center gap-1.5 text-xs text-muted hover:text-foreground md:mt-2">
-              <ArrowLeft aria-hidden className="h-3.5 w-3.5" /> Back to MyJooba
+              <ArrowLeft aria-hidden className="h-3.5 w-3.5" /> Back to Jooba
             </Link>
           </div>
           <nav
@@ -166,7 +166,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               <Link
                 href="/dashboard"
                 className="inline-block font-medium text-accent underline underline-offset-2">
-                Back to MyJooba
+                Back to Jooba
               </Link>
             </div>
           )}

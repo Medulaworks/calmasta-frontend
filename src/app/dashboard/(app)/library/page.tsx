@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { TranscriptLibrary } from "@/components/transcript-library";
 import { PageHeader } from "@/components/ui/page-header";
 
-export const metadata = { title: "Library · MyJooba" };
+export const metadata = { title: "Library · Jooba" };
 
 export default function LibraryPage() {
   return (

@@ -386,7 +386,7 @@ export function AvailabilityTab() {
               {calendars.length === 0 ? (
                 <p className="text-sm text-muted">
                   No calendar is connected, so only bookings made through
-                  MyJooba are checked for clashes.{" "}
+                  Jooba are checked for clashes.{" "}
                   <Link
                     href="/dashboard/calendar"
                     className="font-medium text-accent hover:underline">
@@ -435,7 +435,7 @@ export function AvailabilityTab() {
                   </div>
                   <Field
                     label="Add new bookings to"
-                    hint="Confirmed bookings are written here. Leave empty to keep them only in MyJooba.">
+                    hint="Confirmed bookings are written here. Leave empty to keep them only in Jooba.">
                     <select
                       value={form.destinationCalendarId ?? ""}
                       onChange={(e) =>
@@ -445,7 +445,7 @@ export function AvailabilityTab() {
                         })
                       }
                       className={field}>
-                      <option value="">Nowhere (MyJooba only)</option>
+                      <option value="">Nowhere (Jooba only)</option>
                       {calendars.map((c: { id: string; name: string; account: string }) => (
                         <option key={c.id} value={c.id}>
                           {c.name} · {c.account}

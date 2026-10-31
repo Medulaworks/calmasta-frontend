@@ -246,10 +246,10 @@ export function MeetingTypesTab() {
                 />
                 <span>
                   <span className="font-medium">
-                    Send the MyJooba Assistant to these meetings
+                    Send the recording assistant to these meetings
                   </span>
                   <span className="block text-muted">
-                    It joins as a visible participant named “MyJooba Assistant”
+                    It joins as a visible recording assistant
                     a couple of minutes before the start, and may need to be
                     admitted. If it can&apos;t join, the booking is unaffected.
                   </span>

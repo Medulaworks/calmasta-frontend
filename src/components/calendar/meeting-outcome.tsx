@@ -217,7 +217,7 @@ function Summary({ cap, text }: { cap: CaptureView; text: string | null }) {
   return (
     <div className="space-y-2">
       <p className="text-muted">
-        No summary yet. MyJooba can write one from the transcript, which you can
+        No summary yet. Jooba can write one from the transcript, which you can
         edit freely afterwards.
       </p>
       <Button size="sm" onClick={() => void write()} disabled={busy}>

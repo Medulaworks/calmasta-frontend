@@ -216,7 +216,7 @@ export function BookingsTab() {
                     )}
                   {b.captureId && (
                     <li className="flex items-center gap-1.5">
-                      <Video aria-hidden className="h-3.5 w-3.5" /> The MyJooba
+                      <Video aria-hidden className="h-3.5 w-3.5" /> The Jooba
                       Assistant is scheduled to join.{" "}
                       <Link
                         href={`/dashboard/captures/${b.captureId}`}

@@ -228,7 +228,7 @@ export function CaptureForm() {
               {busy ? "Sending…" : "Send assistant"}
             </Button>
             <p className="text-xs text-muted">
-              MyJooba never bypasses waiting rooms or host controls.
+              Jooba never bypasses waiting rooms or host controls.
             </p>
             {(!policy || !policy.meetingEnabled) && (
               <p role="status" className="text-xs text-muted">

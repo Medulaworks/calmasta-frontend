@@ -52,7 +52,7 @@ function Item({
 
 /**
  * Action items found in the conversation. They are suggestions: a person confirms, dismisses or finishes each one.
- * MyJooba does not guess an owner or a date, and nothing here is sent to anyone.
+ * Jooba does not guess an owner or a date, and nothing here is sent to anyone.
  */
 export function ActionsPanel({
   cap,
@@ -147,7 +147,7 @@ export function ActionsPanel({
                   ? "Available once the transcript is ready."
                   : state === "ready"
                     ? "Nothing in this conversation sounded like something someone agreed to do."
-                    : "MyJooba can look through the transcript for things people said they would do. They are only suggestions: you decide what to keep."
+                    : "Jooba can look through the transcript for things people said they would do. They are only suggestions: you decide what to keep."
               }
               action={
                 ready
@@ -164,7 +164,7 @@ export function ActionsPanel({
           <Card>
             <CardHeader title="To review" action={finder("Look again")} />
             <p className="border-b border-border px-5 py-3 text-xs text-muted">
-              Suggestions from the transcript, as it was said. MyJooba does not
+              Suggestions from the transcript, as it was said. Jooba does not
               guess who owns an item or when it is due, and nothing is sent to
               anyone.
             </p>

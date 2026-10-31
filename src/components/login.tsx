@@ -8,6 +8,7 @@ import { Eye, EyeOff, LoaderCircle } from "lucide-react";
 import { authErrorMessage } from "@/lib/auth-errors";
 import { AuthCodeForm } from "@/components/auth-code-form";
 import { codeSignupPayload } from "@/lib/auth-code-flow";
+import { AUTH_FIELD, AUTH_HEADING, AUTH_DESCRIPTION, AUTH_BUTTON } from "@/components/auth-styles";
 import { AuthLayout } from "@/components/auth-layout";
 import { buttonClass } from "@/components/ui/button";
 
@@ -168,12 +169,12 @@ export function Login() {
 
   return (
     <AuthLayout>
-          <h1 className="text-3xl font-semibold tracking-tight">
-            {mode === "signin" ? "Welcome back" : "Create an account"}
+          <h1 className={AUTH_HEADING}>
+            {mode === "signin" ? <>Turn every conversation into <span className="text-accent">finished work</span>.</> : <>Start with your <span className="text-accent">next conversation</span>.</>}
           </h1>
-          <p className="mt-2 text-sm text-muted">
+          <p className={AUTH_DESCRIPTION}>
             {mode === "signin"
-              ? "Sign in to turn your conversations into useful work."
+              ? "Meetings and voice notes become transcripts, briefs and follow-ups. Pick up where you left off."
               : "Start capturing, transcribing, and organizing your conversations."}
           </p>
 
@@ -212,11 +213,11 @@ export function Login() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+          <form onSubmit={handleSubmit} className="mt-[clamp(1rem,3.4vh,2rem)] space-y-[clamp(0.75rem,2vh,1.25rem)]">
             {mode === "signup" && (
               <div>
                 <label
-                  className="block text-xs font-medium text-muted mb-1"
+                  className="mb-1.5 block text-sm font-medium text-foreground"
                   htmlFor="name">
                   Full Name
                 </label>
@@ -227,14 +228,14 @@ export function Login() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Jane Doe"
-                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                  className={AUTH_FIELD}
                 />
               </div>
             )}
 
             {<div>
               <label
-                className="block text-xs font-medium text-muted mb-1"
+                className="mb-1.5 block text-sm font-medium text-foreground"
                 htmlFor="email">
                 Email Address
               </label>
@@ -245,15 +246,15 @@ export function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                className={AUTH_FIELD}
               />
             </div>}
 
             {(
               <div>
-                <div className="flex items-center justify-between mb-1">
+                <div className="mb-1.5 flex items-center justify-between">
                   <label
-                    className="block text-xs font-medium text-muted"
+                    className="block text-sm font-medium text-foreground"
                     htmlFor="password">
                     Password
                   </label>
@@ -279,7 +280,7 @@ export function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="At least 8 characters"
-                  className="w-full rounded-lg border border-border bg-surface py-2 pl-3 pr-11 text-sm focus:border-primary focus:outline-none"
+                  className={`${AUTH_FIELD} pr-11`}
                 />
                 <button
                   type="button"
@@ -297,7 +298,7 @@ export function Login() {
             <button
               type="submit"
               disabled={submitting || checking || connectingGoogle || connectingMicrosoft}
-              className={`${buttonClass("primary", "w-full", "lg")}${
+              className={`${buttonClass("primary", AUTH_BUTTON, "lg")}${
                 submitting || checking || connectingGoogle || connectingMicrosoft
                   ? " pointer-events-none opacity-60"
                   : ""
@@ -336,7 +337,7 @@ export function Login() {
                   )
                     setConnectingGoogle(true);
                 }}
-                className={`${buttonClass("secondary", "w-full", "lg")}${
+                className={`${buttonClass("secondary", AUTH_BUTTON, "lg")}${
                   checking || submitting || connectingGoogle
                     ? " pointer-events-none opacity-60"
                     : ""
@@ -379,7 +380,7 @@ export function Login() {
                     setConnectingMicrosoft(false);
                   }
                 }}
-                className={`${buttonClass("secondary", "w-full", "lg")}${checking || submitting || connectingGoogle || connectingMicrosoft ? " pointer-events-none opacity-60" : ""}`}>
+                className={`${buttonClass("secondary", AUTH_BUTTON, "lg")}${checking || submitting || connectingGoogle || connectingMicrosoft ? " pointer-events-none opacity-60" : ""}`}>
                 {connectingMicrosoft ? (
                   <LoaderCircle aria-hidden="true" className="size-4.5 animate-spin" />
                 ) : (
@@ -395,7 +396,7 @@ export function Login() {
             </div>
           </div>
 
-          <div className="mt-6 text-center text-xs text-muted">
+          <div className="mt-[clamp(0.75rem,2.6vh,1.5rem)] text-center text-sm text-muted">
             {mode === "signin" ? (
               <p>
                 Don&apos;t have an account?{" "}

@@ -107,7 +107,7 @@ export function ConnectionsPanel({
           <EmptyState
             icon={<CalendarDays className="h-5 w-5" />}
             title="Connect your calendar"
-            body="See your day in one place and keep people from booking over your other events. Connecting only reads your calendar: it never starts a recording, and MyJooba does not change your existing events."
+            body="See your day in one place and keep people from booking over your other events. Connecting only reads your calendar: it never starts a recording, and Jooba does not change your existing events."
             action={
               showDevConnect ? (
                 <div className="space-y-2">
@@ -188,7 +188,7 @@ export function ConnectionsPanel({
                       aria-hidden
                       className="mt-0.5 h-4 w-4 shrink-0"
                     />{" "}
-                    MyJooba lost access to this calendar. Its events aren&apos;t
+                    Jooba lost access to this calendar. Its events aren&apos;t
                     shown, and booking pages that check it are paused so nobody
                     is booked over your events. Reconnect to fix it.
                   </p>

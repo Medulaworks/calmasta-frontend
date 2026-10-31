@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { DocumentStudio } from "@/components/document-studio";
 
-export const metadata = { title: "Document · MyJooba" };
+export const metadata = { title: "Document · Jooba" };
 
 async function Studio(props: PageProps<"/dashboard/library/[id]">) {
   const { id } = await props.params;

@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/ui/page-header";
 import { ConfirmingView } from "@/components/plan/confirming-view";
 
-export const metadata = { title: "Confirming payment · MyJooba" };
+export const metadata = { title: "Confirming payment · Jooba" };
 
 export default function ConfirmingPage() {
   return (

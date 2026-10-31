@@ -15,7 +15,7 @@ const leaf = (src: string, color: string): CSSProperties => ({
 });
 
 /**
- * The MyJooba mark, drawn as two masks so each theme can re-ink the leaves (--leaf-a, --leaf-b).
+ * The Jooba mark, drawn as two masks so each theme can re-ink the leaves (--leaf-a, --leaf-b).
  * `tile="paper"` always sits it on a light tile (for dark sidebars); `"auto"` only does in dark mode, where the dark
  * leaves would otherwise vanish.
  */
@@ -56,8 +56,8 @@ export function Brand({
     <span
       className={`inline-flex items-center gap-2 font-bold tracking-tight ${className}`}>
       <BrandMark size={size} tile={tile} />
-      <span aria-label="MyJooba" className={labelClassName}>
-        MyJooba
+      <span aria-label="Jooba" className={labelClassName}>
+        Jooba
       </span>
     </span>
   );

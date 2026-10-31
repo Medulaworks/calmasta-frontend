@@ -584,7 +584,7 @@ export function DocumentStudio({ id }: { id: string }) {
           {outline.uncertain}{" "}
           {outline.uncertain === 1 ? "place is" : "places are"} marked{" "}
           <span className="font-medium">not specified</span> or to confirm.
-          MyJooba leaves a gap rather than guess an owner, date or number: fill
+          Jooba leaves a gap rather than guess an owner, date or number: fill
           them in, or check them against the conversation.
         </p>
       )}

@@ -64,7 +64,7 @@ const minutesText = (m: number) =>
 
 /**
  * Meetings: everything on your connected calendars plus your bookings, as a list you can search and filter in detail,
- * with the selected meeting's details beside it. Read-only: MyJooba shows your events but never changes them, and
+ * with the selected meeting's details beside it. Read-only: Jooba shows your events but never changes them, and
  * connecting a calendar never starts a recording.
  */
 export function CalendarView() {
@@ -407,9 +407,9 @@ export function CalendarView() {
                   body={
                     data?.connected
                       ? tab === "upcoming"
-                        ? "Your calendars have nothing in this period. Bookings made through MyJooba appear here too."
+                        ? "Your calendars have nothing in this period. Bookings made through Jooba appear here too."
                         : "Nothing happened in this period."
-                      : "Connect a calendar to see everything in one place. Bookings made through MyJooba appear here too."
+                      : "Connect a calendar to see everything in one place. Bookings made through Jooba appear here too."
                   }
                 />
               )}

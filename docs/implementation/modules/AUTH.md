@@ -214,3 +214,17 @@ Core auth/profile/onboarding APIs exist; next work is frontend bootstrap/contrac
 - **Proof (command + result + revision):** Frontend200c70e dirty; focused10file auth/session75tests passed, TypeScript/targeted lint/diff checks passed. Local manual acceptance user-reported; no new hosted/provider proof. Prior Turbopack build remains blocked by worker port permission.
 - **What is NOT done:** Hosted deployment/acceptance and remote push; FE-A04 remains partial. User authorized local commits and selective presentation imports, not original PR merge or deployment.
 - **Next action (task ID + files):** FE-C02/FE-L02 — port skeleton/status/meeting notifications from feature3f57939 onto current staging consumers in separate commits, retaining query/capture controls; keep rebrand/auth redesign separate.
+
+## 2026-10-31 — separately approved auth design and Jooba rebrand
+
+- **What was done (files + behavior):** FE-A02 presentation IMPLEMENTED: imported auth-layout/showcase/stage from feature3f57939, showcase CSS and shared auth-styles; applied styling to current login/code/legacy-link forms and visible Jooba copy/metadata across app/components. Kept visible native code input/manual submit, reduced-motion particle hiding and generic/policy-derived operational assistant names. Storage/event/API/session identifiers and existing leaf asset paths preserved; PR_SELECTIVE_IMPORT.md supersedes prior design deferral.
+- **Proof (command + result + revision):**7c87052 + uncommitted design patch; exact commands in evidence/2026-10-31-auth-design-import.md:141focused tests, TypeScript, targeted design lint/diff and51-route next build passed. AST comparison: auth function/callback bodies unchanged excluding JSX; protected server/auth-controller/query/mutation/storage modules unchanged. Read-only review found no logic blocker; minor visual/editing/reduced-motion findings addressed.
+- **What is NOT done:** Manual visual/responsive/focus/reduced-motion and hosted acceptance; no browser automation, backend/env edits, live email/provider calls, commit/push/deploy or original PR merge. Design verification remains PARTIALLY_TESTED.
+- **Next action (task ID + files):** FE-A02 — manually review /auth/login (signin/signup/recovery), /auth/verify-email and existing reset links at mobile/desktop sizes; confirm forms/focus and branding before a separate design checkpoint. FE-A04 hosted acceptance remains pending.
+
+## 2026-10-31 — public privacy policy placeholder
+
+- **What was done (files + behavior):** FE-A02 supporting public UI: added src/app/privacy-policy/page.tsx at /privacy-policy with current Jooba branding, responsive static sections and Back to sign in navigation. Clearly labeled Draft placeholder; no unverified privacy commitments or invented contact details. Existing auth-design changes preserved; user reports the design works locally.
+- **Proof (command + result + revision):**7c87052 + existing design/privacy working changes; node_modules/.bin/eslint src/app/privacy-policy/page.tsx --max-warnings=0 and git diff --check passed; node_modules/.bin/next build passed TypeScript and52pages/routes, including static /privacy-policy. No browser check claimed.
+- **What is NOT done:** Final privacy policy content, manual new-page review, backend changes, browser automation or commit/push/deploy.
+- **Next action (task ID + files):** FE-A02 — review /privacy-policy locally; replace placeholder sections with approved policy content in src/app/privacy-policy/page.tsx when available.
