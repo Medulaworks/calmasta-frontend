@@ -2,7 +2,8 @@
 
 import { CalendarClock, Video } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Confirm, ErrorBox } from "@/components/booking/form-bits";
 import { SlotPicker } from "@/components/booking/slot-picker";
 import { useProfile } from "@/components/shell/profile-context";
@@ -10,14 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import {
-  type HostBooking,
-  type Slot,
-  cancelBookingAsHost,
-  hostSlots,
-  listBookings,
-  rescheduleBookingAsHost,
-} from "@/lib/booking-client";
+import { type HostBooking, type Slot, hostSlots } from "@/lib/booking-client";
+import { useCancelBookingHost, useRescheduleBookingHost } from "@/lib/mutations";
+import { bookingsQuery } from "@/lib/queries";
 import { browserTimeZone, formatDateTime, formatTime } from "@/lib/tz";
 
 type Scope = "upcoming" | "past";
@@ -26,63 +22,41 @@ export function BookingsTab() {
   const profile = useProfile();
   const timeZone = profile?.timezone || browserTimeZone();
   const [scope, setScope] = useState<Scope>("upcoming");
-  const [rows, setRows] = useState<{
-    scope: Scope;
-    items: HostBooking[];
-  } | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [tick, setTick] = useState(0);
+  const bookingsQ = useQuery(bookingsQuery(scope));
+  const items = bookingsQ.data ?? null;
+  const qError = bookingsQ.error ? (bookingsQ.error as Error).message : null;
+  const [localError, setLocalError] = useState<string | null>(null);
+  const error = localError ?? qError;
   const [confirm, setConfirm] = useState<HostBooking | null>(null);
   const [moving, setMoving] = useState<HostBooking | null>(null);
   const [slot, setSlot] = useState<Slot | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    listBookings(scope).then(
-      (items) => !cancelled && setRows({ scope, items }),
-      (err) =>
-        !cancelled &&
-        setError(
-          err instanceof Error ? err.message : "Could not load bookings.",
-        ),
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [scope, tick]);
-  const items = rows && rows.scope === scope ? rows.items : null;
-  const reload = () => setTick((n) => n + 1);
+  const cancelM = useCancelBookingHost();
+  const moveM = useRescheduleBookingHost();
+  const busy = cancelM.isPending || moveM.isPending;
 
   async function cancel() {
     if (!confirm) return;
-    setBusy(true);
-    setError(null);
+    setLocalError(null);
     try {
-      await cancelBookingAsHost(confirm.id);
+      await cancelM.mutateAsync(confirm.id);
       setConfirm(null);
-      reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not cancel.");
+      setLocalError(err instanceof Error ? err.message : "Could not cancel.");
     }
-    setBusy(false);
   }
   async function move() {
     if (!moving || !slot) return;
-    setBusy(true);
-    setError(null);
+    setLocalError(null);
     try {
-      await rescheduleBookingAsHost(moving.id, slot.start);
+      await moveM.mutateAsync({ id: moving.id, start: slot.start });
       setMoving(null);
       setSlot(null);
-      reload();
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Could not move the booking.",
-      );
-      setSlot(null);
+      const msg = err instanceof Error ? err.message : "Could not move the booking.";
+      // slot_conflict -> clear selection and let picker reload on next open
+      if (msg.toLowerCase().includes("slot") || msg.toLowerCase().includes("conflict") || msg.toLowerCase().includes("taken")) setSlot(null);
+      setLocalError(msg);
     }
-    setBusy(false);
   }
   const loadSlots = useCallback(
     (from: string, days: number) => hostSlots(moving!.id, from, days),
@@ -169,7 +143,7 @@ export function BookingsTab() {
           <ul aria-hidden className="divide-y divide-border">
             {[0, 1, 2].map((i) => (
               <li key={i} className="px-5 py-4">
-                <div className="h-4 w-1/2 animate-pulse rounded bg-border" />
+                <div className="h-4 w-1/2 jb-skel rounded bg-border" />
               </li>
             ))}
           </ul>
@@ -187,7 +161,7 @@ export function BookingsTab() {
           />
         ) : (
           <ul className="divide-y divide-border">
-            {items.map((b) => (
+            {items.map((b: import("@/lib/booking-client").HostBooking) => (
               <li key={b.id} className="space-y-2 px-5 py-4 text-sm">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -242,7 +216,7 @@ export function BookingsTab() {
                     )}
                   {b.captureId && (
                     <li className="flex items-center gap-1.5">
-                      <Video aria-hidden className="h-3.5 w-3.5" /> The MyJooba
+                      <Video aria-hidden className="h-3.5 w-3.5" /> The Jooba
                       Assistant is scheduled to join.{" "}
                       <Link
                         href={`/dashboard/captures/${b.captureId}`}
@@ -261,7 +235,7 @@ export function BookingsTab() {
                           setMoving(b);
                           setSlot(null);
                           setConfirm(null);
-                          setError(null);
+                          setLocalError(null);
                         }}>
                         Reschedule
                       </Button>
@@ -270,7 +244,7 @@ export function BookingsTab() {
                         onClick={() => {
                           setConfirm(b);
                           setMoving(null);
-                          setError(null);
+                          setLocalError(null);
                         }}>
                         Cancel
                       </Button>

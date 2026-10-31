@@ -37,14 +37,12 @@ import {
   ThemeOptions,
 } from "@/components/theme/theme-picker";
 import { Avatar } from "@/components/ui/avatar";
-import { type PlanSummary, formatDate } from "@/lib/plan-client";
+import { DUMMY_PLAN, type PlanSummary, formatDate } from "@/lib/plan-client";
 import { PLAN_LABEL, isPaidPlan } from "@/lib/plan-types";
-import {
-  type NotificationItem,
-  type NotificationList,
-  fetchNotifications,
-  markNotificationsRead,
-} from "@/lib/notifications-client";
+import { type NotificationItem } from "@/lib/notifications-client";
+import { useMarkNotificationsRead } from "@/lib/mutations";
+import { notificationsQuery } from "@/lib/queries";
+import { useQuery } from "@tanstack/react-query";
 import type { ProfileView } from "@/lib/profile-client";
 import { formatMinutes, timeAgo } from "@/lib/status";
 
@@ -62,15 +60,36 @@ const TONE_COLOR = {
 } as const;
 
 function Notifications({ pathname }: { pathname: string }) {
-  const [list, setList] = useState<NotificationList | null>(null);
-  const [failed, setFailed] = useState(false);
   const [open, setOpen] = useState(false);
   const panel = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
+  const markRead = useMarkNotificationsRead();
+  // Keep a local copy so "New" marks persist until panel closes
+  const [local, setLocal] = useState<{
+    unread: number;
+    items: NotificationItem[];
+  } | null>(null);
+  const q = useQuery({
+    ...notificationsQuery,
+    refetchInterval: 60_000,
+  });
+  // Sync server data to local when panel closed
+  useEffect(() => {
+    if (!q.data) return;
+    if (open && local) return;
+    setLocal(q.data);
+  }, [q.data, open, local]);
+  // Refetch on pathname change
+  useEffect(() => {
+    void q.refetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  const list = local;
+  const failed = !!q.error && !list;
   const close = useCallback(() => {
     setOpen(false);
-    // Once closed, everything that was new counts as read.
-    setList((l) =>
+    setLocal((l) =>
       l
         ? { unread: 0, items: l.items.map((i) => ({ ...i, unread: false })) }
         : l,
@@ -78,36 +97,14 @@ function Notifications({ pathname }: { pathname: string }) {
   }, []);
   useDismiss(open, close, panel, trigger);
 
-  // Look for news on every page change, and every minute while the tab is open.
-  useEffect(() => {
-    let cancelled = false;
-    const load = () =>
-      fetchNotifications().then(
-        (l) => {
-          if (cancelled) return;
-          setFailed(false);
-          // While the panel is open keep what the person is reading steady.
-          setList((cur) => (open && cur ? cur : l));
-        },
-        () => !cancelled && setFailed(true),
-      );
-    void load();
-    const t = setInterval(() => void load(), 60_000);
-    return () => {
-      cancelled = true;
-      clearInterval(t);
-    };
-  }, [pathname, open]);
-
   const unread = list?.unread ?? 0;
   function toggle() {
     if (open) return close();
     setOpen(true);
     if (unread > 0) {
-      // The badge clears straight away; the rows keep their "new" marks until the panel closes.
       const ids = list?.items.filter((i) => i.unread).map((i) => i.id) ?? [];
-      void markNotificationsRead(ids).catch(() => undefined);
-      setList((l) => (l ? { ...l, unread: 0 } : l));
+      void markRead.mutateAsync(ids).catch(() => undefined);
+      setLocal((l) => (l ? { ...l, unread: 0 } : l));
     }
   }
 
@@ -232,34 +229,35 @@ function PlanCard({
   plan: PlanSummary | null;
   onNavigate: () => void;
 }) {
-  if (!plan) {
+  const displayPlan = plan ?? DUMMY_PLAN;
+  if (!displayPlan) {
     return (
       <div aria-hidden className="space-y-3 px-4 py-4">
-        <div className="h-4 w-16 animate-pulse rounded bg-surface" />
-        <div className="h-2 animate-pulse rounded-full bg-surface" />
-        <div className="h-9 animate-pulse rounded-lg bg-surface" />
+        <div className="h-4 w-16 jb-skel rounded bg-surface" />
+        <div className="h-2 jb-skel rounded-full bg-surface" />
+        <div className="h-9 jb-skel rounded-lg bg-surface" />
       </div>
     );
   }
-  const pro = isPaidPlan(plan.plan.plan);
+  const pro = isPaidPlan(displayPlan.plan.plan);
   const pct =
-    plan.allowanceMinutes > 0
+    displayPlan.allowanceMinutes > 0
       ? Math.min(
           100,
-          Math.round((plan.usedMinutes / plan.allowanceMinutes) * 100),
+          Math.round((displayPlan.usedMinutes / displayPlan.allowanceMinutes) * 100),
         )
       : 100;
   const status =
-    plan.plan.status === "grace"
+    displayPlan.plan.status === "grace"
       ? "Payment needs attention"
-      : plan.plan.status === "pending_activation"
+      : displayPlan.plan.status === "pending_activation"
         ? "Waiting for payment"
-        : pro && plan.plan.renewsAt
-          ? `Renews ${formatDate(plan.plan.renewsAt, plan.timezone)}`
+        : pro && displayPlan.plan.renewsAt
+          ? `Renews ${formatDate(displayPlan.plan.renewsAt, displayPlan.timezone)}`
           : pro
             ? "Active"
             : "No card needed";
-  const external = !!plan.checkoutUrl && !pro && !plan.testCheckout;
+  const external = !!displayPlan.checkoutUrl && !pro && !displayPlan.testCheckout;
   const cta =
     "mt-3 flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-opacity hover:opacity-90";
   return (
@@ -269,7 +267,7 @@ function PlanCard({
           <div>
             <p className="flex items-center gap-1.5 text-base font-semibold">
               {pro && <Sparkles aria-hidden className="h-4 w-4 text-accent" />}
-              {PLAN_LABEL[plan.plan.plan]}
+              {PLAN_LABEL[displayPlan.plan.plan]}
             </p>
             <p className="text-xs text-muted">{status}</p>
           </div>
@@ -278,20 +276,20 @@ function PlanCard({
           </span>
         </div>
         <div className="mt-4">
-          <Bar pct={pct} exhausted={plan.exhausted} />
+          <Bar pct={pct} exhausted={displayPlan.exhausted} />
           <p className="mt-2 text-sm">
             <span className="font-medium tabular-nums">
-              {formatMinutes(plan.remainingMinutes)} left
+              {formatMinutes(displayPlan.remainingMinutes)} left
             </span>
             <span className="text-muted">
               {" "}
-              of {formatMinutes(plan.allowanceMinutes + plan.purchasedMinutes)}
+              of {formatMinutes(displayPlan.allowanceMinutes + displayPlan.purchasedMinutes)}
             </span>
           </p>
           <p className="mt-0.5 text-xs text-muted">
-            Resets {formatDate(plan.resetsAt, plan.timezone)}
-            {plan.purchasedMinutes > 0
-              ? ` · includes ${formatMinutes(plan.purchasedMinutes)} bought`
+            Resets {formatDate(displayPlan.resetsAt, displayPlan.timezone)}
+            {displayPlan.purchasedMinutes > 0
+              ? ` · includes ${formatMinutes(displayPlan.purchasedMinutes)} bought`
               : ""}
           </p>
         </div>
@@ -305,7 +303,7 @@ function PlanCard({
           </Link>
         ) : external ? (
           <a
-            href={plan.checkoutUrl!}
+            href={displayPlan.checkoutUrl!}
             role="menuitem"
             onClick={onNavigate}
             rel="noopener noreferrer"
@@ -391,7 +389,7 @@ function ProfileMenu({
     return (
       <span
         aria-hidden
-        className="h-9 w-9 animate-pulse rounded-full bg-surface"
+        className="h-9 w-9 jb-skel rounded-full bg-surface"
       />
     );
   const name = profile?.name?.trim() || profile?.email || "Not signed in";
@@ -564,7 +562,7 @@ export function TopBar({
     <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-topbar px-4 text-topbar-fg sm:px-6 md:px-8">
       <Link
         href="/dashboard"
-        aria-label="MyJooba home"
+        aria-label="Jooba home"
         className="text-lg text-topbar-fg md:hidden">
         <Brand size={28} />
       </Link>

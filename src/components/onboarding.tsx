@@ -203,7 +203,7 @@ export function Onboarding() {
       <main className="flex flex-col px-6 py-8 sm:px-12 md:px-16">
         <header className="flex items-center gap-4">
           <Link href="/" className="text-lg font-semibold tracking-tight">
-            MyJooba
+            Jooba
           </Link>
           <ol
             className="flex items-center gap-1.5"
@@ -267,9 +267,9 @@ export function Onboarding() {
               aria-label="Loading profile"
               aria-busy="true"
               className="space-y-4 py-8">
-              <div className="h-8 w-48 animate-pulse rounded bg-border" />
-              <div className="h-4 w-72 animate-pulse rounded bg-border" />
-              <div className="h-24 animate-pulse rounded-xl border border-border bg-surface" />
+              <div className="h-8 w-48 jb-skel rounded bg-border" />
+              <div className="h-4 w-72 jb-skel rounded bg-border" />
+              <div className="h-24 jb-skel rounded-xl border border-border bg-surface" />
               <span className="sr-only">Loading profile…</span>
             </div>
           ) : (
@@ -377,7 +377,7 @@ export function Onboarding() {
                     Start with your first conversation
                   </h1>
                   <p className="mt-3 text-muted">
-                    The quickest way to see MyJooba work is to give it something
+                    The quickest way to see Jooba work is to give it something
                     to write about.
                   </p>
                   <ul className="mt-6 space-y-3">

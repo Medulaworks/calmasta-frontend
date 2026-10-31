@@ -101,7 +101,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <Link
               href="/dashboard"
               className="mt-0 inline-flex items-center gap-1.5 text-xs text-muted hover:text-foreground md:mt-2">
-              <ArrowLeft aria-hidden className="h-3.5 w-3.5" /> Back to MyJooba
+              <ArrowLeft aria-hidden className="h-3.5 w-3.5" /> Back to Jooba
             </Link>
           </div>
           <nav
@@ -142,12 +142,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               aria-busy="true"
               className="space-y-6">
               <div aria-hidden className="space-y-2">
-                <div className="h-6 w-48 animate-pulse rounded bg-border" />
-                <div className="h-3.5 w-72 max-w-full animate-pulse rounded bg-border" />
+                <div className="h-6 w-48 jb-skel rounded bg-border" />
+                <div className="h-3.5 w-72 max-w-full jb-skel rounded bg-border" />
               </div>
               <div
                 aria-hidden
-                className="h-64 animate-pulse rounded-xl border border-border bg-surface"
+                className="h-64 jb-skel rounded-xl border border-border bg-surface"
               />
             </div>
           )}
@@ -166,7 +166,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               <Link
                 href="/dashboard"
                 className="inline-block font-medium text-accent underline underline-offset-2">
-                Back to MyJooba
+                Back to Jooba
               </Link>
             </div>
           )}

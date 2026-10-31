@@ -59,7 +59,7 @@ export function UpcomingMeetings({ timeZone }: { timeZone: string }) {
         }
       />
       {loading ? (
-        <ul aria-hidden className="divide-y divide-border">{[0, 1, 2].map((i) => <li key={i} className="px-5 py-4"><span className="block h-4 w-2/3 animate-pulse rounded bg-border" /></li>)}</ul>
+        <ul aria-hidden className="divide-y divide-border">{[0, 1, 2].map((i) => <li key={i} className="px-5 py-4"><span className="block h-4 w-2/3 jb-skel rounded bg-border" /></li>)}</ul>
       ) : state.error ? (
         <p role="alert" className="px-5 py-6 text-sm text-danger">Couldn&rsquo;t load your calendar just now. Try refreshing in a moment.</p>
       ) : !state.data?.connected ? (

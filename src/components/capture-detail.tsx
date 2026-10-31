@@ -1,4 +1,7 @@
 "use client";
+import { ToastStack, useToasts } from "@/components/ui/toast";
+import { useMeetingToasts } from "@/hooks/use-meeting-toasts";
+import { SkeletonDetail } from "@/components/ui/skeleton";
 
 import {
   ArrowLeft,
@@ -8,9 +11,11 @@ import {
   Trash2,
   Video,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useProfile } from "@/components/shell/profile-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,18 +26,17 @@ import { MeetingPanel } from "@/components/meeting-panel";
 import { TranscriptEditor } from "@/components/transcript-editor";
 import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { TEMPLATE_CHOICES, createDocument } from "@/lib/documents-client";
+import { TEMPLATE_CHOICES } from "@/lib/documents-client";
 import { formatDuration } from "@/lib/audio";
 import { captureStatus, documentStatus, timeAgo } from "@/lib/status";
 import {
   type CaptureView,
   ApiError,
   PLATFORM_LABELS,
-  cancelMeetingCapture,
-  deleteCapture,
-  getCapture,
   isMeetingActive,
 } from "@/lib/upload-client";
+import { captureQuery, qk } from "@/lib/queries";
+import { useCancelMeeting, useDeleteCapture, useCreateDocument } from "@/lib/mutations";
 
 const titleOf = (c: CaptureView) => {
   const t = c.title?.trim();
@@ -69,42 +73,47 @@ export function CaptureDetail({
   const router = useRouter();
   const search = useSearchParams();
   const profile = useProfile();
-  const [cap, setCap] = useState<CaptureView | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [notFound, setNotFound] = useState(false);
-  const [tick, setTick] = useState(0);
+  const qc = useQueryClient();
   // The real length, as reported by the audio itself once the browser has read its header.
   const [audioSeconds, setAudioSeconds] = useState<number | null>(null);
   // The template the user picked, else the one that suits their role, else a sensible general one.
   const [picked, setTemplate] = useState<string | null>(null);
   const template = picked ?? profile?.defaultTemplate ?? TEMPLATE_CHOICES[1].id;
-  const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const refresh = useCallback(() => setTick((t) => t + 1), []);
 
-  useEffect(() => {
-    let cancelled = false;
-    getCapture(id).then(
-      (c) => {
-        if (cancelled) return;
-        setCap(c);
-        setError(null);
-      },
-      (err) => {
-        if (cancelled) return;
-        if (err instanceof ApiError && err.status === 404) setNotFound(true);
-        else
-          setError(
-            err instanceof Error
-              ? err.message
-              : "Could not load this recording.",
-          );
-      },
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [id, tick]);
+  const cancelMutation = useCancelMeeting();
+  const deleteMutation = useDeleteCapture();
+  const createDocMutation = useCreateDocument();
+
+  const { data: cap, error: queryError, isLoading } = useQuery({
+    ...captureQuery(id),
+    refetchInterval: (q) => {
+      const data = q.state.data as CaptureView | undefined;
+      if (!data) return false;
+      const st = captureStatus({ source: data.source, state: data.state, status: data.status });
+      const extracting = data.actions.state === "extracting";
+      const videoPending = data.videoStatus === "requested" || data.videoStatus === "processing";
+      // signed URLs expire ~5m; refresh while active or video still coming, even if capture says completed
+      const needsVideo = videoPending;
+      if (st.active || extracting || needsVideo) return 3000;
+      return false;
+    },
+  });
+
+  const toasts = useToasts(id);
+  const watched = useMemo(() => cap ? [{ id: cap.id, title: titleOf(cap), source: cap.source, state: cap.state, status: cap.status }] : null, [cap]);
+  useMeetingToasts(watched, toasts.push, id);
+
+  const errorMessage = queryError
+    ? queryError instanceof Error
+      ? queryError.message
+      : "Could not load this recording."
+    : null;
+  const notFound = queryError instanceof ApiError && queryError.status === 404;
+
+  const busy = createDocMutation.isPending || deleteMutation.isPending;
+
+  const refresh = () => qc.invalidateQueries({ queryKey: qk.capture(id) });
 
   const status = cap
     ? captureStatus({
@@ -114,79 +123,73 @@ export function CaptureDetail({
       })
     : null;
   const extracting = cap?.actions.state === "extracting";
-  // The video is saved a little after the meeting ends, so keep looking until it is there (or has failed).
   const videoComing = cap?.videoStatus === "processing";
-  useEffect(() => {
-    if (!status?.active && !extracting && !videoComing) return;
-    const t = setInterval(refresh, 3000);
-    return () => clearInterval(t);
-  }, [status?.active, extracting, videoComing, refresh]);
 
   async function makeDocument() {
-    setBusy(true);
-    setError(null);
     try {
-      const { documentId } = await createDocument(id, template);
+      const { documentId } = await createDocMutation.mutateAsync({ captureId: id, template });
       router.push(`/dashboard/library/${documentId}`);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Could not start the document.",
-      );
-      setBusy(false);
+      // error is surfaced via mutation error; keep local error for display
+      // use queryError handling pattern: set via local state if needed
     }
   }
 
+  // surface mutation errors
+  const docError = createDocMutation.error instanceof Error ? createDocMutation.error.message : null;
+  const cancelError = cancelMutation.error instanceof Error ? cancelMutation.error.message : null;
+  const deleteError = deleteMutation.error instanceof Error ? deleteMutation.error.message : null;
+  const displayError = errorMessage ?? docError ?? cancelError ?? deleteError;
+
   async function cancelMeeting() {
-    setError(null);
     try {
-      await cancelMeetingCapture(id);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not cancel.");
+      await cancelMutation.mutateAsync(id);
+      // optimistic: mutation already invalidates; also force refresh
+      refresh();
+    } catch {
+      // error handled via cancelError
     }
-    refresh();
   }
 
   async function remove() {
-    setBusy(true);
     try {
-      await deleteCapture(id);
+      await deleteMutation.mutateAsync(id);
       router.push("/dashboard/library?tab=recordings");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not delete.");
-      setBusy(false);
+    } catch {
       setConfirmDelete(false);
     }
   }
 
   if (notFound) {
+    const goBack = () => {
+      if (typeof window !== "undefined" && window.history.length > 1) router.back();
+      else router.push("/dashboard/library");
+    };
     return (
       <Card>
         <EmptyState
           title="Recording not found"
           body="It may have been deleted."
           action={
-            <Link
-              href="/dashboard/library?tab=recordings"
-              className="text-sm text-accent">
-              Back to Library
-            </Link>
+            <button type="button" onClick={goBack} className="text-sm text-accent">
+              Go back
+            </button>
           }
         />
       </Card>
     );
   }
   if (!cap || !status) {
-    return error ? (
+    return displayError ? (
       <p
         role="alert"
         className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
-        {error}
+        {displayError}
       </p>
+    ) : isLoading ? (
+      <SkeletonDetail label="Loading this recording" />
     ) : (
-      <div className="space-y-4" aria-hidden>
-        <div className="h-8 w-64 animate-pulse rounded bg-border" />
-        <div className="h-48 animate-pulse rounded-xl bg-border/50" />
-      </div>
+      <SkeletonDetail label="Loading this recording" />
     );
   }
 
@@ -204,6 +207,7 @@ export function CaptureDetail({
 
   return (
     <div className="space-y-6">
+      <ToastStack items={toasts.items} onDismiss={toasts.dismiss} />
       <Link
         href="/dashboard/library?tab=recordings"
         className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground">
@@ -222,7 +226,7 @@ export function CaptureDetail({
               {titleOf(cap)}
             </h1>
             <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted">
-              <Badge tone={status.tone} active={status.active}>
+              <Badge tone={status.tone} active={status.active} indicator={status.indicator}>
                 {status.label}
               </Badge>
               <span>
@@ -234,12 +238,14 @@ export function CaptureDetail({
               </span>
               <span aria-hidden>·</span>
               <span>{timeAgo(cap.createdAt)}</span>
+              {(cap as unknown as {durationSeconds?:number|null}).durationSeconds ? <><span aria-hidden>·</span><span>{formatDuration((cap as unknown as {durationSeconds:number}).durationSeconds)}</span></> : null}
+              {cap.platform ? <><span aria-hidden>·</span><span>{PLATFORM_LABELS[cap.platform] ?? cap.platform}</span></> : null}
             </p>
           </div>
         </div>
         <div className="flex gap-2">
           {meetingActive && (
-            <Button onClick={() => void cancelMeeting()}>Cancel capture</Button>
+            <Button onClick={() => void cancelMeeting()} disabled={cancelMutation.isPending}>Cancel capture</Button>
           )}
           {!meetingActive && (
             <Button
@@ -252,11 +258,37 @@ export function CaptureDetail({
         </div>
       </header>
 
-      {error && (
+      {(() => {
+        const ext = cap as unknown as {botName?:string|null;meetingUrl?:string|null;meeting_url?:string|null;durationSeconds?:number|null;participants?:Array<{name:string;role?:string}>;metadata?:Record<string,unknown>};
+        const meetingUrl = ext.meetingUrl ?? ext.meeting_url ?? null;
+        const usage = ext.durationSeconds != null ? formatDuration(ext.durationSeconds) : null;
+        const joinAt = new Date(cap.createdAt).toLocaleString();
+        return (
+          <Card>
+            <div className="space-y-4 p-5 text-sm">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div><p className="text-muted">Platform</p><p className="flex items-center gap-2 font-medium">{cap.platform ? <><Image src={cap.platform === "microsoft_teams" ? "/icons/icons8-teams-96.png" : cap.platform === "zoom" ? "/icons/icons8-zoom-96.png" : "/icons/icons8-google-meet-96.png"} alt={PLATFORM_LABELS[cap.platform] ?? cap.platform} width={20} height={20} className="h-5 w-5 shrink-0" />{PLATFORM_LABELS[cap.platform] ?? cap.platform}</> : "—"}</p></div>
+                <div><p className="text-muted">Status</p><p className="font-medium">{status.label}</p></div>
+                <div><p className="text-muted">Usage</p><p className="font-medium">{usage ?? "—"}</p></div>
+              </div>
+              <dl className="divide-y divide-border rounded-lg border border-border">
+                <div className="grid grid-cols-[8rem_1fr] gap-3 px-4 py-3"><dt className="text-muted">Join At</dt><dd>{joinAt}</dd></div>
+                <div className="grid grid-cols-[8rem_1fr] gap-3 px-4 py-3"><dt className="text-muted">Bot Name</dt><dd>{ext.botName ?? "—"}</dd></div>
+                <div className="grid grid-cols-[8rem_1fr] gap-3 px-4 py-3"><dt className="text-muted">Metadata</dt><dd>{ext.metadata ? `${Object.keys(ext.metadata).length} field${Object.keys(ext.metadata).length===1?"":"s"}` : "—"}</dd></div>
+                <div className="grid grid-cols-[8rem_1fr] gap-3 px-4 py-3"><dt className="text-muted">Meeting</dt><dd className="truncate">{meetingUrl ? <a href={meetingUrl} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">{meetingUrl}</a> : "—"}</dd></div>
+                <div className="px-4 py-3"><p className="text-muted">Participants · {(ext.participants?.length ?? 0) || 0}</p>{ext.participants?.length ? <ul className="mt-2 flex flex-wrap gap-2">{ext.participants.map((p,i)=><li key={i} className="rounded-full bg-surface px-3 py-1 text-xs">{p.name}{p.role ? ` · ${p.role}` : ""}</li>)}</ul> : <p className="mt-1 text-muted">No participant list yet.</p>}</div>
+              </dl>
+              {cap.events?.length ? <ul className="space-y-1 text-xs text-muted">{cap.events.slice(0,4).map((e,i)=><li key={i}>{e.at ? new Date(e.at).toLocaleString() : ""} — {e.status}{e.detail ? `: ${e.detail}` : ""}</li>)}</ul> : null}
+            </div>
+          </Card>
+        );
+      })()}
+
+      {displayError && (
         <p
           role="alert"
           className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
-          {error}
+          {displayError}
         </p>
       )}
       {cap.state === "failed" && cap.failureReason && (
@@ -301,7 +333,7 @@ export function CaptureDetail({
             id: "actions",
             label: "Actions",
             count: cap.actions.items.filter(
-              (a) => a.status === "suggested" || a.status === "confirmed",
+              (a: { status: string }) => a.status === "suggested" || a.status === "confirmed",
             ).length,
           },
         ]}
@@ -315,14 +347,39 @@ export function CaptureDetail({
           id={tabPanelId("recording")}
           aria-labelledby={tabId("recording")}>
           <div className="space-y-4">
-            {cap.recordVideo && (
+            {cap.recordVideo ? (
               <Card>
                 <CardHeader title="Video" />
                 <div className="p-5">
                   <MeetingVideo cap={cap} />
                 </div>
               </Card>
-            )}
+            ) : null}
+            {cap.audio?.url ? (
+              <Card>
+                <CardHeader title="Audio" />
+                <div className="space-y-4 p-5 text-sm">
+                  <audio controls preload="metadata" src={cap.audio.url} onLoadedMetadata={(e) => setAudioSeconds(Number.isFinite(e.currentTarget.duration) ? e.currentTarget.duration : null)} className="w-full" aria-label="Meeting audio" />
+                  <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
+                    <div><dt className="text-muted">Source</dt><dd>Meeting</dd></div>
+                    <div><dt className="text-muted">Added</dt><dd>{timeAgo(cap.createdAt)}</dd></div>
+                    {audioSeconds !== null && <div><dt className="text-muted">Length</dt><dd>{formatDuration(audioSeconds)}</dd></div>}
+                    <div><dt className="text-muted">Size</dt><dd>{formatBytes(cap.audio.sizeBytes)}</dd></div>
+                  </dl>
+                  <p className="text-xs text-muted">Signed link expires in a few minutes — page refresh renews it. Audio stays usable when video fails.</p>
+                </div>
+              </Card>
+            ) : cap.audioStatus === "unavailable" ? (
+              <Card>
+                <CardHeader title="Audio" />
+                <div className="p-5 text-sm">
+                  <div role="status" className="flex items-start gap-3 rounded-lg border border-border bg-surface px-4 py-3">
+                    <TriangleAlert aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+                    <div><p className="font-medium">Audio no longer available</p><p className="mt-0.5 text-muted">It was removed as the privacy settings say. The transcript and documents are still here.</p></div>
+                  </div>
+                </div>
+              </Card>
+            ) : null}
             <MeetingPanel cap={cap} devTools={devTools} onChanged={refresh} />
           </div>
         </div>
@@ -337,9 +394,9 @@ export function CaptureDetail({
           <Card>
             <CardHeader title="Recording" />
             <div className="space-y-4 p-5 text-sm">
-              {cap.audio ? (
+              {cap.audio?.url ? (
                 <>
-                  {/* A short-lived, signed link: the audio is private to this user and the link stops working soon after. */}
+                  {/* Signed URL valid ~5m — detail polling renews it. */}
                   <audio
                     controls
                     preload="metadata"
@@ -405,13 +462,6 @@ export function CaptureDetail({
                     </p>
                   </div>
                 </div>
-              ) : cap.source === "meeting_url" ? (
-                <p className="text-muted">
-                  Meetings are captured by the MyJooba Assistant. There is no
-                  audio file to play here; the transcript appears in the
-                  Transcript tab once the meeting has ended and a capture
-                  provider is connected.
-                </p>
               ) : (
                 <p className="text-muted">The audio is still being uploaded.</p>
               )}
@@ -498,7 +548,7 @@ export function CaptureDetail({
               <p className="px-5 py-6 text-sm text-muted">None yet.</p>
             ) : (
               <ul className="divide-y divide-border">
-                {cap.documents.map((d) => {
+                {cap.documents.map((d: { id: string; title: string; template: string; status: string; editedByUser: boolean }) => {
                   const ds = documentStatus({
                     status: d.status,
                     editedByUser: d.editedByUser,
@@ -514,7 +564,7 @@ export function CaptureDetail({
                               ?.label ||
                             "Document"}
                         </span>
-                        <Badge tone={ds.tone} active={ds.active}>
+                        <Badge tone={ds.tone} active={ds.active} indicator={ds.indicator}>
                           {ds.label}
                         </Badge>
                       </Link>

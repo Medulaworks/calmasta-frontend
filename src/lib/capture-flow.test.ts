@@ -57,3 +57,12 @@ it("sends meeting cancellation and handles capture states",async()=>{
  expect(fetcher.mock.calls[0][0]).toBe("/api/captures/cap-123/cancel");
  expect(fetcher.mock.calls[0][1]?.method).toBe("POST");
 });
+
+it("forwards a trimmed per-meeting bot name and omits a blank override",async()=>{
+ setup();fetcher.mockImplementation(async(url:string)=>url.endsWith("policy")?json(policy):json({id:"meeting",state:"queued"}));
+ await requestMeetingCapture("https://meet.google.com/abc-defg-hij",true,undefined,false,{maxDurationSeconds:60,botName:" Planning Assistant "});
+ await requestMeetingCapture("https://meet.google.com/abc-defg-hij",true,undefined,false,{maxDurationSeconds:60,botName:" "});
+ const calls=fetcher.mock.calls.filter(([url])=>url==="/api/captures/meetings");
+ expect(JSON.parse(calls[0][1].body).botName).toBe("Planning Assistant");
+ expect(JSON.parse(calls[1][1].body)).not.toHaveProperty("botName");
+});

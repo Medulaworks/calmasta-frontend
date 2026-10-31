@@ -31,7 +31,7 @@ export function ItemRow({ item, showReason = false }: { item: DashboardItem; sho
             {showReason && item.failureReason ? item.failureReason : `${item.kind === "meeting" && item.platform && PLATFORM_LABELS[item.platform] ? PLATFORM_LABELS[item.platform] : KIND_LABEL[item.kind]} · ${timeAgo(item.at)}`}
           </span>
         </span>
-        <Badge tone={status.tone} active={status.active}>
+        <Badge tone={status.tone} active={status.active} indicator={status.indicator}>
           {status.label}
         </Badge>
       </Link>
@@ -42,10 +42,10 @@ export function ItemRow({ item, showReason = false }: { item: DashboardItem; sho
 export function ItemRowSkeleton() {
   return (
     <li className="flex items-center gap-3 px-5 py-3" aria-hidden>
-      <span className="h-9 w-9 animate-pulse rounded-lg bg-border" />
+      <span className="h-9 w-9 jb-skel rounded-lg bg-border" />
       <span className="flex-1 space-y-2">
-        <span className="block h-3 w-1/2 animate-pulse rounded bg-border" />
-        <span className="block h-2.5 w-1/3 animate-pulse rounded bg-border" />
+        <span className="block h-3 w-1/2 jb-skel rounded bg-border" />
+        <span className="block h-2.5 w-1/3 jb-skel rounded bg-border" />
       </span>
     </li>
   );

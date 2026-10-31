@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { adminGet } from "@/lib/admin-client";
+import { adminQuery } from "@/lib/queries";
 import { ApiError } from "@/lib/upload-client";
 
 export interface Resource<T> {
@@ -15,21 +16,15 @@ export interface Resource<T> {
 
 /** Loads a staff endpoint. Keeps the old data on screen while reloading so tables don't flash. */
 export function useResource<T>(url: string | null): Resource<T> {
-  const [state, setState] = useState<{ url: string | null; data: T | null; error: Error | null }>({ url: null, data: null, error: null });
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    if (!url) return;
-    let cancelled = false;
-    adminGet<T>(url).then(
-      (data) => !cancelled && setState({ url, data, error: null }),
-      (error: Error) => !cancelled && setState({ url, data: null, error }),
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [url, tick]);
-  const current = state.url === url;
-  return { data: current ? state.data : null, loading: !!url && (!current || (state.data === null && state.error === null)), error: current ? state.error : null, reload: () => setTick((n) => n + 1) };
+  const q = useQuery({
+    ...adminQuery<T>(url ?? "__none__"),
+    enabled: !!url,
+    placeholderData: (prev) => prev,
+  });
+  const data = url ? (q.data as T | undefined) ?? null : null;
+  const error = url ? (q.error as Error | null) : null;
+  const loading = !!url && q.isLoading && !q.data;
+  return { data, loading, error, reload: () => void q.refetch() };
 }
 
 /** The standard loading / error / forbidden states for a staff page. */
@@ -49,7 +44,7 @@ export function ResourceBoundary<T>({ resource, children }: { resource: Resource
   }
   if (loading || !data) {
     return (
-      <div role="status" aria-label="Loading" aria-busy="true" className="h-48 animate-pulse rounded-xl border border-border bg-surface" />
+      <div role="status" aria-label="Loading" aria-busy="true" className="h-48 jb-skel rounded-xl border border-border bg-surface" />
     );
   }
   return <>{children(data)}</>;

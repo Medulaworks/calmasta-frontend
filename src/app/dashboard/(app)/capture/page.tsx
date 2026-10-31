@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-export const metadata = { title: "Capture · MyJooba" };
+export const metadata = { title: "Capture · Jooba" };
 
 type Props = {
   searchParams: Promise<{ tab?: string; link?: string }>;

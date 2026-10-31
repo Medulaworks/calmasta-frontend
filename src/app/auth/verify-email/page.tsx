@@ -1,4 +1,4 @@
 import { Suspense } from "react";
-import { AuthAccountAction } from "@/components/auth-account-action";
+import { EmailCodeVerification } from "@/components/email-code-verification";
 export const metadata={referrer:"no-referrer" as const};
-export default function Page(){return <Suspense fallback={<p>Loading…</p>}><AuthAccountAction kind="verify-email"/></Suspense>;}
+export default function Page(){return <Suspense fallback={<p>Loading…</p>}><EmailCodeVerification/></Suspense>;}

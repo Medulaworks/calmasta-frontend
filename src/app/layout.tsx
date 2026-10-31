@@ -15,9 +15,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MyJooba",
+  title: "Jooba",
   description: "Your conversations, turned into useful work.",
 };
+
+import { QueryProvider } from "@/components/query-provider";
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
@@ -26,12 +28,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <head>
-        {/* Sets the theme attributes before first paint, so a chosen theme never flashes the default. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
       </head>
       <body className="min-h-full flex flex-col">
         <ThemeSync />
-        {children}
+        <QueryProvider>{children}</QueryProvider>
       </body>
     </html>
   );

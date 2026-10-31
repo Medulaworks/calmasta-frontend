@@ -1,64 +1,57 @@
 "use client";
 
 import { Copy, ExternalLink, Link2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Confirm, ErrorBox, Field, field } from "@/components/booking/form-bits";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { type PageView, deletePage, listPages, savePage } from "@/lib/booking-client";
+import { type PageView } from "@/lib/booking-client";
+import { useDeletePageM, useSavePageM } from "@/lib/mutations";
+import { pagesQuery } from "@/lib/queries";
 
 const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
 
 export function PagesTab() {
-  const [pages, setPages] = useState<PageView[] | null>(null);
-  const [tick, setTick] = useState(0);
+  const pagesQ = useQuery(pagesQuery);
+  const pages = pagesQ.data ?? null;
+  const qError = pagesQ.error ? (pagesQ.error as Error).message : null;
+  const saveM = useSavePageM();
+  const delM = useDeletePageM();
   const [editing, setEditing] = useState<PageView | "new" | null>(null);
   const [form, setForm] = useState({ title: "", slug: "", description: "", active: true });
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const error = localError ?? qError;
+  const busy = saveM.isPending || delM.isPending;
   const [confirmDelete, setConfirmDelete] = useState<PageView | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const origin = typeof window === "undefined" ? "" : window.location.origin;
 
-  useEffect(() => {
-    let cancelled = false;
-    listPages().then((p) => !cancelled && setPages(p), (err) => !cancelled && setError(err instanceof Error ? err.message : "Could not load your pages."));
-    return () => {
-      cancelled = true;
-    };
-  }, [tick]);
-
   function open(p: PageView | "new") {
     setEditing(p);
-    setError(null);
+    setLocalError(null);
     setForm(p === "new" ? { title: "", slug: "", description: "", active: true } : { title: p.title, slug: p.slug, description: p.description, active: p.active });
   }
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    setBusy(true);
-    setError(null);
+    setLocalError(null);
     try {
-      await savePage(form, editing === "new" || !editing ? undefined : editing.id);
+      await saveM.mutateAsync({ input: form, id: editing === "new" || !editing ? undefined : editing.id });
       setEditing(null);
-      setTick((n) => n + 1);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save.");
+      setLocalError(err instanceof Error ? err.message : "Could not save.");
     }
-    setBusy(false);
   }
   async function remove() {
     if (!confirmDelete) return;
-    setBusy(true);
     try {
-      await deletePage(confirmDelete.id);
+      await delM.mutateAsync(confirmDelete.id);
       setConfirmDelete(null);
-      setTick((n) => n + 1);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not delete.");
+      setLocalError(err instanceof Error ? err.message : "Could not delete.");
     }
-    setBusy(false);
   }
   async function copy(slug: string) {
     try {
@@ -66,7 +59,7 @@ export function PagesTab() {
       setCopied(slug);
       setTimeout(() => setCopied(null), 2000);
     } catch {
-      setError("Couldn't copy. Select the link and copy it yourself.");
+      setLocalError("Couldn't copy. Select the link and copy it yourself.");
     }
   }
 
@@ -100,12 +93,12 @@ export function PagesTab() {
 
       <Card>
         {pages === null ? (
-          <div aria-hidden className="p-5"><div className="h-4 w-1/3 animate-pulse rounded bg-border" /></div>
+          <div aria-hidden className="p-5"><div className="h-4 w-1/3 jb-skel rounded bg-border" /></div>
         ) : pages.length === 0 ? (
           <EmptyState icon={<Link2 className="h-5 w-5" />} title="No booking pages yet" body="Create a page, add a meeting type and your hours, and share the link." action={<Button variant="primary" onClick={() => open("new")}>Create a page</Button>} />
         ) : (
           <ul className="divide-y divide-border">
-            {pages.map((p) => (
+            {pages.map((p: import("@/lib/booking-client").PageView) => (
               <li key={p.id} className="space-y-2 px-5 py-4 text-sm">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2"><p className="font-medium">{p.title}</p><Badge tone={p.active ? "success" : "neutral"}>{p.active ? "Live" : "Off"}</Badge></div>

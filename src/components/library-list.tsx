@@ -1,7 +1,9 @@
 "use client";
+import { SkeletonRows } from "@/components/ui/skeleton";
 
 import { dashboardPath } from "@/lib/app-routes";
 
+import { useQuery } from "@tanstack/react-query";
 import { FileText, Mic, Search, Video, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -12,28 +14,12 @@ import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, tabId, tabPanelId } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/ui/empty-state";
-import { type DocumentListItem, listDocuments, templateLabel } from "@/lib/documents-client";
+import { templateLabel } from "@/lib/documents-client";
 import { captureStatus, documentStatus, timeAgo } from "@/lib/status";
-import { EMPTY_QUERY, type LibraryQuery, type LibraryResult, isSearching, searchLibrary } from "@/lib/library-client";
-import { type CaptureListItem, listCaptures } from "@/lib/upload-client";
+import { EMPTY_QUERY, type LibraryQuery, type LibraryResult, isSearching } from "@/lib/library-client";
+import { capturesQuery, documentsQuery, libraryQuery } from "@/lib/queries";
 
 type Tab = "documents" | "recordings";
-
-function Skeleton() {
-  return (
-    <ul className="divide-y divide-border" aria-hidden>
-      {[0, 1, 2, 3].map((i) => (
-        <li key={i} className="flex items-center gap-3 px-5 py-3">
-          <span className="h-9 w-9 animate-pulse rounded-lg bg-border" />
-          <span className="flex-1 space-y-2">
-            <span className="block h-3 w-1/2 animate-pulse rounded bg-border" />
-            <span className="block h-2.5 w-1/4 animate-pulse rounded bg-border" />
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
-}
 
 const TYPE_OPTIONS = [["all", "Everything"], ["documents", "Documents"], ["recordings", "Recordings"], ["meetings", "Meetings"]] as const;
 const STATUS_OPTIONS = [["all", "Any status"], ["ready", "Ready"], ["in_progress", "In progress"], ["attention", "Needs attention"]] as const;
@@ -69,7 +55,7 @@ function ResultRow({ r, q }: { r: LibraryResult; q: string }) {
           <span className="block truncate text-xs text-muted">{KIND_LABEL[r.kind]} · {timeAgo(r.at)}</span>
           {r.snippet && <span className="mt-1 block text-sm text-muted"><Highlight text={r.snippet} query={q} /></span>}
         </span>
-        <Badge tone={st.tone} active={st.active}>{st.label}</Badge>
+        <Badge tone={st.tone} active={st.active} indicator={st.indicator}>{st.label}</Badge>
       </Link>
     </li>
   );
@@ -96,45 +82,37 @@ export function LibraryList() {
   });
   const update = (patch: Partial<LibraryQuery>) => router.replace(urlFor({ ...filters, ...patch }, tab), { scroll: false });
 
-  const [results, setResults] = useState<LibraryResult[] | null>(null);
-  const [searchError, setSearchError] = useState<string | null>(null);
   const tooShort = filters.q.trim().length === 1;
-  const key = JSON.stringify(filters);
-  useEffect(() => {
-    if (!isSearching(filters) || tooShort) return;
-    const ctrl = new AbortController();
-    searchLibrary(filters, ctrl.signal).then(
-      (r) => {
-        setResults(r);
-        setSearchError(null);
-      },
-      (err) => {
-        if (ctrl.signal.aborted) return;
-        setSearchError(err instanceof Error ? err.message : "Could not search your library.");
-        setResults([]);
-      },
-    );
-    return () => ctrl.abort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
-  const [docs, setDocs] = useState<DocumentListItem[] | null>(null);
-  const [caps, setCaps] = useState<CaptureListItem[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    data: searchPage,
+    error: searchErr,
+  } = useQuery({
+    ...libraryQuery(filters),
+    enabled: isSearching(filters) && !tooShort,
+  });
+  const results: LibraryResult[] | null = !isSearching(filters) || tooShort ? [] : searchPage ? searchPage.results : null;
+  const searchError = searchErr ? (searchErr instanceof Error ? searchErr.message : "Could not search your library.") : null;
 
-  useEffect(() => {
-    let cancelled = false;
-    const fail = (err: unknown) => {
-      if (cancelled) return;
-      setError(err instanceof Error ? err.message : "Could not load your library.");
-      setDocs((d) => d ?? []);
-      setCaps((c) => c ?? []);
-    };
-    listDocuments().then((d) => !cancelled && setDocs(d), fail);
-    listCaptures(50).then((c) => !cancelled && setCaps(c), fail);
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const {
+    data: docsRaw,
+    error: docsErr,
+    isLoading: docsLoading,
+  } = useQuery({
+    ...documentsQuery,
+    enabled: !searching,
+  });
+  const {
+    data: capsRaw,
+    error: capsErr,
+    isLoading: capsLoading,
+  } = useQuery({
+    ...capturesQuery(50),
+    enabled: !searching,
+  });
+  const docs = !searching ? (docsRaw ?? (docsLoading ? null : [])) : null;
+  const caps = !searching ? (capsRaw ?? (capsLoading ? null : [])) : null;
+  const errorRaw = docsErr ?? capsErr;
+  const error = errorRaw ? (errorRaw instanceof Error ? errorRaw.message : "Could not load your library.") : null;
 
   const tabs: Array<{ id: Tab; label: string; count: number | null }> = [
     { id: "documents", label: "Documents", count: docs?.length ?? null },
@@ -190,7 +168,7 @@ export function LibraryList() {
         </p>
         <Card>
           {shown === null ? (
-            <Skeleton />
+            <SkeletonRows count={5} label="Loading your library" />
           ) : shown.length === 0 ? (
             <EmptyState
               icon={<Search className="h-5 w-5" />}
@@ -221,12 +199,12 @@ export function LibraryList() {
       <Card>
         {tab === "documents" ? (
           docs === null ? (
-            <Skeleton />
+            <SkeletonRows count={5} label="Loading your library" />
           ) : docs.length === 0 ? (
             <EmptyState icon={<FileText className="h-5 w-5" />} title="No documents yet" body="Open a recording and choose a template to write your first document." action={<ButtonLink href="/dashboard/voice" variant="primary">Record a thought</ButtonLink>} />
           ) : (
             <ul className="divide-y divide-border" role="tabpanel" id={tabPanelId("documents")} aria-labelledby={tabId("documents")}>
-              {docs.map((d) => {
+              {docs.map((d: import("@/lib/documents-client").DocumentListItem) => {
                 const st = documentStatus({ status: d.status, failureReason: d.failureReason, editedByUser: d.editedByUser });
                 return (
                   <li key={d.id}>
@@ -236,7 +214,7 @@ export function LibraryList() {
                         <span className="block truncate text-sm font-medium">{d.title}</span>
                         <span className="block truncate text-xs text-muted">{templateLabel(d.template)} · {timeAgo(d.updatedAt)}</span>
                       </span>
-                      <Badge tone={st.tone} active={st.active}>{st.label}</Badge>
+                      <Badge tone={st.tone} active={st.active} indicator={st.indicator}>{st.label}</Badge>
                     </Link>
                   </li>
                 );
@@ -244,12 +222,12 @@ export function LibraryList() {
             </ul>
           )
         ) : caps === null ? (
-          <Skeleton />
+          <SkeletonRows count={5} label="Loading your library" />
         ) : caps.length === 0 ? (
           <EmptyState icon={<Mic className="h-5 w-5" />} title="No recordings yet" body="Record a thought, upload audio or capture a meeting." action={<ButtonLink href="/dashboard/voice" variant="primary">Record a thought</ButtonLink>} />
         ) : (
           <ul className="divide-y divide-border" role="tabpanel" id={tabPanelId("recordings")} aria-labelledby={tabId("recordings")}>
-            {caps.map((c) => {
+            {caps.map((c: import("@/lib/upload-client").CaptureListItem) => {
               const st = captureStatus({ source: c.source, state: c.state, status: c.status });
               const Icon = c.source === "meeting_url" ? Video : Mic;
               return (
@@ -260,7 +238,7 @@ export function LibraryList() {
                       <span className="block truncate text-sm font-medium">{c.title}</span>
                       <span className="block truncate text-xs text-muted">{c.source === "meeting_url" ? "Meeting" : c.source === "voice_recording" ? "Recorded in browser" : "Upload"} · {timeAgo(c.createdAt)}</span>
                     </span>
-                    <Badge tone={st.tone} active={st.active}>{st.label}</Badge>
+                    <Badge tone={st.tone} active={st.active} indicator={st.indicator}>{st.label}</Badge>
                   </Link>
                 </li>
               );

@@ -1,16 +1,22 @@
 "use client";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, TriangleAlert } from "lucide-react";
+import Image from "next/image";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
+  type ConnectionsResponse,
   type ConnectionView,
   connectDevCalendar,
+  connectGoogleCalendar,
+  connectMicrosoftCalendar,
   disconnectCalendar,
 } from "@/lib/calendar-client";
+import { qk } from "@/lib/queries";
 
 /** The connected calendars, how to connect one, and the confirmed way to disconnect. Connecting never starts a recording. */
 export function ConnectionsPanel({
@@ -18,37 +24,74 @@ export function ConnectionsPanel({
   onChanged,
   onError,
 }: {
-  conns: { provider: string; connections: ConnectionView[] } | null;
+  conns: ConnectionsResponse | null;
   onChanged: () => void;
   onError: (message: string) => void;
 }) {
   const [disconnecting, setDisconnecting] = useState<ConnectionView | null>(
     null,
   );
-  const [busy, setBusy] = useState(false);
-  const isDev = conns?.provider === "mock";
+  const queryClient = useQueryClient();
+  const isDevPreview = conns?.mock === true;
+  const canConnectGoogle = !isDevPreview && !!conns?.capabilities?.connect && (conns?.providers?.includes("google") ?? true);
+  const showDevConnect = isDevPreview;
 
-  async function connect() {
-    setBusy(true);
-    try {
-      await connectDevCalendar();
+  const connectDevMut = useMutation({
+    mutationFn: () => connectDevCalendar(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: qk.calendarConnections() });
       onChanged();
-    } catch (err) {
-      onError(err instanceof Error ? err.message : "Could not connect.");
-    }
-    setBusy(false);
-  }
-  async function confirmDisconnect() {
-    if (!disconnecting) return;
-    setBusy(true);
-    try {
-      await disconnectCalendar(disconnecting.id);
+    },
+    onError: (err) => onError(err instanceof Error ? err.message : "Could not connect."),
+  });
+  const connectGoogleMut = useMutation({
+    mutationFn: () => connectGoogleCalendar(),
+    onSuccess: (res) => {
+      window.location.assign(res.authorizationUrl);
+    },
+    onError: (err) => {
+      const msg = err instanceof Error ? err.message : "Could not connect.";
+      if (msg.includes("calendar_provider_not_configured") || (err as unknown as { code?: string })?.code === "calendar_provider_not_configured") {
+        onError("Calendar provider is not configured. Please contact support.");
+      } else onError(msg);
+    },
+  });
+  const connectMicrosoftMut = useMutation({
+    mutationFn: () => connectMicrosoftCalendar(),
+    onSuccess: (res) => {
+      window.location.assign(res.authorizationUrl);
+    },
+    onError: (err) => {
+      const msg = err instanceof Error ? err.message : "Could not connect.";
+      if (msg.includes("calendar_provider_not_configured") || (err as unknown as { code?: string })?.code === "calendar_provider_not_configured") {
+        onError("Calendar provider is not configured. Please contact support.");
+      } else onError(msg);
+    },
+  });
+  const disconnectMut = useMutation({
+    mutationFn: (id: string) => disconnectCalendar(id),
+    onSuccess: () => {
       setDisconnecting(null);
+      queryClient.invalidateQueries({ queryKey: qk.calendarConnections() });
+      queryClient.invalidateQueries({ queryKey: ["calendar", "agenda"] });
       onChanged();
-    } catch (err) {
-      onError(err instanceof Error ? err.message : "Could not disconnect.");
-    }
-    setBusy(false);
+    },
+    onError: (err) => onError(err instanceof Error ? err.message : "Could not disconnect."),
+  });
+  const busy = connectDevMut.isPending || connectGoogleMut.isPending || connectMicrosoftMut.isPending || disconnectMut.isPending;
+
+  function connectDev() {
+    connectDevMut.mutate();
+  }
+  function connectGoogle() {
+    connectGoogleMut.mutate();
+  }
+  function connectMicrosoft() {
+    connectMicrosoftMut.mutate();
+  }
+  function confirmDisconnect() {
+    if (!disconnecting) return;
+    disconnectMut.mutate(disconnecting.id);
   }
 
   return (
@@ -57,20 +100,20 @@ export function ConnectionsPanel({
         <CardHeader title="Connected calendars" />
         {conns === null ? (
           <div aria-hidden className="space-y-3 p-5">
-            <div className="h-4 w-1/3 animate-pulse rounded bg-border" />
-            <div className="h-3 w-2/3 animate-pulse rounded bg-border" />
+            <div className="h-4 w-1/3 jb-skel rounded bg-border" />
+            <div className="h-3 w-2/3 jb-skel rounded bg-border" />
           </div>
         ) : conns.connections.length === 0 ? (
           <EmptyState
             icon={<CalendarDays className="h-5 w-5" />}
             title="Connect your calendar"
-            body="See your day in one place and keep people from booking over your other events. Connecting only reads your calendar: it never starts a recording, and MyJooba does not change your existing events."
+            body="See your day in one place and keep people from booking over your other events. Connecting only reads your calendar: it never starts a recording, and Jooba does not change your existing events."
             action={
-              isDev ? (
+              showDevConnect ? (
                 <div className="space-y-2">
                   <Button
                     variant="primary"
-                    onClick={() => void connect()}
+                    onClick={() => void connectDev()}
                     disabled={busy}>
                     {busy ? "Connecting…" : "Connect a development calendar"}
                   </Button>
@@ -79,17 +122,31 @@ export function ConnectionsPanel({
                   </p>
                 </div>
               ) : (
-                <a
-                  href="/api/calendar/connect/start"
-                  className="inline-flex min-h-9 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-accent-solid px-4 text-sm font-medium text-on-accent transition-colors hover:brightness-95 active:brightness-90 disabled:pointer-events-none disabled:opacity-50">
-                  Connect Google Calendar
-                </a>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="primary"
+                    onClick={() => void connectGoogle()}
+                    disabled={busy}
+                    className="inline-flex items-center gap-2">
+                    <Image src="/icons/icons8-google-96.png" alt="" width={18} height={18} className="h-[18px] w-[18px] shrink-0" />
+                    {busy ? "Connecting…" : "Connect Google Calendar"}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => void connectMicrosoft()}
+                    disabled={busy}
+                    className="inline-flex items-center gap-2">
+                    <Image src="/icons/icons8-microsoft-96.png" alt="" width={18} height={18} className="h-[18px] w-[18px] shrink-0" />
+                    {busy ? "Connecting…" : "Connect Microsoft Calendar"}
+                  </Button>
+                </div>
               )
             }
           />
         ) : (
-          <ul className="divide-y divide-border">
-            {conns.connections.map((c) => (
+          <>
+            <ul className="divide-y divide-border">
+              {conns.connections.map((c) => (
               <li key={c.id} className="space-y-3 px-5 py-4 text-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
@@ -103,19 +160,20 @@ export function ConnectionsPanel({
                   </div>
                   <div className="flex gap-2">
                     {c.status === "needs_reconnect" &&
-                      (isDev ? (
+                      (showDevConnect ? (
                         <Button
                           variant="primary"
-                          onClick={() => void connect()}
+                          onClick={() => void connectDev()}
                           disabled={busy}>
                           Reconnect
                         </Button>
                       ) : (
-                        <a
-                          href="/api/calendar/connect/start"
-                          className="inline-flex min-h-9 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-accent-solid px-4 text-sm font-medium text-on-accent transition-colors hover:brightness-95 active:brightness-90 disabled:pointer-events-none disabled:opacity-50">
+                        <Button
+                          variant="primary"
+                          onClick={() => void connectGoogle()}
+                          disabled={busy}>
                           Reconnect
-                        </a>
+                        </Button>
                       ))}
                     <Button variant="ghost" onClick={() => setDisconnecting(c)}>
                       Disconnect
@@ -130,7 +188,7 @@ export function ConnectionsPanel({
                       aria-hidden
                       className="mt-0.5 h-4 w-4 shrink-0"
                     />{" "}
-                    MyJooba lost access to this calendar. Its events aren&apos;t
+                    Jooba lost access to this calendar. Its events aren&apos;t
                     shown, and booking pages that check it are paused so nobody
                     is booked over your events. Reconnect to fix it.
                   </p>
@@ -154,7 +212,28 @@ export function ConnectionsPanel({
                 </ul>
               </li>
             ))}
-          </ul>
+            </ul>
+            {!showDevConnect && (
+              <div className="flex flex-wrap gap-2 border-t border-border p-5">
+                <Button
+                  variant="primary"
+                  onClick={() => void connectGoogle()}
+                  disabled={busy}
+                  className="inline-flex items-center gap-2">
+                  <Image src="/icons/icons8-google-96.png" alt="" width={18} height={18} className="h-[18px] w-[18px] shrink-0" />
+                  Connect Google Calendar
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => void connectMicrosoft()}
+                  disabled={busy}
+                  className="inline-flex items-center gap-2">
+                  <Image src="/icons/icons8-microsoft-96.png" alt="" width={18} height={18} className="h-[18px] w-[18px] shrink-0" />
+                  Connect Microsoft Calendar
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </Card>
 

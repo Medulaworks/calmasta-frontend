@@ -23,19 +23,11 @@ import {
 } from "@/lib/export";
 import { countUncertain } from "@/lib/uncertainty";
 import { UncertaintyHighlight } from "./uncertainty-highlight";
-import {
-  DocError,
-  type DocumentView,
-  type VersionItem,
-  deleteDocument,
-  getDocument,
-  listVersions,
-  regenerateDocument,
-  regenerateSection,
-  restoreVersion,
-  saveDocument,
-  templateLabel,
-} from "@/lib/documents-client";
+import { DocError, type VersionItem, templateLabel } from "@/lib/documents-client";
+import { documentQuery, documentVersionsQuery } from "@/lib/queries";
+import { useDeleteDocumentM, useRegenerateDocument, useRegenerateSection, useRestoreVersion } from "@/lib/mutations";
+import { saveDocument } from "@/lib/documents-client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useDismiss } from "@/components/ui/use-dismiss";
@@ -88,8 +80,13 @@ function readOutline(e: { getJSON: () => unknown; getText: () => string }) {
 
 export function DocumentStudio({ id }: { id: string }) {
   const router = useRouter();
-  const [doc, setDoc] = useState<DocumentView | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const qc = useQueryClient();
+  const docQ = useQuery({
+    ...documentQuery(id),
+    refetchInterval: (q) => (q.state.data?.status === "generating" ? 1500 : false),
+  });
+  const doc = docQ.data ?? null;
+  const loadError = docQ.error ? (docQ.error as Error).message : null;
   const [saveState, setSaveState] = useState<SaveState>("saved");
   const [notice, setNotice] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<
@@ -100,12 +97,22 @@ export function DocumentStudio({ id }: { id: string }) {
     sections: Array<{ heading: string; occurrence: number }>;
     uncertain: number;
   }>({ sections: [], uncertain: 0 });
-  const [versions, setVersions] = useState<VersionItem[] | null>(null);
+  const [versionsOpen, setVersionsOpen] = useState(false);
+  const versionsQ = useQuery({ ...documentVersionsQuery(id), enabled: versionsOpen });
+  const versions = versionsOpen ? (versionsQ.data ?? null) : null;
+  const setVersions = (v: VersionItem[] | null) => {
+    if (v === null) setVersionsOpen(false);
+    else qc.setQueryData(["document", id, "versions"], v);
+  };
   const [title, setTitle] = useState("");
 
   // Autosave bookkeeping lives in refs so the debounce timer never sees stale state.
   const baseVersion = useRef(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const regenM = useRegenerateDocument();
+  const regenSectionM = useRegenerateSection();
+  const restoreM = useRestoreVersion();
+  const deleteM = useDeleteDocumentM();
   const inFlight = useRef<Promise<void> | null>(null);
   const pending = useRef<{ html?: string; title?: string }>({});
   const locked = useRef(false);
@@ -208,30 +215,10 @@ export function DocumentStudio({ id }: { id: string }) {
     timer.current = setTimeout(() => void flush(), 1200);
   }
 
-  // Load, and poll while the document is being written.
-  const loadOnce = useCallback(async () => {
-    try {
-      const d = await getDocument(idRef.current);
-      setDoc(d);
-      baseVersion.current = d.version;
-      return d;
-    } catch (err) {
-      setLoadError(
-        err instanceof Error ? err.message : "Could not load this document.",
-      );
-      return null;
-    }
-  }, []);
-
+  // Keep baseVersion in sync with server
   useEffect(() => {
-    void loadOnce();
-  }, [loadOnce]);
-
-  useEffect(() => {
-    if (!generating) return;
-    const t = setInterval(() => void loadOnce(), 1500);
-    return () => clearInterval(t);
-  }, [generating, loadOnce]);
+    if (doc) baseVersion.current = doc.version;
+  }, [doc?.version]);
 
   // Put server content into the editor whenever a new server version arrives (load, rewrite, restore).
   const shownVersion = useRef<number | null>(null);
@@ -275,71 +262,54 @@ export function DocumentStudio({ id }: { id: string }) {
     shownVersion.current = null;
     setSaveState("saved");
     setNotice(null);
-    await loadOnce();
+    await qc.invalidateQueries({ queryKey: ["document", id] });
   }
 
   async function rewrite(overwrite: boolean) {
     setNotice(null);
-    await flush(); // include anything just typed, so it lands in history rather than being lost
+    await flush();
     try {
-      await regenerateDocument(id, overwrite);
+      await regenM.mutateAsync({ id, overwrite });
       setConfirm(null);
-      setVersions(null);
-      await loadOnce();
+      setVersionsOpen(false);
+      await qc.invalidateQueries({ queryKey: ["document", id] });
     } catch (err) {
-      if (err instanceof DocError && err.code === "has_edits")
-        setConfirm("rewrite");
-      else
-        setNotice(
-          err instanceof Error ? err.message : "Could not start the rewrite.",
-        );
+      if (err instanceof DocError && (err as DocError).code === "has_edits") setConfirm("rewrite");
+      else setNotice(err instanceof Error ? err.message : "Could not start the rewrite.");
     }
   }
 
-  async function rewriteOneSection(
-    section: { section: string; occurrence: number },
-    overwrite: boolean,
-  ) {
+  async function rewriteOneSection(section: { section: string; occurrence: number }, overwrite: boolean) {
     setNotice(null);
-    await flush(); // what was just typed is saved first, so the rewrite works from the real current version
+    await flush();
     try {
-      await regenerateSection(id, {
-        heading: section.section,
-        occurrence: section.occurrence,
-        baseVersion: baseVersion.current,
-        overwrite,
-      });
+      await regenSectionM.mutateAsync({ id, input: { heading: section.section, occurrence: section.occurrence, baseVersion: baseVersion.current, overwrite } });
       setConfirm(null);
-      await loadOnce();
+      await qc.invalidateQueries({ queryKey: ["document", id] });
     } catch (err) {
-      if (err instanceof DocError && err.code === "section_has_edits")
-        setConfirm(section);
+      if (err instanceof DocError && (err as DocError).code === "section_has_edits") setConfirm(section);
       else {
         setConfirm(null);
-        setNotice(
-          err instanceof Error ? err.message : "Could not start the rewrite.",
-        );
+        setNotice(err instanceof Error ? err.message : "Could not start the rewrite.");
       }
     }
   }
 
   async function toggleVersions() {
-    if (versions) return setVersions(null);
-    try {
-      setVersions(await listVersions(id));
-    } catch (err) {
-      setNotice(err instanceof Error ? err.message : "Could not load history.");
-    }
+    if (versionsOpen) return setVersionsOpen(false);
+    setVersionsOpen(true);
+    // error handled via query error
+    if (versionsQ.error) setNotice((versionsQ.error as Error).message);
   }
 
   async function restore(v: number) {
     setNotice(null);
     await flush();
     try {
-      await restoreVersion(id, v);
+      await restoreM.mutateAsync({ id, version: v });
       shownVersion.current = null;
-      await loadOnce();
-      setVersions(await listVersions(id));
+      await qc.invalidateQueries({ queryKey: ["document", id] });
+      await qc.invalidateQueries({ queryKey: ["document", id, "versions"] });
       setNotice("Restored. The version you replaced is in history too.");
     } catch (err) {
       setNotice(err instanceof Error ? err.message : "Could not restore.");
@@ -349,7 +319,7 @@ export function DocumentStudio({ id }: { id: string }) {
   async function remove() {
     try {
       pending.current = {};
-      await deleteDocument(id);
+      await deleteM.mutateAsync(id);
       router.push("/dashboard/library");
     } catch (err) {
       setNotice(err instanceof Error ? err.message : "Could not delete.");
@@ -404,9 +374,15 @@ export function DocumentStudio({ id }: { id: string }) {
           className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
           {loadError}
         </p>
-        <Link href="/dashboard/library" className="text-sm text-accent">
-          Back to Library
-        </Link>
+        <button
+          type="button"
+          onClick={() => {
+            if (typeof window !== "undefined" && window.history.length > 1) router.back();
+            else router.push("/dashboard/library");
+          }}
+          className="text-sm text-accent">
+          Go back
+        </button>
       </div>
     );
   }
@@ -417,9 +393,9 @@ export function DocumentStudio({ id }: { id: string }) {
         aria-label="Loading document"
         className="max-w-4xl space-y-4"
         aria-busy="true">
-        <div className="h-4 w-40 animate-pulse rounded bg-border" />
-        <div className="h-8 w-2/3 animate-pulse rounded bg-border" />
-        <div className="h-96 animate-pulse rounded-xl border border-border bg-surface" />
+        <div className="h-4 w-40 jb-skel rounded bg-border" />
+        <div className="h-8 w-2/3 jb-skel rounded bg-border" />
+        <div className="h-96 jb-skel rounded-xl border border-border bg-surface" />
       </div>
     );
   }
@@ -608,7 +584,7 @@ export function DocumentStudio({ id }: { id: string }) {
           {outline.uncertain}{" "}
           {outline.uncertain === 1 ? "place is" : "places are"} marked{" "}
           <span className="font-medium">not specified</span> or to confirm.
-          MyJooba leaves a gap rather than guess an owner, date or number: fill
+          Jooba leaves a gap rather than guess an owner, date or number: fill
           them in, or check them against the conversation.
         </p>
       )}
@@ -692,7 +668,7 @@ export function DocumentStudio({ id }: { id: string }) {
             </p>
           ) : (
             <ul className="divide-y divide-border">
-              {versions.map((v) => (
+              {versions.map((v: VersionItem) => (
                 <li
                   key={v.version}
                   className="flex items-center justify-between gap-3 px-5 py-3">

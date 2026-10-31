@@ -10,7 +10,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useProfile } from "@/components/shell/profile-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,9 +21,8 @@ import {
   type Agenda,
   type AgendaEvent,
   type ConnectionView,
-  getAgenda,
-  getConnections,
 } from "@/lib/calendar-client";
+import { agendaQuery, calendarConnectionsQuery } from "@/lib/queries";
 import {
   EMPTY_FILTERS,
   type MeetingFilters,
@@ -64,36 +64,65 @@ const minutesText = (m: number) =>
 
 /**
  * Meetings: everything on your connected calendars plus your bookings, as a list you can search and filter in detail,
- * with the selected meeting's details beside it. Read-only: MyJooba shows your events but never changes them, and
+ * with the selected meeting's details beside it. Read-only: Jooba shows your events but never changes them, and
  * connecting a calendar never starts a recording.
  */
 export function CalendarView() {
   const profile = useProfile();
   const search = useSearchParams();
-  const outcome = search.get("connected")
-    ? { ok: true, text: "Calendar connected." }
-    : search.get("error")
-      ? {
-          ok: false,
-          text:
-            (
-              {
-                cancelled: "Connecting was cancelled, so nothing changed.",
-                not_available: "This setup has no real calendar to sign in to.",
-              } as Record<string, string>
-            )[search.get("error")!] ??
-            "We couldn't connect your calendar. Please try again.",
-        }
-      : null;
+  const queryClient = useQueryClient();
+  const calParam = search.get("calendar");
+  const outcome = calParam
+    ? (() => {
+        const map: Record<string, { ok: boolean; text: string }> = {
+          connected: { ok: true, text: "Google Calendar connected." },
+          denied: { ok: false, text: "Calendar connection was cancelled." },
+          missing_scope: { ok: false, text: "Required calendar permissions were not granted. Please reconnect and allow them." },
+          missing_grant: { ok: false, text: "Google did not return the credentials needed to keep the calendar connected. Please reconnect." },
+          error: { ok: false, text: "Could not connect your calendar. Please try again." },
+        };
+        return map[calParam] ?? { ok: false, text: "Could not connect your calendar. Please try again." };
+      })()
+    : search.get("connected")
+      ? { ok: true, text: "Calendar connected." }
+      : search.get("error")
+        ? {
+            ok: false,
+            text:
+              (
+                {
+                  cancelled: "Connecting was cancelled, so nothing changed.",
+                  not_available: "This setup has no real calendar to sign in to.",
+                } as Record<string, string>
+              )[search.get("error")!] ??
+              "We couldn't connect your calendar. Please try again.",
+          }
+        : null;
   const timeZone = profile?.timezone || browserTimeZone();
 
-  const [conns, setConns] = useState<{
-    provider: string;
-    connections: ConnectionView[];
-  } | null>(null);
+  // consume calendar=<outcome> once, refetch, and remove only that param
+  useEffect(() => {
+    if (!calParam) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete("calendar");
+    window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+    void queryClient.invalidateQueries({ queryKey: calendarConnectionsQuery.queryKey });
+    void queryClient.invalidateQueries({ queryKey: ["calendar", "agenda"] });
+  }, [calParam, queryClient]);
+
+  const {
+    data: connsRaw,
+    error: connsError,
+  } = useQuery(calendarConnectionsQuery);
+  const conns = connsRaw ?? null;
   const [error, setError] = useState<string | null>(null);
-  const [tick, setTick] = useState(0);
-  const reload = useCallback(() => setTick((n) => n + 1), []);
+  const connsErrorMsg = connsError ? (connsError instanceof Error ? connsError.message : "Could not load your calendars.") : null;
+  const displayError = error ?? connsErrorMsg;
+  const reload = () => {
+    setError(null);
+    void queryClient.invalidateQueries({ queryKey: calendarConnectionsQuery.queryKey });
+    void queryClient.invalidateQueries({ queryKey: ["calendar", "agenda"] });
+  };
   const [manage, setManage] = useState(false);
 
   const [tab, setTab] = useState<Tab>("upcoming");
@@ -133,50 +162,24 @@ export function CalendarView() {
   }, [filters.from, filters.to, tab, steps, timeZone, now]);
   const winKey = `${win.from.toISOString()}|${win.to.toISOString()}`;
 
-  useEffect(() => {
-    let cancelled = false;
-    getConnections().then(
-      (c) => !cancelled && setConns(c),
-      (err) =>
-        !cancelled &&
-        setError(
-          err instanceof Error ? err.message : "Could not load your calendars.",
-        ),
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [tick]);
-
-  const [agenda, setAgenda] = useState<{
-    key: string;
-    data: Agenda | null;
-    error?: string;
-  } | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    getAgenda(win.from, win.to).then(
-      (data) => !cancelled && setAgenda({ key: winKey, data }),
-      (err) =>
-        !cancelled &&
-        setAgenda({
-          key: winKey,
-          data: null,
-          error:
-            err instanceof Error
-              ? err.message
-              : "Could not load your meetings.",
-        }),
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [win.from, win.to, winKey, tick]);
-
-  const loading = !agenda || agenda.key !== winKey;
-  const loaded = useMemo(
-    () => (loading ? [] : (agenda!.data?.events ?? [])),
-    [loading, agenda],
+  const {
+    data: agendaData,
+    error: agendaError,
+    isLoading: agendaLoading,
+    isFetching: agendaFetching,
+  } = useQuery({
+    ...agendaQuery(win.from, win.to),
+    placeholderData: (prev) => prev,
+  });
+  const agenda: { key: string; data: Agenda | null; error?: string } | null = agendaError
+    ? { key: winKey, data: null, error: agendaError instanceof Error ? agendaError.message : "Could not load your meetings." }
+    : agendaData
+      ? { key: winKey, data: agendaData }
+      : null;
+  const loading = agendaLoading || (agendaFetching && !agendaData);
+  const loaded: AgendaEvent[] = useMemo(
+    () => (agenda?.data?.events ?? []),
+    [agenda],
   );
   // Outside a date range, Upcoming and Past split the loaded window at "now".
   const inTab = useMemo(
@@ -224,11 +227,11 @@ export function CalendarView() {
           {outcome.text}
         </p>
       )}
-      {error && (
+      {displayError && (
         <p
           role="alert"
           className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
-          {error}
+          {displayError}
         </p>
       )}
 
@@ -240,16 +243,16 @@ export function CalendarView() {
             <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
               <span className="font-medium">
                 {conns
-                  ? conns.connections.map((c) => c.accountEmail).join(", ")
+                  ? conns.connections.map((c: ConnectionView) => c.accountEmail).join(", ")
                   : "Loading calendars…"}
               </span>
               {conns?.connections.some(
-                (c) => c.status === "needs_reconnect",
+                (c: ConnectionView) => c.status === "needs_reconnect",
               ) && <Badge tone="warning">Needs reconnecting</Badge>}
               {conns &&
                 (() => {
                   const n = conns.connections.reduce(
-                    (t, c) => t + c.calendars.length,
+                    (t: number, c: ConnectionView) => t + c.calendars.length,
                     0,
                   );
                   const a = conns.connections.length;
@@ -352,7 +355,7 @@ export function CalendarView() {
         </p>
       )}
 
-      {data?.problems.map((p) => (
+      {data?.problems.map((p: Agenda["problems"][number]) => (
         <p
           key={p.connectionId}
           role="status"
@@ -376,7 +379,7 @@ export function CalendarView() {
               {[0, 1, 2].map((i) => (
                 <li
                   key={i}
-                  className="h-20 animate-pulse rounded-xl border border-border bg-surface/50"
+                  className="h-20 jb-skel rounded-xl border border-border bg-surface/50"
                 />
               ))}
             </ul>
@@ -404,9 +407,9 @@ export function CalendarView() {
                   body={
                     data?.connected
                       ? tab === "upcoming"
-                        ? "Your calendars have nothing in this period. Bookings made through MyJooba appear here too."
+                        ? "Your calendars have nothing in this period. Bookings made through Jooba appear here too."
                         : "Nothing happened in this period."
-                      : "Connect a calendar to see everything in one place. Bookings made through MyJooba appear here too."
+                      : "Connect a calendar to see everything in one place. Bookings made through Jooba appear here too."
                   }
                 />
               )}
@@ -512,7 +515,7 @@ function MeetingRow({
           <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
             {e.source === "booking" && <Badge tone="info">Booking</Badge>}
             {st && rec !== "not_recorded" && (
-              <Badge tone={st.tone} active={st.active}>
+              <Badge tone={st.tone} active={st.active} indicator={st.indicator}>
                 {rec === "recorded" ? "Recorded" : st.label}
               </Badge>
             )}

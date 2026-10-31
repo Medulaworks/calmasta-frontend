@@ -2,7 +2,7 @@
 
 import { updateTranscriptDraft,pendingTranscriptDrafts } from "@/lib/transcript-drafts";
 
-import { Mic, Pencil, TriangleAlert, Video } from "lucide-react";
+import { Download, Mic, Pencil, TriangleAlert, Video } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,20 @@ const AUTOSAVE_MS = 1200;
  * so a save made from a stale copy is refused (never silently overwriting) and the user's text stays on screen.
  */
 export function TranscriptEditor({ cap, statusLabel, active, onChanged, loadCapture = getCapture, saveChanges = saveTranscript }: { cap: CaptureView; statusLabel: string; active: boolean; onChanged: () => void; loadCapture?: typeof getCapture; saveChanges?: typeof saveTranscript }) {
+  function exportFile(content: string, name: string, type: string) {
+    const url = URL.createObjectURL(new Blob([content], { type }));
+    const a = document.createElement("a"); a.href = url; a.download = name; a.click(); URL.revokeObjectURL(url);
+  }
+  function exportTxt() {
+    const lines = cap.transcript.map((s) => `${formatDuration(s.startMs / 1000)}${s.speakerId ? ` ${cap.speakerNames[s.speakerId] ?? s.speakerId}:` : ""} ${s.text}`).join("\n");
+    exportFile(lines, `${cap.title ?? "transcript"}.txt`, "text/plain;charset=utf-8");
+  }
+  function exportSrt() {
+    const pad = (n: number, w = 2) => String(n).padStart(w, "0");
+    const stamp = (ms: number) => { const h = Math.floor(ms / 3600000); const m = Math.floor((ms % 3600000) / 60000); const s = Math.floor((ms % 60000) / 1000); const mm = ms % 1000; return `${pad(h)}:${pad(m)}:${pad(s)},${pad(mm, 3)}`; };
+    const srt = cap.transcript.map((s, i) => `${i + 1}\n${stamp(s.startMs)} --> ${stamp(s.endMs)}\n${s.speakerId ? `${cap.speakerNames[s.speakerId] ?? s.speakerId}: ` : ""}${s.text}\n`).join("\n");
+    exportFile(srt, `${cap.title ?? "transcript"}.srt`, "text/plain;charset=utf-8");
+  }
   const ready = cap.state === "ready_to_review" || cap.state === "completed";
   const hasLines = ready && cap.transcript.length > 0;
 
@@ -218,6 +232,14 @@ export function TranscriptEditor({ cap, statusLabel, active, onChanged, loadCapt
                   {SAVE_LABEL[save]}
                 </p>
                 <Button variant="primary" onClick={() => void done()} disabled={save === "saving" || save === "conflict"}>Done</Button>
+              </div>
+            ) : hasLines ? (
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" onClick={exportTxt} title="Export as text"><Download aria-hidden className="h-4 w-4" /> TXT</Button>
+                <Button variant="ghost" onClick={exportSrt} title="Export as SRT"><Download aria-hidden className="h-4 w-4" /> SRT</Button>
+                <Button variant="secondary" onClick={() => setEditing(true)}>
+                  <Pencil aria-hidden className="h-4 w-4" /> Edit transcript
+                </Button>
               </div>
             ) : (
               <Button variant="secondary" onClick={() => setEditing(true)}>

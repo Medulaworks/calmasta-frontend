@@ -4,8 +4,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { dashboardPath } from "@/lib/app-routes";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Eye, EyeOff, LoaderCircle } from "lucide-react";
+import { Eye, EyeOff, LoaderCircle } from "lucide-react";
 import { authErrorMessage } from "@/lib/auth-errors";
+import { AuthCodeForm } from "@/components/auth-code-form";
+import { codeSignupPayload } from "@/lib/auth-code-flow";
+import { AUTH_FIELD, AUTH_HEADING, AUTH_DESCRIPTION, AUTH_BUTTON } from "@/components/auth-styles";
 import { AuthLayout } from "@/components/auth-layout";
 import { buttonClass } from "@/components/ui/button";
 
@@ -35,9 +38,9 @@ export function Login() {
   const [name, setName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [connectingGoogle, setConnectingGoogle] = useState(false);
+  const [connectingMicrosoft, setConnectingMicrosoft] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const expired = params.get("reason") === "expired" && !formError;
-  const [forgotSuccess, setForgotSuccess] = useState(false);
 
   const [checking, setChecking] = useState(true);
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
@@ -56,6 +59,12 @@ export function Login() {
     const resetGoogle = () => setConnectingGoogle(false);
     window.addEventListener("pageshow", resetGoogle);
     return () => window.removeEventListener("pageshow", resetGoogle);
+  }, []);
+
+  useEffect(() => {
+    const resetMicrosoft = () => setConnectingMicrosoft(false);
+    window.addEventListener("pageshow", resetMicrosoft);
+    return () => window.removeEventListener("pageshow", resetMicrosoft);
   }, []);
 
   // Already signed in? Go straight to where they were headed, taking onboarding into account.
@@ -104,50 +113,20 @@ export function Login() {
   function returnToSignIn() {
     setMode("signin");
     setShowPassword(false);
-    setForgotSuccess(false);
     setFormError(null);
     setPassword("");
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (mode === "forgot" && forgotSuccess) return;
     setFormError(null);
-    setForgotSuccess(false);
-
-    if (mode === "forgot") {
-      setSubmitting(true);
-      try {
-        const res = await fetch("/api/auth/forgot-password", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        });
-        if (res.ok) {
-          setForgotSuccess(true);
-        } else {
-          setFormError(
-            res.status === 503
-              ? "Email delivery is temporarily unavailable. Please try again shortly."
-              : res.status === 429
-                ? "Too many requests. Please wait before trying again."
-                : "Could not request a reset email. Please check your email format and try again.",
-          );
-        }
-      } catch {
-        setFormError("Network error. Please try again.");
-      } finally {
-        setSubmitting(false);
-      }
-      return;
-    }
 
     setSubmitting(true);
     try {
       const endpoint =
         mode === "signup" ? "/api/auth/register" : "/api/auth/login";
       const payload =
-        mode === "signup" ? { email, password, name } : { email, password };
+        mode === "signup" ? codeSignupPayload(email, password, name) : { email, password };
 
       const res = await fetch(endpoint, {
         method: "POST",
@@ -186,32 +165,17 @@ export function Login() {
 
   const q = `returnTo=${encodeURIComponent(returnTo)}`;
 
+  if (mode === "forgot") return <AuthLayout><AuthCodeForm purpose="recovery" initialEmail={email} onBack={returnToSignIn} /></AuthLayout>;
+
   return (
     <AuthLayout>
-          {mode === "forgot" && (
-            <button
-              type="button"
-              onClick={returnToSignIn}
-              disabled={submitting}
-              aria-label="Back to sign in"
-              className="mb-4 inline-flex size-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface hover:text-foreground disabled:opacity-50">
-              <ArrowLeft aria-hidden className="size-5" />
-            </button>
-          )}
-
-          <h1 className="text-3xl font-semibold tracking-tight">
-            {mode === "signin"
-              ? "Welcome back"
-              : mode === "signup"
-                ? "Create an account"
-                : "Reset your password"}
+          <h1 className={AUTH_HEADING}>
+            {mode === "signin" ? <>Turn every conversation into <span className="text-accent">finished work</span>.</> : <>Start with your <span className="text-accent">next conversation</span>.</>}
           </h1>
-          <p className="mt-2 text-sm text-muted">
+          <p className={AUTH_DESCRIPTION}>
             {mode === "signin"
-              ? "Sign in to turn your conversations into useful work."
-              : mode === "signup"
-                ? "Start capturing, transcribing, and organizing your conversations."
-                : "Enter your account email and we'll send you a recovery link."}
+              ? "Meetings and voice notes become transcripts, briefs and follow-ups. Pick up where you left off."
+              : "Start capturing, transcribing, and organizing your conversations."}
           </p>
 
           {expired && (
@@ -228,15 +192,6 @@ export function Login() {
               role="alert"
               className="mt-6 rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
               {formError}
-            </p>
-          )}
-
-          {forgotSuccess && (
-            <p
-              role="status"
-              className="mt-6 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-600 dark:text-emerald-400">
-              If an account matches that email address, we have sent
-              instructions to reset your password.
             </p>
           )}
 
@@ -258,11 +213,11 @@ export function Login() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+          <form onSubmit={handleSubmit} className="mt-[clamp(1rem,3.4vh,2rem)] space-y-[clamp(0.75rem,2vh,1.25rem)]">
             {mode === "signup" && (
               <div>
                 <label
-                  className="block text-xs font-medium text-muted mb-1"
+                  className="mb-1.5 block text-sm font-medium text-foreground"
                   htmlFor="name">
                   Full Name
                 </label>
@@ -273,14 +228,14 @@ export function Login() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Jane Doe"
-                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                  className={AUTH_FIELD}
                 />
               </div>
             )}
 
-            {!(mode === "forgot" && forgotSuccess) && <div>
+            {<div>
               <label
-                className="block text-xs font-medium text-muted mb-1"
+                className="mb-1.5 block text-sm font-medium text-foreground"
                 htmlFor="email">
                 Email Address
               </label>
@@ -288,19 +243,18 @@ export function Login() {
                 id="email"
                 type="email"
                 required
-                disabled={mode === "forgot" && (forgotSuccess || submitting)}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                className={AUTH_FIELD}
               />
             </div>}
 
-            {mode !== "forgot" && (
+            {(
               <div>
-                <div className="flex items-center justify-between mb-1">
+                <div className="mb-1.5 flex items-center justify-between">
                   <label
-                    className="block text-xs font-medium text-muted"
+                    className="block text-sm font-medium text-foreground"
                     htmlFor="password">
                     Password
                   </label>
@@ -326,7 +280,7 @@ export function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="At least 8 characters"
-                  className="w-full rounded-lg border border-border bg-surface py-2 pl-3 pr-11 text-sm focus:border-primary focus:outline-none"
+                  className={`${AUTH_FIELD} pr-11`}
                 />
                 <button
                   type="button"
@@ -342,27 +296,20 @@ export function Login() {
             )}
 
             <button
-              type={mode === "forgot" && forgotSuccess ? "button" : "submit"}
-              onClick={mode === "forgot" && forgotSuccess ? returnToSignIn : undefined}
-              disabled={submitting || checking || connectingGoogle}
-              className={`${buttonClass("primary", "w-full", "lg")}${
-                submitting || checking || connectingGoogle
+              type="submit"
+              disabled={submitting || checking || connectingGoogle || connectingMicrosoft}
+              className={`${buttonClass("primary", AUTH_BUTTON, "lg")}${
+                submitting || checking || connectingGoogle || connectingMicrosoft
                   ? " pointer-events-none opacity-60"
                   : ""
               }`}>
-              {mode === "forgot" && forgotSuccess
-                ? "Return"
-                : submitting
+              {submitting
                 ? "Processing…"
-                : mode === "signin"
-                  ? "Sign in"
-                  : mode === "signup"
-                    ? "Create account"
-                    : "Send recovery link"}
+                : mode === "signin" ? "Sign in" : "Create account"}
             </button>
           </form>
 
-          {mode !== "forgot" && <>
+          {<>
           {/* Social sign-in alternatives */}
           <div className="mt-6">
             <div className="relative flex items-center justify-center">
@@ -374,10 +321,10 @@ export function Login() {
             <div className="mt-4 space-y-3">
               <a
                 href={`/api/auth/login?${q}&provider=google`}
-                aria-disabled={checking || submitting || connectingGoogle}
+                aria-disabled={checking || submitting || connectingGoogle || connectingMicrosoft}
                 aria-busy={connectingGoogle}
                 onClick={(event) => {
-                  if (checking || submitting || connectingGoogle) {
+                  if (checking || submitting || connectingGoogle || connectingMicrosoft) {
                     event.preventDefault();
                     return;
                   }
@@ -390,7 +337,7 @@ export function Login() {
                   )
                     setConnectingGoogle(true);
                 }}
-                className={`${buttonClass("secondary", "w-full", "lg")}${
+                className={`${buttonClass("secondary", AUTH_BUTTON, "lg")}${
                   checking || submitting || connectingGoogle
                     ? " pointer-events-none opacity-60"
                     : ""
@@ -415,20 +362,41 @@ export function Login() {
               </a>
               <button
                 type="button"
-                disabled
-                className={buttonClass("secondary", "w-full", "lg")}>
-                <svg aria-hidden="true" width="18" height="18" viewBox="0 0 21 21">
-                  <path fill="#f25022" d="M0 0h10v10H0z" />
-                  <path fill="#7fba00" d="M11 0h10v10H11z" />
-                  <path fill="#00a4ef" d="M0 11h10v10H0z" />
-                  <path fill="#ffb900" d="M11 11h10v10H11z" />
-                </svg>
-                Continue with Microsoft
+                aria-busy={connectingMicrosoft}
+                disabled={checking || submitting || connectingGoogle || connectingMicrosoft}
+                onClick={async () => {
+                  if (checking || submitting || connectingGoogle || connectingMicrosoft) return;
+                  setConnectingMicrosoft(true);
+                  setFormError(null);
+                  try {
+                    const res = await fetch(`/api/auth/microsoft/url?returnTo=${encodeURIComponent(returnTo)}`, { method: "POST", cache: "no-store" });
+                    const data = await res.json().catch(() => ({})) as { url?: string; state?: string; error?: string };
+                    if (!res.ok || !data.url || !data.state) throw new Error(data.error || "Microsoft sign-in unavailable");
+                    try { sessionStorage.setItem("microsoft_oauth_state", data.state); } catch {}
+                    try { sessionStorage.setItem("oauth_state", data.state); } catch {}
+                    window.location.assign(data.url);
+                  } catch (e) {
+                    setFormError(e instanceof Error ? e.message : "Microsoft sign-in is temporarily unavailable. Please try again.");
+                    setConnectingMicrosoft(false);
+                  }
+                }}
+                className={`${buttonClass("secondary", AUTH_BUTTON, "lg")}${checking || submitting || connectingGoogle || connectingMicrosoft ? " pointer-events-none opacity-60" : ""}`}>
+                {connectingMicrosoft ? (
+                  <LoaderCircle aria-hidden="true" className="size-4.5 animate-spin" />
+                ) : (
+                  <svg aria-hidden="true" width="18" height="18" viewBox="0 0 21 21">
+                    <path fill="#f25022" d="M0 0h10v10H0z" />
+                    <path fill="#7fba00" d="M11 0h10v10H11z" />
+                    <path fill="#00a4ef" d="M0 11h10v10H0z" />
+                    <path fill="#ffb900" d="M11 11h10v10H11z" />
+                  </svg>
+                )}
+                {connectingMicrosoft ? "Connecting to Microsoft" : "Continue with Microsoft"}
               </button>
             </div>
           </div>
 
-          <div className="mt-6 text-center text-xs text-muted">
+          <div className="mt-[clamp(0.75rem,2.6vh,1.5rem)] text-center text-sm text-muted">
             {mode === "signin" ? (
               <p>
                 Don&apos;t have an account?{" "}

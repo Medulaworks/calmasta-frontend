@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { Login } from "@/components/login";
 
-export const metadata = { title: "Sign in · MyJooba" };
+export const metadata = { title: "Sign in · Jooba" };
 
 export default function LoginPage() {
   return (

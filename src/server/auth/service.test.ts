@@ -13,6 +13,7 @@ class MemoryStore implements AuthStore {
  async revoke(id:string,all:boolean){const current=this.sessions.get(id);const removed:SessionData[]=[];for(const [key,v]of this.sessions){if(key===id||(all&&current&&v.subject===current.subject)){removed.push(v);this.sessions.delete(key);}}return removed;}
 }
 let server:Server,origin:string,store:MemoryStore,auth:AuthService;
+let actionFailure: {code:string;status:number}|undefined;
 let calls:{path:string;body:Record<string,unknown>;authorization:string|undefined;clientIp?:string;bffProof?:string}[]=[],emailVerified=true,refreshCalls=0,revoked=false;
 const userId="11111111-1111-4111-8111-111111111111";
 const responseCookie=(res:Response,name="sid")=>res.headers.getSetCookie().find(x=>x.startsWith(name+"="))!.split(";")[0];
@@ -24,6 +25,7 @@ beforeAll(async()=>{
   calls.push({path,body,authorization:req.headers.authorization,clientIp:req.headers["x-auth-client-ip"] as string|undefined,bffProof:req.headers["x-bff-secret"] as string|undefined});
   const credentials={accessToken:"internal-access",refreshToken:"internal-refresh",expiresIn:900,user:{id:userId,email:"user@example.com",name:"Name",emailVerified}};
   if(path==="/auth/login"||path==="/auth/register"){if(body.password!=="ValidPassword1!"){res.statusCode=401;return res.end(JSON.stringify({code:"invalid_credentials"}));}return res.end(JSON.stringify(credentials));}
+  if(path==="/auth/microsoft/url")return res.end(JSON.stringify({url:"https://login.microsoftonline.com/common/oauth2/v2.0/authorize?state=microsoft-state",state:"microsoft-state"}));
   if(path==="/auth/google/url")return res.end(JSON.stringify({url:"https://accounts.google.com/o/oauth2/v2/auth?state=backend-state",state:"backend-state"}));
   if(path==="/auth/google/callback"){if(body.code!=="valid-code"){res.statusCode=401;return res.end(JSON.stringify({code:"invalid_google_identity"}));}return res.end(JSON.stringify(credentials));}
   if(path==="/auth/refresh"){refreshCalls++;return res.end(JSON.stringify({...credentials,refreshToken:"rotated-refresh"}));}
@@ -32,13 +34,15 @@ beforeAll(async()=>{
    if(req.headers.authorization!=="Bearer internal-access"||revoked){res.statusCode=401;return res.end("{}");}
    return res.end(JSON.stringify({userId,subject:userId,email:"user@example.com",emailVerified,name:"Local name",profession:body.profession??"consultant",role:"owner",onboarded:true,theme:body.theme??"a",mode:body.mode??"system"}));
   }
+  if(path.startsWith("/auth/")&&actionFailure){res.statusCode=actionFailure.status;return res.end(JSON.stringify({code:actionFailure.code}));}
+  if(path==="/auth/verify-reset-code")return res.end(JSON.stringify({resetToken:"a".repeat(64)}));
   if(path.startsWith("/auth/"))return res.end(JSON.stringify({ok:true}));
   if(path==="/usage/summary")return res.end(JSON.stringify({usedSeconds:10}));
   res.statusCode=404;res.end("{}");
  });await new Promise<void>(r=>server.listen(0,"127.0.0.1",r));origin=`http://127.0.0.1:${(server.address() as {port:number}).port}`;
 });
 afterAll(()=>new Promise<void>(r=>server.close(()=>r())));
-beforeEach(()=>{calls=[];emailVerified=true;refreshCalls=0;revoked=false;store=new MemoryStore();auth=new AuthService(cfg(),store);});
+beforeEach(()=>{actionFailure=undefined;calls=[];emailVerified=true;refreshCalls=0;revoked=false;store=new MemoryStore();auth=new AuthService(cfg(),store);});
 async function login(){return auth.login(request("/api/auth/login",{email:"user@example.com",password:"ValidPassword1!"}));}
 it("email/password login and registration issue opaque cookies without browser tokens",async()=>{
  const res=await login();expect(res.status).toBe(200);const body=await res.json();expect(body).toEqual({ok:true,onboarded:true,emailVerified:true});expect(JSON.stringify(body)).not.toContain("internal-access");expect(responseCookie(res)).not.toContain("internal-access");
@@ -146,4 +150,58 @@ it("appearance PATCH is forwarded through the same authenticated profile route",
  expect(response.status).toBe(200);
  expect(await response.json()).toMatchObject({theme:"e",mode:"dark"});
  expect(calls.find(x=>x.path==="/account/me"&&x.body.theme)?.body).toEqual({theme:"e",mode:"dark"});
+});
+
+it("code verification requires a session while token verification remains public",async()=>{
+ const count=calls.length;
+ expect((await auth.action(request("/api/auth/verify-email",{code:"012345"}),"verify-email")).status).toBe(401);
+ expect(calls.length).toBe(count);
+ emailVerified=false;
+ const cookie=responseCookie(await login());
+ const res=await auth.action(request("/api/auth/verify-email",{code:"012345"},cookie),"verify-email");
+ expect(res.status).toBe(200);
+ expect(calls.find(x=>x.path==="/auth/verify-email")).toMatchObject({body:{code:"012345"},authorization:"Bearer internal-access"});
+ expect((await auth.action(request("/api/auth/verify-email",{token:"a".repeat(64)}),"verify-email")).status).toBe(200);
+});
+it("code delivery and reset exchange pass through exact origin-protected actions",async()=>{
+ const cookie=responseCookie(await login());
+ await auth.register(request("/api/auth/register",{email:"user@example.com",password:"ValidPassword1!",delivery:"code"}));
+ await auth.action(request("/api/auth/forgot-password",{email:"user@example.com",delivery:"code"}),"forgot-password");
+ await auth.action(request("/api/auth/verify-email/resend",{delivery:"code"},cookie),"verify-email/resend");
+ for(const path of ["/auth/register","/auth/forgot-password","/auth/verify-email/resend"])expect(calls.find(x=>x.path===path)?.body.delivery).toBe("code");
+ const exchange=await auth.action(request("/api/auth/verify-reset-code",{email:"user@example.com",code:"012345"}),"verify-reset-code");
+ expect(exchange.status).toBe(200);const grant=await exchange.json();expect(grant).toEqual({resetToken:"a".repeat(64)});
+ expect(calls.find(x=>x.path==="/auth/verify-reset-code")?.authorization).toBeUndefined();
+ await auth.action(request("/api/auth/reset-password",{token:grant.resetToken,password:"NewPassword1!"}),"reset-password");
+ expect(calls.find(x=>x.path==="/auth/reset-password")?.body).toEqual({token:grant.resetToken,password:"NewPassword1!"});
+ expect(calls.find(x=>x.path==="/auth/verify-reset-code")?.body.code).toBe("012345");
+ const count=calls.length;
+ expect((await auth.action(request("/api/auth/verify-reset-code",{code:"012345"},undefined,"https://foreign.invalid"),"verify-reset-code")).status).toBe(403);
+ expect(calls.length).toBe(count);
+ expect((await auth.action(request("/api/auth/arbitrary",{}),"arbitrary")).status).toBe(404);
+});
+it("ambiguous verification credentials cannot reach upstream",async()=>{
+ const count=calls.length;
+ expect((await auth.action(request("/api/auth/verify-email",{token:"a".repeat(64),code:"012345"}),"verify-email")).status).toBe(400);
+ expect(calls.length).toBe(count);
+});
+
+it.each([["invalid_code",400],["expired_code",400],["too_many_attempts",429],["too_many_auth_attempts",429],["unauthorized",401],["invalid_or_expired_token",400]])("preserves upstream %s and status for code actions",async(code,status)=>{
+ actionFailure={code:String(code),status:Number(status)};
+ const response=await auth.action(request("/api/auth/verify-reset-code",{email:"user@example.com",code:"012345"}),"verify-reset-code");
+ expect(response.status).toBe(status);expect(await response.json()).toEqual({error:code});
+});
+
+it("Microsoft URL setup rejects missing/foreign origins honestly rather than claiming missing configuration",async()=>{
+ const count=calls.length;
+ const missing=new Request(origin+"/api/auth/microsoft/url",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});
+ expect((await auth.microsoftUrl(missing)).status).toBe(403);
+ expect((await auth.microsoftUrl(request("/api/auth/microsoft/url",{},undefined,"https://foreign.invalid"))).status).toBe(403);
+ expect(calls.length).toBe(count);
+});
+it("Microsoft URL setup accepts same-origin POST and persists the provider transaction",async()=>{
+ const response=await auth.microsoftUrl(request("/api/auth/microsoft/url",{}));
+ expect(response.status).toBe(200);
+ expect(await response.json()).toMatchObject({state:"microsoft-state",url:expect.stringContaining("login.microsoftonline.com")});
+ expect(store.transactions.values().next().value?.provider).toBe("microsoft");
 });

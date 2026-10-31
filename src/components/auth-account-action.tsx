@@ -1,6 +1,8 @@
 "use client";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { VerificationSignInLink } from "@/components/verification-sign-in-link";
+import { AUTH_FIELD, AUTH_HEADING, AUTH_DESCRIPTION, AUTH_BUTTON } from "@/components/auth-styles";
 import { AuthLayout } from "@/components/auth-layout";
 import { buttonClass } from "@/components/ui/button";
 import { LoaderCircle } from "lucide-react";
@@ -54,20 +56,20 @@ export function AuthAccountAction({kind}:{kind:"verify-email"|"reset-password"|"
    setMessage(res.ok?"A new verification email was requested. Check your inbox.":res.status===401?"Sign in first, then request another verification email.":"Email could not be sent. Please try again later.");
   }catch{setMessage("Unable to connect. Please try again.");}finally{setBusy(false);}
  }
- const content=<><h1 className={verifying?"text-3xl font-semibold tracking-tight":"text-2xl font-semibold"}>{verifying?"Verify your email":changing?"Change password":"Reset password"}</h1>
- {verifying&&!done&&<p className="mt-2 text-sm text-muted">Open the link in your verification email. Your address will be verified automatically before you use recording features.</p>}
+ const content=<><h1 className={AUTH_HEADING}>{verifying?"Verify your email":changing?"Change password":"Reset password"}</h1>
+ {verifying&&!done&&<p className={AUTH_DESCRIPTION}>Open the link in your verification email. Your address will be verified automatically before you use recording features.</p>}
  {autoVerifying&&!done&&<p role="status" aria-live="polite" className="mt-6 flex items-center gap-2 text-sm text-muted"><LoaderCircle aria-hidden className="size-4 animate-spin"/>Verifying your email…</p>}
  {message&&<p role="status" className={verifying?"mt-6 rounded-lg border border-border bg-surface px-4 py-3 text-sm":"my-4"}>{message}</p>}
  {!done&&!verifying&&<form onSubmit={submit} className="mt-6 space-y-4">
- {changing&&<label className="block">Current password<input className="mt-1 w-full rounded-lg border p-3" type="password" autoComplete="current-password" required maxLength={128} value={current} onChange={e=>setCurrent(e.target.value)}/></label>}
- <label className="block">New password<input className="mt-1 w-full rounded-lg border p-3" type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={password} onChange={e=>setPassword(e.target.value)}/></label>
- <label className="block">Confirm new password<input className="mt-1 w-full rounded-lg border p-3" type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={confirm} onChange={e=>setConfirm(e.target.value)}/></label>
- <button className="rounded-lg bg-foreground px-4 py-2 text-background disabled:opacity-50" disabled={busy||(!changing&&!token)}>{busy?"Please wait…":"Update password"}</button>
+ {changing&&<label className="block">Current password<input className={`${AUTH_FIELD} mt-1.5`} type="password" autoComplete="current-password" required maxLength={128} value={current} onChange={e=>setCurrent(e.target.value)}/></label>}
+ <label className="block">New password<input className={`${AUTH_FIELD} mt-1.5`} type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={password} onChange={e=>setPassword(e.target.value)}/></label>
+ <label className="block">Confirm new password<input className={`${AUTH_FIELD} mt-1.5`} type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={confirm} onChange={e=>setConfirm(e.target.value)}/></label>
+ <button className={buttonClass("primary", `${AUTH_BUTTON} disabled:opacity-50`, "lg")} disabled={busy||(!changing&&!token)}>{busy?"Please wait…":"Update password"}</button>
  </form>}
  {verifying&&!done&&(coolingDown
   ? <p role="timer" aria-live="off" className="mt-4 text-center text-sm text-muted">Send another email in {Math.floor(resendSeconds/60)}:{String(resendSeconds%60).padStart(2,"0")}</p>
   : <button type="button" onClick={resend} disabled={busy} className={buttonClass("secondary","mt-4 w-full","lg")}>Send another verification email</button>)}
- <Link className={verifying?"mt-6 block text-center text-xs font-medium text-foreground underline hover:no-underline":"mt-6 block underline"} href={done&&verifying?"/dashboard/welcome":"/auth/login"}>{done&&verifying?"Continue":"Back to sign in"}</Link>
+ {verifying&&!done ? <VerificationSignInLink disabled={busy}/> : <Link className={verifying?"mt-6 block text-center text-xs font-medium text-foreground underline hover:no-underline":"mt-6 block underline"} href={done&&verifying?"/dashboard/welcome":"/auth/login"}>{done&&verifying?"Continue":"Back to sign in"}</Link>}
  </>;
- return verifying?<AuthLayout>{content}</AuthLayout>:<main className="mx-auto max-w-md px-6 py-16">{content}</main>;
+ return <AuthLayout>{content}</AuthLayout>;
 }

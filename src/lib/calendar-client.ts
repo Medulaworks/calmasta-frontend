@@ -29,13 +29,31 @@ export interface AgendaEvent {
 }
 
 export interface Agenda {
+  mock?: boolean;
+  source?: "provider" | "unavailable" | "mock";
+  available?: boolean;
+  notice?: string | null;
+  capabilities?: { providerSync: boolean; connect: boolean; disconnect: boolean; booking: boolean; capture: boolean };
   events: AgendaEvent[];
   problems: Array<{ connectionId: string; accountEmail: string; reason: "needs_reconnect" | "unavailable" }>;
   connected: boolean;
 }
 
-export const getConnections = () => api<{ provider: string; connections: ConnectionView[] }>("/api/calendar/connections");
+export interface ConnectionsResponse {
+  mock: boolean;
+  source: "mock" | "unavailable" | "provider";
+  available: boolean;
+  notice: string | null;
+  provider: string | null;
+  providers?: Array<"google" | "microsoft">;
+  capabilities: { providerSync: boolean; connect: boolean; disconnect: boolean; booking: boolean; capture: boolean };
+  connections: ConnectionView[];
+}
+
+export const getConnections = () => api<ConnectionsResponse>("/api/calendar/connections");
 /** Development stand-in only: real providers connect through a sign-in page. */
-export const connectDevCalendar = () => api<{ connectionId: string }>("/api/calendar/connections", { method: "POST" });
-export const disconnectCalendar = (id: string) => api<void>(`/api/calendar/connections/${id}`, { method: "DELETE" });
+export const connectDevCalendar = () => api<{ connectionId: string }>("/api/calendar/connections", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+export const connectGoogleCalendar = () => api<{ provider: "google"; authorizationUrl: string; expiresInSeconds: number }>("/api/calendar/connections/google/connect", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+export const connectMicrosoftCalendar = () => api<{ provider: "microsoft"; authorizationUrl: string; expiresInSeconds: number }>("/api/calendar/connections/microsoft/connect", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+export const disconnectCalendar = (id: string) => api<{ id: string; status: "disconnected"; providerRevoked: boolean | null } | void>(`/api/calendar/connections/${id}`, { method: "DELETE" });
 export const getAgenda = (from: Date, to: Date) => api<Agenda>(`/api/calendar/agenda?from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`);

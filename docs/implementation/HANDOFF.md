@@ -1,3 +1,10 @@
+## 2026-10-29 — meeting assistant display names
+
+- **What was done (files + behavior):** FE-C01/FE-C02: voice page CaptureForm adds optional assistant-name input using policy botName placeholder, blank-default behavior, maxLength 100, mutation forwarding and submit reset. upload-client trims/validates the override, omits blank names and includes chosen names in existing request fingerprints; useRequestMeeting forwards it. Meeting title remains separate; shared same-origin auth/proxy and consent/video guards retained. Voice page removes hardcoded assistant branding from its description.
+- **Proof (command + result + revision):** cb374de dirty frontend with concurrent auth edits preserved; provider/client regressions first failed, then direct node_modules/.bin/vitest run src/lib/capture-flow.test.ts passed 9/9; frontend tsc --noEmit, targeted eslint and diff checks passed. Backend df32fd0 dirty: migration018, DTO/policy/read models, persisted retry name and worker/provider dispatch verified by 40/40 focused disposable-PG tests and valid 68-path OpenAPI. No live bot/browser/provider test. pnpm auto-synchronized the pre-existing dependency tree during the first test invocation; only its unrelated lockfile edit was restored, with no requested dependency additions.
+- **What is NOT done:** Hosted API/worker/frontend rollout and real custom-name meeting proof pending. No live flags, allowances, paid dispatch, browser automation, commit or deploy. Authenticated Google Meet assistants use their account name; guest custom names follow Recall bot_name.
+- **Next action (task ID + files):** FE-C01/FE-C03 — deploy backend migrations through 018 and updated API/worker before the frontend; optional RECALL_BOT_NAME default, verify policy.botName and chosen name on an authorized live meeting. Acceptance: WORK_PLAN.md; backend runbook ../calmasta-api/docs/runbooks/meeting-bot-names.md (sibling repository).
+
 # Frontend agent handoff
 
 ## 2026-10-29 — backend documentation consolidation
@@ -191,3 +198,80 @@ You can start consuming ready local contracts now. Core auth/capture/library cod
 - **Proof (command + result + revision):** dded46a working tree: pnpm test src/lib/meeting-poller.test.ts src/lib/capture-flow.test.ts passed 12/12; pnpm typecheck, targeted eslint and git diff --check passed. Polling refinement verification PARTIALLY_TESTED (fake timers/client checks).
 - **What is NOT done:** Live browser/network and backend/provider verification; no browser automation, paid processing, commits or deployment.
 - **Next action (task ID + files):** FE-C02 — manually verify capture-form.tsx request cadence, tab visibility and failure recovery when browser verification is authorized.
+
+## 2026-10-30 — proposed backend auth-code handoff
+
+- **What was done (files + behavior):** Added docs/backend-auth-code-flows-handoff.md for FE-A02/FE-A04: proposed additive code delivery, legacy-link compatibility, conditional backend authentication, security requirements, implementation order and acceptance checklist. Runtime and existing task statuses unchanged.
+- **Proof (command + result + revision):** Source/contract inspection at frontend 200c70e, feature 3f57939 and backend e88588d; git diff --check and handoff structure checks passed. Documentation checks only; no runtime evidence or endpoint implementation claimed.
+- **What is NOT done:** Backend contracts/migrations, frontend integration, live mail/provider checks, rebrand/redesign, commits/push/deploy. Canonical backend M1/gap tracker registration remains backend implementer work.
+- **Next action (task ID + files):** Backend M1 owner registers proposal in ../calmasta-api/docs/implementation/FRONTEND_CONTRACT_GAPS.md and WORK_PLAN.md, then implements/tests compatibility before FE-A02 consumers change.
+
+## 2026-10-30 — verification and recovery code consumption
+
+- **What was done (files + behavior):** FE-A02 code flows IMPLEMENTED: src/lib/auth-code-flow.ts + tests own pending/cooldown/errors and ephemeral reset grant; src/components/auth-code-form.tsx + email-code-verification.tsx add current-style code forms while preserving AuthAccountAction token pages. login.tsx explicitly requests code delivery for signup; new /api/auth/verify-reset-code route and server/auth service/runtime forward bounded actions, delivery and authenticated unverified sessions for code verification; ambiguous credentials rejected. Microsoft/Google, query/capture controls and branding preserved. Earlier handoff proposal is superseded by backend docs/runbooks/auth-code-flows.md for exact contracts.
+- **Proof (command + result + revision):** Frontend200c70e + working changes; backend e88588d + local implementation per runbook/OpenAPI. New BFF tests reproduced 3 expected failures before implementation; final node_modules/.bin/vitest run src/lib/auth-code-flow.test.ts src/lib/email-verification.test.ts src/lib/auth-routes.test.ts src/server/auth/service.test.ts src/server/auth/service.public.test.ts src/server/auth/runtime.test.ts src/server/auth/security.test.ts src/server/auth/store.test.ts src/server/auth/flash.test.ts passed71/71 across9files. node_modules/.bin/tsc --noEmit, targeted eslint --max-warnings=0 and git diff --check passed; pnpm build passed51pages/routes. Read-only configured remote /openapi.json was reachable but did not advertise /auth/verify-reset-code. Fixture verification PASSED; hosted acceptance pending. pnpm build auto-synchronized the pre-existing dependency tree; only its unrelated lockfile edit was restored, no dependencies added.
+- **What is NOT done:** Hosted code endpoint deployment/migration/grants, real mail/HTTPS/OAuth acceptance, browser checks; no backend edits, live email, migration, commit/push/deploy. No silent fallback to links. FE-A04 remains IN_PROGRESS/PARTIALLY_TESTED; local tests do not establish hosted readiness.
+- **Next action (task ID + files):** FE-A04 / backend B-AUTH-03 deployment owner confirms deployed migration021/API contract and intended environment; then authorize synthetic end-to-end code/link acceptance. FE-A02 files above await that integration proof; backend runbook remains canonical.
+
+## 2026-10-31 — recovery success return navigation
+
+- **What was done (files + behavior):** FE-A02: src/components/auth-code-form.tsx recovery success/sign-in link invokes existing parent onBack handler instead of navigating to the already-active /auth/login URL; parent restores signin mode and clears password/error state. Verification navigation retains its existing destination.
+- **Proof (command + result + revision):** Frontend200c70e plus preserved working changes; node_modules/.bin/eslint src/components/auth-code-form.tsx --max-warnings=0, node_modules/.bin/tsc --noEmit and git diff --check passed. Source/state-path inspection only; no browser verification claimed.
+- **What is NOT done:** Manual browser confirmation and hosted acceptance; no backend changes, commit/push/deploy.
+- **Next action (task ID + files):** FE-A02 — manually select Back to sign in after recovery success at /auth/login and confirm sign-in form appears; FE-A04 hosted acceptance remains pending.
+
+## 2026-10-31 — remaining return-to-sign-in actions
+
+- **What was done (files + behavior):** FE-A02: audited recovery, token reset/change-password, verification and account-deleted return actions. Added verification-sign-in-link.tsx using existing auth-client signOut to clear the current session before returning; code and link verification now avoid the login→verification redirect loop, show pending/error states and preserve sessions on failed logout. Recovery retains parent-mode reset; other page links retain distinct destinations. Added focused signOut navigation/failure tests. User reports local signup/code/setup, recovery/new-password/login, resend/incorrect/legacy links and Google/Microsoft flows all work.
+- **Proof (command + result + revision):** Frontend200c70e + preserved worktree; node_modules/.bin/vitest run src/lib/auth-client.test.ts src/lib/auth-code-flow.test.ts src/lib/email-verification.test.ts src/lib/auth-routes.test.ts passed22/22 across4files; targeted eslint, TypeScript and diff check passed. User report is manual local acceptance, not agent browser proof; new verification return action still awaits manual confirmation.
+- **What is NOT done:** Hosted readiness/HTTPS/provider acceptance, browser automation or new live auth requests; no backend changes, commit/push/deploy. FE-A04 remains partial.
+- **Next action (task ID + files):** FE-A02 — manually select Back to sign in from code and link verification to confirm signout/signin without a redirect loop; FE-A04 hosted acceptance remains pending.
+
+## 2026-10-31 — Microsoft sign-in request origin correction
+
+- **What was done (files + behavior):** FE-A02: Microsoft URL request in login.tsx now uses POST and src/app/api/auth/microsoft/url/route.ts exports POST, retaining service origin checks. Browser same-origin GET lacked required Origin and was mislabeled as configuration failure. server/auth/service.ts now preserves origin-error status and upstream machine errors; transport failures use generic temporary-unavailability copy. Fixture tests cover rejected origins and same-origin POST transaction creation. User confirms local code/link/Google flows work, explicitly excluding Microsoft; that supersedes earlier blanket acceptance report.
+- **Proof (command + result + revision):** Frontend200c70e dirty; regression first failed503-vs403, then focused9file auth/session run passed73/73; targeted eslint, TypeScript and git diff --check passed. next build failed due Turbopack CSS worker port-binding EPERM, including escalated retry; no successful new production-build claim. Backend env presence inspection found calendar Microsoft credential fallback present; no values printed and no live provider transaction initiated.
+- **What is NOT done:** Real Microsoft login/provider callback acceptance; credential validity/redirect registration and hosted acceptance unverified. Build blocked by local worker permission. No backend/env changes, live email, browser automation, commit/push/deploy.
+- **Next action (task ID + files):** FE-A04 — retry Microsoft button manually and inspect exact surfaced error if any; backend Microsoft configuration is owned by backend M1. Repeat production build when Turbopack worker binding is available.
+
+## 2026-10-31 — authorized auth checkpoint
+
+- **What was done (files + behavior):** FE-A02 selective auth-code implementation reviewed for local commit; user confirms all local flows including Microsoft now work. Existing handoff and prior working changes included intentionally. Rebrand/showcase excluded.
+- **Proof (command + result + revision):** Frontend200c70e dirty; focused10file auth/session75tests passed, TypeScript/targeted lint/diff checks passed. Local manual acceptance user-reported; no new hosted/provider proof. Prior Turbopack build remains blocked by worker port permission.
+- **What is NOT done:** Hosted deployment/acceptance and remote push; FE-A04 remains partial. User authorized local commits and selective presentation imports, not original PR merge or deployment.
+- **Next action (task ID + files):** FE-C02/FE-L02 — port skeleton/status/meeting notifications from feature3f57939 onto current staging consumers in separate commits, retaining query/capture controls; keep rebrand/auth redesign separate.
+
+## 2026-10-31 — selective loading presentation import
+
+- **What was done (files + behavior):** FE-C02/FE-L02: imported shared ui/skeleton.tsx and shimmer CSS from feature3f57939; exact skeleton-class substitutions across existing screens, labeled list/detail placeholders on current capture/library consumers. PR_SELECTIVE_IMPORT.md records included groups and deferred rebrand/auth redesign; staging data/control logic retained.
+- **Proof (command + result + revision):** Auth checkpoint49d7482 + selective working changes; TypeScript and git diff --check passed; changed-file lint exposed 1 existing top-bar set-state-in-effect error and 7 existing warnings; ESLint stdin comparison against49d7482 confirmed identical rule/severity diagnostics, no new lint diagnostics. Presentation source review only; visual/browser acceptance not claimed.
+- **What is NOT done:** Rebrand/showcase/auth redesign, original PR merge, push/deploy or browser automation; indicators/notifications pending next groups. Visual verification remains PARTIALLY_TESTED.
+- **Next action (task ID + files):** FE-C02 — status.ts/ui/badge.tsx/status-indicator.tsx: add indicators without changing terminal/readiness precedence, then notifications.
+
+## 2026-10-31 — selective status indicator import
+
+- **What was done (files + behavior):** FE-C02/FE-L02: added ui/status-indicator.tsx, optional Badge indicator and reduced-motion CSS from feature3f57939. status.ts decorates existing captureStatus outcomes after unchanged failure/attention precedence; badges on current capture/library/calendar/dashboard/voice consumers receive indicators. No status labels, query intervals, controls or brand changes.
+- **Proof (command + result + revision):** Skeleton checkpoint9c72d1f + working changes; new status regression failed before implementation, then node_modules/.bin/vitest run src/lib/status.test.ts passed17/17; TypeScript, focused new/status-file eslint and diff checks passed. Previously documented unchanged screen lint issues remain; no visual/browser acceptance.
+- **What is NOT done:** Live meeting/visual proof, notifications, rebrand/redesign, original PR merge, push/deploy; presentation verification remains partial.
+- **Next action (task ID + files):** FE-C02 — lib/meeting-phase.ts, hooks/use-meeting-toasts.ts and ui/toast.tsx: adapt notifications to canonical states and staging query data, test failure/reconciliation transitions before wiring.
+
+## 2026-10-31 — selective meeting notifications and final review
+
+- **What was done (files + behavior):** FE-C02/FE-L02: added ui/toast.tsx, lib/meeting-phase.ts/tests and hooks/use-meeting-toasts.ts from feature3f57939 with staging adaptations: canonical attention/failure precedence, quiet initial load, stable history across query/filter gaps, encoded links and capture-scoped notices. Current capture-form/detail query results feed notifications; consent/names/video/cancel/mutations preserved. PR_SELECTIVE_IMPORT.md records separately deferred rebrand/showcase/auth redesign.
+- **Proof (command + result + revision):**78f02a1 + notification patch; actual16file focused vitest command/results in evidence/2026-10-31-selective-import.md:141/141; TypeScript, new-file targeted lint/diff and next build51routes passed. Fresh source review found no blockers; scope feedback fixed. Compared protected auth/brand/query/mutation/upload files to49d7482: no changes. Existing1screen lint error/7warnings remain identical to baseline.
+- **What is NOT done:** Browser/visual/live meeting and hosted acceptance; no full rebrand/redesign, original PR merge, backend change, paid dispatch, push or deployment. Presentation verification stays PARTIALLY_TESTED despite passed fixture/build checks.
+- **Next action (task ID + files):** FE-C03/FE-A04 — authorized manual local visual/meeting checks and later hosted acceptance; deferred design package may be reviewed separately using PR_SELECTIVE_IMPORT.md before any design import.
+
+## 2026-10-31 — separately approved auth design and Jooba rebrand
+
+- **What was done (files + behavior):** FE-A02 presentation IMPLEMENTED: imported auth-layout/showcase/stage from feature3f57939, showcase CSS and shared auth-styles; applied styling to current login/code/legacy-link forms and visible Jooba copy/metadata across app/components. Kept visible native code input/manual submit, reduced-motion particle hiding and generic/policy-derived operational assistant names. Storage/event/API/session identifiers and existing leaf asset paths preserved; PR_SELECTIVE_IMPORT.md supersedes prior design deferral.
+- **Proof (command + result + revision):**7c87052 + uncommitted design patch; exact commands in evidence/2026-10-31-auth-design-import.md:141focused tests, TypeScript, targeted design lint/diff and51-route next build passed. AST comparison: auth function/callback bodies unchanged excluding JSX; protected server/auth-controller/query/mutation/storage modules unchanged. Read-only review found no logic blocker; minor visual/editing/reduced-motion findings addressed.
+- **What is NOT done:** Manual visual/responsive/focus/reduced-motion and hosted acceptance; no browser automation, backend/env edits, live email/provider calls, commit/push/deploy or original PR merge. Design verification remains PARTIALLY_TESTED.
+- **Next action (task ID + files):** FE-A02 — manually review /auth/login (signin/signup/recovery), /auth/verify-email and existing reset links at mobile/desktop sizes; confirm forms/focus and branding before a separate design checkpoint. FE-A04 hosted acceptance remains pending.
+
+## 2026-10-31 — public privacy policy placeholder
+
+- **What was done (files + behavior):** FE-A02 supporting public UI: added src/app/privacy-policy/page.tsx at /privacy-policy with current Jooba branding, responsive static sections and Back to sign in navigation. Clearly labeled Draft placeholder; no unverified privacy commitments or invented contact details. Existing auth-design changes preserved; user reports the design works locally.
+- **Proof (command + result + revision):**7c87052 + existing design/privacy working changes; node_modules/.bin/eslint src/app/privacy-policy/page.tsx --max-warnings=0 and git diff --check passed; node_modules/.bin/next build passed TypeScript and52pages/routes, including static /privacy-policy. No browser check claimed.
+- **What is NOT done:** Final privacy policy content, manual new-page review, backend changes, browser automation or commit/push/deploy.
+- **Next action (task ID + files):** FE-A02 — review /privacy-policy locally; replace placeholder sections with approved policy content in src/app/privacy-policy/page.tsx when available.

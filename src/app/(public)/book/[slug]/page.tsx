@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { PublicBooking } from "@/components/booking/public-booking";
 
-export const metadata = { title: "Book a time · MyJooba" };
+export const metadata = { title: "Book a time · Jooba" };
 
 async function Booking(props: PageProps<"/book/[slug]">) {
   const { slug } = await props.params;

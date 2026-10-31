@@ -17,14 +17,14 @@ import {
   ACCOUNT_CHANGED,
   type DeletionView,
   type PlanSummary,
+  DUMMY_PLAN,
   fetchDeletion,
   fetchPlan,
 } from "@/lib/plan-client";
-import {
-  ProfileError,
-  type ProfileView,
-  getProfile,
-} from "@/lib/profile-client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ProfileError } from "@/lib/profile-client";
+import type { ProfileView } from "@/lib/profile-client";
+import { profileQuery } from "@/lib/queries";
 import { AccountBanners, SidebarPlanCard } from "./account-banners";
 import { Brand } from "@/components/ui/brand";
 import { ProfileProvider } from "./profile-context";
@@ -111,20 +111,20 @@ function PageSkeleton() {
       aria-busy="true"
       className="space-y-6">
       <div className="space-y-2" aria-hidden>
-        <div className="h-6 w-48 animate-pulse rounded bg-border" />
-        <div className="h-3.5 w-80 max-w-full animate-pulse rounded bg-border" />
+        <div className="h-6 w-48 jb-skel rounded bg-border" />
+        <div className="h-3.5 w-80 max-w-full jb-skel rounded bg-border" />
       </div>
       <div aria-hidden className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[0, 1, 2, 3].map((i) => (
           <div
             key={i}
-            className="h-28 animate-pulse rounded-xl border border-border bg-surface"
+            className="h-28 jb-skel rounded-xl border border-border bg-surface"
           />
         ))}
       </div>
       <div
         aria-hidden
-        className="h-64 animate-pulse rounded-xl border border-border bg-surface"
+        className="h-64 jb-skel rounded-xl border border-border bg-surface"
       />
     </div>
   );
@@ -134,7 +134,7 @@ function HomeLink() {
   return (
     <Link
       href="/dashboard"
-      aria-label="MyJooba home"
+      aria-label="Jooba home"
       className="text-lg text-sidebar-fg">
       <Brand size={32} tile="paper" labelClassName="sc:md:hidden" />
     </Link>
@@ -149,58 +149,37 @@ function HomeLink() {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [state, setState] = useState<{
-    ready: boolean;
-    profile: ProfileView | null;
-  }>({ ready: false, profile: null });
+  const qc = useQueryClient();
+  const {
+    data: profileData,
+    error: profileError,
+    isLoading,
+  } = useQuery(profileQuery);
+  const ready = !isLoading;
+  const profile = (profileData as ProfileView | undefined) ?? null;
 
   useEffect(() => {
-    let cancelled = false;
-    getProfile().then(
-      (profile) => {
-        if (cancelled) return;
-        if (!profile.onboarded) router.replace("/dashboard/welcome");
-        else setState({ ready: true, profile });
-      },
-      (err) => {
-        if (cancelled) return;
-        // No (or an expired) session: go and sign in, then come back to this page.
-        if (err instanceof ProfileError && err.status === 401) {
-          const here = window.location.pathname + window.location.search;
-          router.replace(
-            `/auth/login?returnTo=${encodeURIComponent(here)}&reason=expired`,
-          );
-          return;
-        }
-        setState({ ready: true, profile: null });
-      },
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [router]);
+    if (!ready) return;
+    if (profile && !profile.onboarded) router.replace("/dashboard/welcome");
+    if (profileError instanceof ProfileError && profileError.status === 401) {
+      const here = window.location.pathname + window.location.search;
+      router.replace(
+        `/auth/login?returnTo=${encodeURIComponent(here)}&reason=expired`,
+      );
+    }
+  }, [ready, profile, profileError, router]);
 
-  const avatarExpiresAt = state.profile?.avatarExpiresAt ?? null;
+  const avatarExpiresAt = profile?.avatarExpiresAt ?? null;
   useEffect(() => {
     if (!avatarExpiresAt) return;
     const ms = new Date(avatarExpiresAt).getTime() - Date.now() - 30_000;
     if (!Number.isFinite(ms)) return;
-    let cancelled = false;
     const timer = window.setTimeout(
-      () => {
-        getProfile()
-          .then((profile) => {
-            if (!cancelled) setState((s) => ({ ...s, profile }));
-          })
-          .catch(() => undefined);
-      },
+      () => qc.invalidateQueries({ queryKey: ["profile"] }),
       Math.max(1_000, ms),
     );
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [avatarExpiresAt]);
+    return () => window.clearTimeout(timer);
+  }, [avatarExpiresAt, qc]);
 
   // Plan and deletion status for the banners and the sidebar. Refreshed on every page change; failing to read it
   // never blocks the page, it just shows nothing.
@@ -208,7 +187,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     plan: PlanSummary | null;
     deletion: DeletionView | null;
   }>({ plan: null, deletion: null });
-  const profileReady = state.ready && !!state.profile;
+  const profileReady = ready && !!profile;
   const [accountTick, setAccountTick] = useState(0);
   useEffect(() => {
     const again = () => setAccountTick((n) => n + 1);
@@ -219,7 +198,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (!profileReady) return;
     let cancelled = false;
     Promise.all([
-      fetchPlan().catch(() => null),
+      fetchPlan().catch(() => DUMMY_PLAN),
       fetchDeletion().catch(() => null),
     ]).then(([plan, deletion]) => {
       if (!cancelled) setAccount({ plan, deletion });
@@ -229,15 +208,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     };
   }, [profileReady, pathname, accountTick]);
 
+  const setProfile = (p: ProfileView) => qc.setQueryData(["profile"], p);
   return (
     <ProfileProvider
       value={{
-        profile: state.profile,
-        setProfile: (profile) => setState((s) => ({ ...s, profile })),
+        profile,
+        setProfile,
       }}>
       <AppearanceProvider
-        profile={state.profile}
-        onSaved={(profile) => setState((s) => ({ ...s, profile }))}>
+        profile={profile}
+        onSaved={(p) => qc.setQueryData(["profile"], p)}>
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:shadow-lg">
@@ -278,7 +258,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 pathname={pathname}
                 tone="sidebar"
               />
-              {state.profile?.isStaff && (
+              {profile?.isStaff && (
                 <NavLink
                   href="/dashboard/admin"
                   label="Staff area"
@@ -291,11 +271,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </aside>
 
           <div className="flex min-w-0 flex-1 flex-col">
-            <TopBar
-              profile={state.profile}
-              plan={account.plan}
-              loading={!state.ready}
-            />
+            <TopBar profile={profile} plan={account.plan} loading={!ready} />
             <nav
               aria-label="Primary"
               className="flex gap-1 overflow-x-auto border-b border-border px-3 py-2 md:hidden">
@@ -317,8 +293,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 md:px-8 md:py-8">
                 {/* The page is always rendered (Next validates every segment for instant navigation) but stays hidden until
                 the profile is known, so nobody sees a page flash before the first-time redirect to /welcome. */}
-                {!state.ready && <PageSkeleton />}
-                <div hidden={!state.ready}>
+                {!ready && <PageSkeleton />}
+                <div hidden={!ready}>
                   <AccountBanners
                     plan={account.plan}
                     deletion={account.deletion}
