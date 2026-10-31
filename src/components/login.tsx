@@ -4,8 +4,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { dashboardPath } from "@/lib/app-routes";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Eye, EyeOff, LoaderCircle } from "lucide-react";
+import { Eye, EyeOff, LoaderCircle } from "lucide-react";
 import { authErrorMessage } from "@/lib/auth-errors";
+import { AuthCodeForm } from "@/components/auth-code-form";
+import { codeSignupPayload } from "@/lib/auth-code-flow";
 import { AuthLayout } from "@/components/auth-layout";
 import { buttonClass } from "@/components/ui/button";
 
@@ -38,7 +40,6 @@ export function Login() {
   const [connectingMicrosoft, setConnectingMicrosoft] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const expired = params.get("reason") === "expired" && !formError;
-  const [forgotSuccess, setForgotSuccess] = useState(false);
 
   const [checking, setChecking] = useState(true);
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
@@ -111,50 +112,20 @@ export function Login() {
   function returnToSignIn() {
     setMode("signin");
     setShowPassword(false);
-    setForgotSuccess(false);
     setFormError(null);
     setPassword("");
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (mode === "forgot" && forgotSuccess) return;
     setFormError(null);
-    setForgotSuccess(false);
-
-    if (mode === "forgot") {
-      setSubmitting(true);
-      try {
-        const res = await fetch("/api/auth/forgot-password", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        });
-        if (res.ok) {
-          setForgotSuccess(true);
-        } else {
-          setFormError(
-            res.status === 503
-              ? "Email delivery is temporarily unavailable. Please try again shortly."
-              : res.status === 429
-                ? "Too many requests. Please wait before trying again."
-                : "Could not request a reset email. Please check your email format and try again.",
-          );
-        }
-      } catch {
-        setFormError("Network error. Please try again.");
-      } finally {
-        setSubmitting(false);
-      }
-      return;
-    }
 
     setSubmitting(true);
     try {
       const endpoint =
         mode === "signup" ? "/api/auth/register" : "/api/auth/login";
       const payload =
-        mode === "signup" ? { email, password, name } : { email, password };
+        mode === "signup" ? codeSignupPayload(email, password, name) : { email, password };
 
       const res = await fetch(endpoint, {
         method: "POST",
@@ -193,32 +164,17 @@ export function Login() {
 
   const q = `returnTo=${encodeURIComponent(returnTo)}`;
 
+  if (mode === "forgot") return <AuthLayout><AuthCodeForm purpose="recovery" initialEmail={email} onBack={returnToSignIn} /></AuthLayout>;
+
   return (
     <AuthLayout>
-          {mode === "forgot" && (
-            <button
-              type="button"
-              onClick={returnToSignIn}
-              disabled={submitting}
-              aria-label="Back to sign in"
-              className="mb-4 inline-flex size-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface hover:text-foreground disabled:opacity-50">
-              <ArrowLeft aria-hidden className="size-5" />
-            </button>
-          )}
-
           <h1 className="text-3xl font-semibold tracking-tight">
-            {mode === "signin"
-              ? "Welcome back"
-              : mode === "signup"
-                ? "Create an account"
-                : "Reset your password"}
+            {mode === "signin" ? "Welcome back" : "Create an account"}
           </h1>
           <p className="mt-2 text-sm text-muted">
             {mode === "signin"
               ? "Sign in to turn your conversations into useful work."
-              : mode === "signup"
-                ? "Start capturing, transcribing, and organizing your conversations."
-                : "Enter your account email and we'll send you a recovery link."}
+              : "Start capturing, transcribing, and organizing your conversations."}
           </p>
 
           {expired && (
@@ -235,15 +191,6 @@ export function Login() {
               role="alert"
               className="mt-6 rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
               {formError}
-            </p>
-          )}
-
-          {forgotSuccess && (
-            <p
-              role="status"
-              className="mt-6 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-600 dark:text-emerald-400">
-              If an account matches that email address, we have sent
-              instructions to reset your password.
             </p>
           )}
 
@@ -285,7 +232,7 @@ export function Login() {
               </div>
             )}
 
-            {!(mode === "forgot" && forgotSuccess) && <div>
+            {<div>
               <label
                 className="block text-xs font-medium text-muted mb-1"
                 htmlFor="email">
@@ -295,7 +242,6 @@ export function Login() {
                 id="email"
                 type="email"
                 required
-                disabled={mode === "forgot" && (forgotSuccess || submitting)}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
@@ -303,7 +249,7 @@ export function Login() {
               />
             </div>}
 
-            {mode !== "forgot" && (
+            {(
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label
@@ -349,27 +295,20 @@ export function Login() {
             )}
 
             <button
-              type={mode === "forgot" && forgotSuccess ? "button" : "submit"}
-              onClick={mode === "forgot" && forgotSuccess ? returnToSignIn : undefined}
+              type="submit"
               disabled={submitting || checking || connectingGoogle || connectingMicrosoft}
               className={`${buttonClass("primary", "w-full", "lg")}${
                 submitting || checking || connectingGoogle || connectingMicrosoft
                   ? " pointer-events-none opacity-60"
                   : ""
               }`}>
-              {mode === "forgot" && forgotSuccess
-                ? "Return"
-                : submitting
+              {submitting
                 ? "Processing…"
-                : mode === "signin"
-                  ? "Sign in"
-                  : mode === "signup"
-                    ? "Create account"
-                    : "Send recovery link"}
+                : mode === "signin" ? "Sign in" : "Create account"}
             </button>
           </form>
 
-          {mode !== "forgot" && <>
+          {<>
           {/* Social sign-in alternatives */}
           <div className="mt-6">
             <div className="relative flex items-center justify-center">
@@ -429,7 +368,7 @@ export function Login() {
                   setConnectingMicrosoft(true);
                   setFormError(null);
                   try {
-                    const res = await fetch(`/api/auth/microsoft/url?returnTo=${encodeURIComponent(returnTo)}`, { cache: "no-store" });
+                    const res = await fetch(`/api/auth/microsoft/url?returnTo=${encodeURIComponent(returnTo)}`, { method: "POST", cache: "no-store" });
                     const data = await res.json().catch(() => ({})) as { url?: string; state?: string; error?: string };
                     if (!res.ok || !data.url || !data.state) throw new Error(data.error || "Microsoft sign-in unavailable");
                     try { sessionStorage.setItem("microsoft_oauth_state", data.state); } catch {}

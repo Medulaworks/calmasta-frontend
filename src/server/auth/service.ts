@@ -50,12 +50,12 @@ export class AuthService {
  async microsoftUrl(req:Request){
   try{
    this.checkOrigin(req);
-   const res=await this.upstream("/auth/microsoft/url","GET",undefined,undefined,undefined,this.clientIp(req));if(!res.ok)throw Error("Microsoft unavailable");const data=await res.json() as {url:string;state:string};
+   const res=await this.upstream("/auth/microsoft/url","GET",undefined,undefined,undefined,this.clientIp(req));if(!res.ok)return this.errorBody(res);const data=await res.json() as {url:string;state:string};
    const target=new URL(data.url);if(target.protocol!=="https:"||target.hostname!=="login.microsoftonline.com"||typeof data.state!=="string")throw Error("Invalid authorization URL");
    const id=opaqueId();await this.store.putTransaction(hashId(id),{state:data.state,returnTo:safeReturnTo(new URL(req.url).searchParams.get("returnTo")),provider:"microsoft"});
    const response=Response.json({url:target.href,state:data.state},{headers});
    return this.setCookie(response,this.config.transactionCookie,id,600);
-  }catch{return Response.json({error:"Sign-in is not configured"}, {status:503,headers});}
+  }catch(error){return error instanceof HttpError?this.error(error):json({error:"Microsoft sign-in is temporarily unavailable. Please try again."},503);}
  }
  async microsoftCallback(req:Request){
   let stage="transaction";
@@ -123,10 +123,12 @@ export class AuthService {
  async action(req:Request,action:string){
   try{
    this.checkOrigin(req);
-   if(!["forgot-password","reset-password","verify-email","verify-email/resend","change-password"].includes(action))throw new HttpError(404,"API route not found");
-   const authenticated=["verify-email/resend","change-password"].includes(action);const session=authenticated?await this.session(req):undefined;
+   if(!["forgot-password","verify-reset-code","reset-password","verify-email","verify-email/resend","change-password"].includes(action))throw new HttpError(404,"API route not found");
+   const body=await readJson(req);
+   if(action==="verify-email"&&("code" in body)===("token" in body))throw new HttpError(400,"invalid_request");
+   const authenticated=["verify-email/resend","change-password"].includes(action)||(action==="verify-email"&&"code" in body);const session=authenticated?await this.session(req):undefined;
    if(authenticated&&!session)return this.unauthorized();
-   const body=await readJson(req),res=await this.upstream(`/auth/${action}`,"POST",body,session??undefined,undefined,this.clientIp(req));
+   const res=await this.upstream(`/auth/${action}`,"POST",body,session??undefined,undefined,this.clientIp(req));
    if(!res.ok)return this.errorBody(res);const result=await res.json();
    if(action==="change-password"){
     const id=readCookie(req,this.config.sessionCookie);if(id)await this.store.revoke(hashId(id),true);

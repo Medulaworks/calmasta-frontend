@@ -1,6 +1,7 @@
 "use client";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { VerificationSignInLink } from "@/components/verification-sign-in-link";
 import { AuthLayout } from "@/components/auth-layout";
 import { buttonClass } from "@/components/ui/button";
 import { LoaderCircle } from "lucide-react";
@@ -67,7 +68,7 @@ export function AuthAccountAction({kind}:{kind:"verify-email"|"reset-password"|"
  {verifying&&!done&&(coolingDown
   ? <p role="timer" aria-live="off" className="mt-4 text-center text-sm text-muted">Send another email in {Math.floor(resendSeconds/60)}:{String(resendSeconds%60).padStart(2,"0")}</p>
   : <button type="button" onClick={resend} disabled={busy} className={buttonClass("secondary","mt-4 w-full","lg")}>Send another verification email</button>)}
- <Link className={verifying?"mt-6 block text-center text-xs font-medium text-foreground underline hover:no-underline":"mt-6 block underline"} href={done&&verifying?"/dashboard/welcome":"/auth/login"}>{done&&verifying?"Continue":"Back to sign in"}</Link>
+ {verifying&&!done ? <VerificationSignInLink disabled={busy}/> : <Link className={verifying?"mt-6 block text-center text-xs font-medium text-foreground underline hover:no-underline":"mt-6 block underline"} href={done&&verifying?"/dashboard/welcome":"/auth/login"}>{done&&verifying?"Continue":"Back to sign in"}</Link>}
  </>;
  return verifying?<AuthLayout>{content}</AuthLayout>:<main className="mx-auto max-w-md px-6 py-16">{content}</main>;
 }

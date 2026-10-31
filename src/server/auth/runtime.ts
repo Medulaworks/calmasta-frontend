@@ -18,7 +18,7 @@ function logFailure(kind: AuthRouteKind, request: Request, segments: string[], s
   const action = segments.join("/");
   const endpoint = kind === "proxy" ? "/api/[...path]"
     : kind === "me" ? "/api/me"
-    : kind === "action" ? ["forgot-password", "reset-password", "verify-email", "verify-email/resend", "change-password"].includes(action) ? `/api/auth/${action}` : "/api/auth/[action]"
+    : kind === "action" ? ["forgot-password", "verify-reset-code", "reset-password", "verify-email", "verify-email/resend", "change-password"].includes(action) ? `/api/auth/${action}` : "/api/auth/[action]"
     : `/api/auth/${kind}`;
   const method = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"].includes(request.method) ? request.method : "UNKNOWN";
   console.error(JSON.stringify({ event: "auth_request_failed", method, endpoint, status }));

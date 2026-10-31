@@ -193,3 +193,33 @@
 - **Proof (command + result + revision):** cb374de dirty frontend with concurrent auth edits preserved; provider/client regressions first failed, then direct node_modules/.bin/vitest run src/lib/capture-flow.test.ts passed 9/9; frontend tsc --noEmit, targeted eslint and diff checks passed. Backend df32fd0 dirty: migration018, DTO/policy/read models, persisted retry name and worker/provider dispatch verified by 40/40 focused disposable-PG tests and valid 68-path OpenAPI. No live bot/browser/provider test. pnpm auto-synchronized the pre-existing dependency tree during the first test invocation; only its unrelated lockfile edit was restored, with no requested dependency additions.
 - **What is NOT done:** Hosted API/worker/frontend rollout and real custom-name meeting proof pending. No live flags, allowances, paid dispatch, browser automation, commit or deploy. Authenticated Google Meet assistants use their account name; guest custom names follow Recall bot_name.
 - **Next action (task ID + files):** FE-C01/FE-C03 — deploy backend migrations through 018 and updated API/worker before the frontend; optional RECALL_BOT_NAME default, verify policy.botName and chosen name on an authorized live meeting. Acceptance: WORK_PLAN.md; backend runbook ../calmasta-api/docs/runbooks/meeting-bot-names.md (sibling repository).
+
+- **What was done (files + behavior):** 2026-10-30 FE-A02/FE-A04: proposed backend auth-code handoff added in docs/backend-auth-code-flows-handoff.md; AUTH/WORK_PLAN/HANDOFF linked by checkpoint; runtime/statuses unchanged.
+- **Proof (command + result + revision):** Source review frontend200c70e/feature3f57939/backende88588d; diff/structure checks passed, documentation only.
+- **What is NOT done:** Endpoint implementation, migrations, frontend integration, live mail, commit/push/deploy; no runtime evidence claimed.
+- **Next action (task ID + files):** Backend M1 owner records contracts in backend FRONTEND_CONTRACT_GAPS.md/WORK_PLAN.md and implements compatibility tests before FE-A02 integration.
+
+- **What was done (files + behavior):** 2026-10-30 FE-A02: code forms/controller, signup delivery and exact BFF reset-code/conditional verification support IMPLEMENTED; links/OAuth/capture/branding preserved; AUTH/WORK_PLAN/HANDOFF updated.
+- **Proof (command + result + revision):** Frontend200c70e dirty; focused auth/session fixtures71/71, TypeScript, targeted eslint, diff check and51-route build passed; configured remote OpenAPI lacks reset-code endpoint. No hosted proof claimed.
+- **What is NOT done:** Hosted deployment/migration/mail/browser acceptance; backend runtime, commit/push/deploy unchanged; FE-A04 remains partial.
+- **Next action (task ID + files):** FE-A04/backend B-AUTH-03 owner confirms deployed contract per backend docs/runbooks/auth-code-flows.md before hosted acceptance.
+
+- **What was done (files + behavior):** 2026-10-31 FE-A02 recovery return link now invokes parent signin-mode reset in src/components/auth-code-form.tsx; prior changes preserved.
+- **Proof (command + result + revision):** Frontend200c70e dirty; targeted eslint, TypeScript and diff checks passed; no browser check.
+- **What is NOT done:** Manual/hosted acceptance, backend edits, commit/push/deploy.
+- **Next action (task ID + files):** FE-A02 — confirm recovery-success Back to sign in displays signin form on /auth/login.
+
+- **What was done (files + behavior):** 2026-10-31 FE-A02 verification return buttons now use existing signOut with pending/error handling; recovery/legacy/deleted return paths inspected. User reports core local auth flows passed.
+- **Proof (command + result + revision):** Frontend200c70e dirty; focused4file22test run, targeted eslint, TypeScript and diff check passed. Manual core acceptance user-reported only.
+- **What is NOT done:** Manual new-button confirmation, hosted acceptance, browser automation, commit/push/deploy.
+- **Next action (task ID + files):** FE-A02 — manually confirm verification Back to sign in no longer loops; FE-A04 hosted work remains pending.
+
+- **What was done (files + behavior):** 2026-10-31 FE-A02 Microsoft URL fetch/route changed GET→origin-checked POST; false configuration error corrected; local manual acceptance explicitly excludes Microsoft.
+- **Proof (command + result + revision):** Frontend200c70e dirty; auth9file73tests, TypeScript, targeted lint/diff passed; production build blocked by Turbopack worker-bind EPERM even on escalated retry.
+- **What is NOT done:** Live Microsoft/provider/hosted acceptance; no backend/env edits, browser automation, commit/push/deploy.
+- **Next action (task ID + files):** FE-A04 — manually retry Microsoft sign-in; repeat build when worker permissions permit.
+
+- **What was done (files + behavior):** 2026-10-31 FE-A02 auth checkpoint approved for local commit; user confirms local Microsoft and other auth flows work.
+- **Proof (command + result + revision):** Frontend200c70e dirty; focused75tests, TypeScript/targeted lint/diff passed; user-reported local acceptance.
+- **What is NOT done:** Hosted acceptance, push/deployment or original PR merge; previous build worker restriction remains.
+- **Next action (task ID + files):** FE-C02/FE-L02 selective skeletons/status/notifications imports; rebrand/redesign separate.
