@@ -100,8 +100,8 @@ export function ConnectionsPanel({
         <CardHeader title="Connected calendars" />
         {conns === null ? (
           <div aria-hidden className="space-y-3 p-5">
-            <div className="h-4 w-1/3 animate-pulse rounded bg-border" />
-            <div className="h-3 w-2/3 animate-pulse rounded bg-border" />
+            <div className="h-4 w-1/3 jb-skel rounded bg-border" />
+            <div className="h-3 w-2/3 jb-skel rounded bg-border" />
           </div>
         ) : conns.connections.length === 0 ? (
           <EmptyState

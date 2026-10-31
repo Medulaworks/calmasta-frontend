@@ -477,7 +477,7 @@ export function AvailabilityTab() {
       <Card>
         {items === null ? (
           <div aria-hidden className="p-5">
-            <div className="h-4 w-1/3 animate-pulse rounded bg-border" />
+            <div className="h-4 w-1/3 jb-skel rounded bg-border" />
           </div>
         ) : items.length === 0 ? (
           <EmptyState

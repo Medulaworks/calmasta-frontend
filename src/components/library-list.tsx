@@ -1,4 +1,5 @@
 "use client";
+import { SkeletonRows } from "@/components/ui/skeleton";
 
 import { dashboardPath } from "@/lib/app-routes";
 
@@ -19,22 +20,6 @@ import { EMPTY_QUERY, type LibraryQuery, type LibraryResult, isSearching } from 
 import { capturesQuery, documentsQuery, libraryQuery } from "@/lib/queries";
 
 type Tab = "documents" | "recordings";
-
-function Skeleton() {
-  return (
-    <ul className="divide-y divide-border" aria-hidden>
-      {[0, 1, 2, 3].map((i) => (
-        <li key={i} className="flex items-center gap-3 px-5 py-3">
-          <span className="h-9 w-9 animate-pulse rounded-lg bg-border" />
-          <span className="flex-1 space-y-2">
-            <span className="block h-3 w-1/2 animate-pulse rounded bg-border" />
-            <span className="block h-2.5 w-1/4 animate-pulse rounded bg-border" />
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
-}
 
 const TYPE_OPTIONS = [["all", "Everything"], ["documents", "Documents"], ["recordings", "Recordings"], ["meetings", "Meetings"]] as const;
 const STATUS_OPTIONS = [["all", "Any status"], ["ready", "Ready"], ["in_progress", "In progress"], ["attention", "Needs attention"]] as const;
@@ -183,7 +168,7 @@ export function LibraryList() {
         </p>
         <Card>
           {shown === null ? (
-            <Skeleton />
+            <SkeletonRows count={5} label="Loading your library" />
           ) : shown.length === 0 ? (
             <EmptyState
               icon={<Search className="h-5 w-5" />}
@@ -214,7 +199,7 @@ export function LibraryList() {
       <Card>
         {tab === "documents" ? (
           docs === null ? (
-            <Skeleton />
+            <SkeletonRows count={5} label="Loading your library" />
           ) : docs.length === 0 ? (
             <EmptyState icon={<FileText className="h-5 w-5" />} title="No documents yet" body="Open a recording and choose a template to write your first document." action={<ButtonLink href="/dashboard/voice" variant="primary">Record a thought</ButtonLink>} />
           ) : (
@@ -237,7 +222,7 @@ export function LibraryList() {
             </ul>
           )
         ) : caps === null ? (
-          <Skeleton />
+          <SkeletonRows count={5} label="Loading your library" />
         ) : caps.length === 0 ? (
           <EmptyState icon={<Mic className="h-5 w-5" />} title="No recordings yet" body="Record a thought, upload audio or capture a meeting." action={<ButtonLink href="/dashboard/voice" variant="primary">Record a thought</ButtonLink>} />
         ) : (

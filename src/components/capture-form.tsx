@@ -1,4 +1,5 @@
 "use client";
+import { SkeletonRows } from "@/components/ui/skeleton";
 
 import { useQuery } from "@tanstack/react-query";
 import { RefreshCw, Video } from "lucide-react";
@@ -285,14 +286,7 @@ export function CaptureForm() {
           </label>
         </div>
         {filtered === null ? (
-          <ul aria-hidden className="divide-y divide-border">
-            {[0, 1, 2].map((i) => (
-              <li key={i} className="flex items-center gap-3 px-5 py-3">
-                <span className="h-9 w-9 animate-pulse rounded-lg bg-border" />
-                <span className="h-3 w-1/3 animate-pulse rounded bg-border" />
-              </li>
-            ))}
-          </ul>
+          <SkeletonRows count={3} label="Loading your meeting captures" />
         ) : filtered.length === 0 ? (
           <EmptyState
             icon={<Video />}

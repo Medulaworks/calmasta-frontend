@@ -56,9 +56,9 @@ function Metric({ label, value, icon, href, children, tone }: { label: string; v
 function MetricSkeleton() {
   return (
     <div aria-hidden className="rounded-xl border border-border bg-background p-5">
-      <div className="h-3 w-24 animate-pulse rounded bg-border" />
-      <div className="mt-4 h-8 w-16 animate-pulse rounded bg-border" />
-      <div className="mt-3 h-2.5 w-32 animate-pulse rounded bg-border" />
+      <div className="h-3 w-24 jb-skel rounded bg-border" />
+      <div className="mt-4 h-8 w-16 jb-skel rounded bg-border" />
+      <div className="mt-3 h-2.5 w-32 jb-skel rounded bg-border" />
     </div>
   );
 }

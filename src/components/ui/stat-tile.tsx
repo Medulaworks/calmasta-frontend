@@ -14,9 +14,9 @@ export function StatTile({ label, value, hint, icon }: { label: string; value: R
 export function StatTileSkeleton() {
   return (
     <div className="rounded-xl border border-border bg-background p-5" aria-hidden>
-      <div className="h-3 w-24 animate-pulse rounded bg-border" />
-      <div className="mt-4 h-8 w-16 animate-pulse rounded bg-border" />
-      <div className="mt-3 h-2.5 w-28 animate-pulse rounded bg-border" />
+      <div className="h-3 w-24 jb-skel rounded bg-border" />
+      <div className="mt-4 h-8 w-16 jb-skel rounded bg-border" />
+      <div className="mt-3 h-2.5 w-28 jb-skel rounded bg-border" />
     </div>
   );
 }

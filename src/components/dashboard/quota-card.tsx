@@ -23,12 +23,12 @@ export function QuotaCard() {
       <Card>
         <CardHeader title="Audio allowance" />
         <div aria-hidden className="space-y-4 p-5">
-          <div className="h-4 w-32 animate-pulse rounded bg-border" />
-          <div className="h-2 w-full animate-pulse rounded-full bg-border" />
+          <div className="h-4 w-32 jb-skel rounded bg-border" />
+          <div className="h-2 w-full jb-skel rounded-full bg-border" />
           <div className="grid grid-cols-3 gap-2">
-            <div className="h-8 animate-pulse rounded bg-surface" />
-            <div className="h-8 animate-pulse rounded bg-surface" />
-            <div className="h-8 animate-pulse rounded bg-surface" />
+            <div className="h-8 jb-skel rounded bg-surface" />
+            <div className="h-8 jb-skel rounded bg-surface" />
+            <div className="h-8 jb-skel rounded bg-surface" />
           </div>
         </div>
       </Card>

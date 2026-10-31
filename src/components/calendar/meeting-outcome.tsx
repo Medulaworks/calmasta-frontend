@@ -73,7 +73,7 @@ export function MeetingOutcome({
       <div
         role="status"
         aria-label="Loading what this meeting produced"
-        className="h-40 animate-pulse rounded-lg border border-border bg-surface"
+        className="h-40 jb-skel rounded-lg border border-border bg-surface"
       />
     );
   if (loaded.error || !cap) {

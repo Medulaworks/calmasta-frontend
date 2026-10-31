@@ -61,7 +61,7 @@ export function SlotPicker({ load, timeZone, selected, onPick }: { load: (from: 
       </div>
 
       {slots === null ? (
-        <div aria-hidden className="grid grid-cols-7 gap-2">{days.map((d) => <span key={d} className="h-14 animate-pulse rounded-lg bg-border/60" />)}</div>
+        <div aria-hidden className="grid grid-cols-7 gap-2">{days.map((d) => <span key={d} className="h-14 jb-skel rounded-lg bg-border/60" />)}</div>
       ) : slots.length === 0 ? (
         <div role="status" className="rounded-lg border border-border bg-surface px-4 py-6 text-center text-sm">
           <p className="font-medium">No times available in these two weeks</p>

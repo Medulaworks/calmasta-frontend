@@ -416,3 +416,16 @@ svg.lucide { stroke-width: 1.5; }
   border-bottom: 1px dotted var(--warning);
   border-radius: 2px;
 }
+
+/* Skeletons: every loading state is a grey shape with a soft light sweeping across it. */
+@keyframes jb-shimmer { to { transform: translateX(100%); } }
+.jb-skel { position: relative; overflow: hidden; }
+.jb-skel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, var(--skel-sheen, color-mix(in srgb, var(--foreground) 7%, transparent)), transparent);
+  animation: jb-shimmer 1.5s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) { .jb-skel::after { animation: none; } }

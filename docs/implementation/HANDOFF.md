@@ -240,3 +240,10 @@ You can start consuming ready local contracts now. Core auth/capture/library cod
 - **Proof (command + result + revision):** Frontend200c70e dirty; focused10file auth/session75tests passed, TypeScript/targeted lint/diff checks passed. Local manual acceptance user-reported; no new hosted/provider proof. Prior Turbopack build remains blocked by worker port permission.
 - **What is NOT done:** Hosted deployment/acceptance and remote push; FE-A04 remains partial. User authorized local commits and selective presentation imports, not original PR merge or deployment.
 - **Next action (task ID + files):** FE-C02/FE-L02 — port skeleton/status/meeting notifications from feature3f57939 onto current staging consumers in separate commits, retaining query/capture controls; keep rebrand/auth redesign separate.
+
+## 2026-10-31 — selective loading presentation import
+
+- **What was done (files + behavior):** FE-C02/FE-L02: imported shared ui/skeleton.tsx and shimmer CSS from feature3f57939; exact skeleton-class substitutions across existing screens, labeled list/detail placeholders on current capture/library consumers. PR_SELECTIVE_IMPORT.md records included groups and deferred rebrand/auth redesign; staging data/control logic retained.
+- **Proof (command + result + revision):** Auth checkpoint49d7482 + selective working changes; TypeScript and git diff --check passed; changed-file lint exposed 1 existing top-bar set-state-in-effect error and 7 existing warnings; ESLint stdin comparison against49d7482 confirmed identical rule/severity diagnostics, no new lint diagnostics. Presentation source review only; visual/browser acceptance not claimed.
+- **What is NOT done:** Rebrand/showcase/auth redesign, original PR merge, push/deploy or browser automation; indicators/notifications pending next groups. Visual verification remains PARTIALLY_TESTED.
+- **Next action (task ID + files):** FE-C02 — status.ts/ui/badge.tsx/status-indicator.tsx: add indicators without changing terminal/readiness precedence, then notifications.

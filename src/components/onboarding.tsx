@@ -267,9 +267,9 @@ export function Onboarding() {
               aria-label="Loading profile"
               aria-busy="true"
               className="space-y-4 py-8">
-              <div className="h-8 w-48 animate-pulse rounded bg-border" />
-              <div className="h-4 w-72 animate-pulse rounded bg-border" />
-              <div className="h-24 animate-pulse rounded-xl border border-border bg-surface" />
+              <div className="h-8 w-48 jb-skel rounded bg-border" />
+              <div className="h-4 w-72 jb-skel rounded bg-border" />
+              <div className="h-24 jb-skel rounded-xl border border-border bg-surface" />
               <span className="sr-only">Loading profile…</span>
             </div>
           ) : (

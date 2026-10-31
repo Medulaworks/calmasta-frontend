@@ -216,12 +216,12 @@ export function PlanView() {
         aria-label="Loading"
         aria-busy="true"
         className="space-y-6">
-        <div className="mx-auto h-10 w-56 animate-pulse rounded-lg bg-border" />
+        <div className="mx-auto h-10 w-56 jb-skel rounded-lg bg-border" />
         <div className="grid gap-4 md:grid-cols-3">
           {[0, 1, 2].map((i) => (
             <div
               key={i}
-              className="h-[30rem] animate-pulse rounded-xl border border-border bg-surface"
+              className="h-[30rem] jb-skel rounded-xl border border-border bg-surface"
             />
           ))}
         </div>

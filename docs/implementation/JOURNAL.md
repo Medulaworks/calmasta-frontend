@@ -223,3 +223,8 @@
 - **Proof (command + result + revision):** Frontend200c70e dirty; focused75tests, TypeScript/targeted lint/diff passed; user-reported local acceptance.
 - **What is NOT done:** Hosted acceptance, push/deployment or original PR merge; previous build worker restriction remains.
 - **Next action (task ID + files):** FE-C02/FE-L02 selective skeletons/status/notifications imports; rebrand/redesign separate.
+
+- **What was done (files + behavior):** 2026-10-31 FE-C02/FE-L02 imported skeleton/shimmer presentation onto staging; selection ledger keeps rebrand/redesign deferred.
+- **Proof (command + result + revision):**49d7482 dirty; TypeScript/diff checks passed; baseline lint comparison confirms1existing error/7warnings, no new diagnostics; no visual/browser proof.
+- **What is NOT done:** Indicators/notifications, redesign/rebrand, original PR merge, push/deploy.
+- **Next action (task ID + files):** FE-C02 status.ts/ui/badge.tsx/status-indicator.tsx indicator group.

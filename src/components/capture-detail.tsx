@@ -1,4 +1,5 @@
 "use client";
+import { SkeletonDetail } from "@/components/ui/skeleton";
 
 import {
   ArrowLeft,
@@ -180,15 +181,9 @@ export function CaptureDetail({
         {displayError}
       </p>
     ) : isLoading ? (
-      <div className="space-y-4" aria-hidden>
-        <div className="h-8 w-64 animate-pulse rounded bg-border" />
-        <div className="h-48 animate-pulse rounded-xl bg-border/50" />
-      </div>
+      <SkeletonDetail label="Loading this recording" />
     ) : (
-      <div className="space-y-4" aria-hidden>
-        <div className="h-8 w-64 animate-pulse rounded bg-border" />
-        <div className="h-48 animate-pulse rounded-xl bg-border/50" />
-      </div>
+      <SkeletonDetail label="Loading this recording" />
     );
   }
 

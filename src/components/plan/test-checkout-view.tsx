@@ -62,7 +62,7 @@ export function TestCheckoutView() {
   }
 
   if (error && !plan) return <p role="alert" className="text-sm text-danger">{error}</p>;
-  if (!plan) return <div role="status" aria-label="Loading" className="h-48 max-w-xl animate-pulse rounded-xl border border-border bg-surface" />;
+  if (!plan) return <div role="status" aria-label="Loading" className="h-48 max-w-xl jb-skel rounded-xl border border-border bg-surface" />;
   if (!title) return <p role="alert" className="text-sm text-danger">Nothing to buy here. <ButtonLink href="/dashboard/plan">Back to plans</ButtonLink></p>;
 
   return (

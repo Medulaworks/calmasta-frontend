@@ -143,7 +143,7 @@ export function BookingsTab() {
           <ul aria-hidden className="divide-y divide-border">
             {[0, 1, 2].map((i) => (
               <li key={i} className="px-5 py-4">
-                <div className="h-4 w-1/2 animate-pulse rounded bg-border" />
+                <div className="h-4 w-1/2 jb-skel rounded bg-border" />
               </li>
             ))}
           </ul>

@@ -379,7 +379,7 @@ export function CalendarView() {
               {[0, 1, 2].map((i) => (
                 <li
                   key={i}
-                  className="h-20 animate-pulse rounded-xl border border-border bg-surface/50"
+                  className="h-20 jb-skel rounded-xl border border-border bg-surface/50"
                 />
               ))}
             </ul>

@@ -393,9 +393,9 @@ export function DocumentStudio({ id }: { id: string }) {
         aria-label="Loading document"
         className="max-w-4xl space-y-4"
         aria-busy="true">
-        <div className="h-4 w-40 animate-pulse rounded bg-border" />
-        <div className="h-8 w-2/3 animate-pulse rounded bg-border" />
-        <div className="h-96 animate-pulse rounded-xl border border-border bg-surface" />
+        <div className="h-4 w-40 jb-skel rounded bg-border" />
+        <div className="h-8 w-2/3 jb-skel rounded bg-border" />
+        <div className="h-96 jb-skel rounded-xl border border-border bg-surface" />
       </div>
     );
   }

@@ -233,9 +233,9 @@ function PlanCard({
   if (!displayPlan) {
     return (
       <div aria-hidden className="space-y-3 px-4 py-4">
-        <div className="h-4 w-16 animate-pulse rounded bg-surface" />
-        <div className="h-2 animate-pulse rounded-full bg-surface" />
-        <div className="h-9 animate-pulse rounded-lg bg-surface" />
+        <div className="h-4 w-16 jb-skel rounded bg-surface" />
+        <div className="h-2 jb-skel rounded-full bg-surface" />
+        <div className="h-9 jb-skel rounded-lg bg-surface" />
       </div>
     );
   }
@@ -389,7 +389,7 @@ function ProfileMenu({
     return (
       <span
         aria-hidden
-        className="h-9 w-9 animate-pulse rounded-full bg-surface"
+        className="h-9 w-9 jb-skel rounded-full bg-surface"
       />
     );
   const name = profile?.name?.trim() || profile?.email || "Not signed in";

@@ -142,12 +142,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               aria-busy="true"
               className="space-y-6">
               <div aria-hidden className="space-y-2">
-                <div className="h-6 w-48 animate-pulse rounded bg-border" />
-                <div className="h-3.5 w-72 max-w-full animate-pulse rounded bg-border" />
+                <div className="h-6 w-48 jb-skel rounded bg-border" />
+                <div className="h-3.5 w-72 max-w-full jb-skel rounded bg-border" />
               </div>
               <div
                 aria-hidden
-                className="h-64 animate-pulse rounded-xl border border-border bg-surface"
+                className="h-64 jb-skel rounded-xl border border-border bg-surface"
               />
             </div>
           )}
