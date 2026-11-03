@@ -1,6 +1,7 @@
 "use client";
 
 import { dashboardPath } from "@/lib/app-routes";
+import { NAV } from "@/lib/nav-labels";
 
 import { ArrowRight, CalendarCheck, CalendarDays, CornerDownLeft, FileText, Gauge, History, House, Library, Loader2, Mic, Search, Settings, Upload, User, Video, X } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -187,7 +188,7 @@ function Palette({ onClose }: { onClose: () => void }) {
     if (cmds.length > 0) out.push({ id: "jump", label: "Jump to", options: cmds.map((c) => ({ id: c.id, type: "command", command: c })) });
     if (searchable) {
       for (const g of groupResults(items)) out.push({ id: g.id, label: g.label, options: g.items.map((r) => ({ id: `${r.kind}-${r.id}`, type: "result", result: r })) });
-      out.push({ id: "all", label: "", options: [{ id: "all", type: "all", label: filter === "all" ? `Search the Library for “${q}”` : `Search ${FILTERS.find((f) => f.id === filter)?.label.toLowerCase()} for “${q}”` }] });
+      out.push({ id: "all", label: "", options: [{ id: "all", type: "all", label: filter === "all" ? `Search ${NAV.folder} for “${q}”` : `Search ${FILTERS.find((f) => f.id === filter)?.label.toLowerCase()} for “${q}”` }] });
     }
     return out;
   }, [q, searchable, items, recents, filter]);

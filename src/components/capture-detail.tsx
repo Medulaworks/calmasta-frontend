@@ -1,5 +1,6 @@
 "use client";
 import { ToastStack, useToasts } from "@/components/ui/toast";
+import { NAV } from "@/lib/nav-labels";
 import { useMeetingToasts } from "@/hooks/use-meeting-toasts";
 import { SkeletonDetail } from "@/components/ui/skeleton";
 
@@ -211,7 +212,7 @@ export function CaptureDetail({
       <Link
         href="/dashboard/library?tab=recordings"
         className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground">
-        <ArrowLeft aria-hidden className="h-4 w-4" /> Library
+        <ArrowLeft aria-hidden className="h-4 w-4" /> {NAV.folder}
       </Link>
 
       <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

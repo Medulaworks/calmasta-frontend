@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
+import { NAV } from "@/lib/nav-labels";
 
-export const metadata = { title: "Capture · Jooba" };
+export const metadata = { title: `${NAV.join} · Jooba` };
 
 type Props = {
   searchParams: Promise<{ tab?: string; link?: string }>;

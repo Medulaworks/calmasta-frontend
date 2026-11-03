@@ -110,7 +110,7 @@ export function CaptureForm() {
       <ToastStack items={toasts.items} onDismiss={toasts.dismiss} />
       <div className="space-y-4 lg:col-span-2">
         <Card>
-          <CardHeader title="Capture a meeting" />
+          <CardHeader title="Join a meeting" />
           <form onSubmit={submit} className="space-y-4 p-5">
             <label className="block text-sm">
               <span className="font-medium">Meeting link</span>

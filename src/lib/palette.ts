@@ -2,6 +2,7 @@
 // results are grouped, and how recent searches are remembered. Pure, so it is tested without a browser.
 
 import type { LibraryResult } from "./library-client";
+import { NAV } from "./nav-labels";
 
 export type CommandIcon =
   | "home"
@@ -37,11 +38,11 @@ export const COMMANDS: readonly Command[] = [
   },
   {
     id: "a-capture",
-    label: "Capture a meeting",
+    label: "Join a meeting",
     href: "/dashboard/capture",
     group: "action",
     icon: "video",
-    keywords: ["bot", "assistant", "join", "record", "live", "new"],
+    keywords: ["capture", "bot", "assistant", "record", "live", "new"],
   },
   {
     id: "a-upload",
@@ -61,19 +62,19 @@ export const COMMANDS: readonly Command[] = [
   },
   {
     id: "p-capture",
-    label: "Capture",
+    label: NAV.join,
     href: "/dashboard/voice",
     group: "page",
     icon: "mic",
-    keywords: ["voice inbox", "meeting bot"],
+    keywords: ["capture", "voice inbox", "meeting bot", "assistant"],
   },
   {
     id: "p-library",
-    label: "Library",
+    label: NAV.folder,
     href: "/dashboard/library",
     group: "page",
     icon: "library",
-    keywords: ["documents", "recordings", "transcripts"],
+    keywords: ["library", "documents", "transcripts", "notes", "past meetings"],
   },
   {
     id: "p-calendar",

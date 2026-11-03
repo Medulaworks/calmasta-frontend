@@ -9,6 +9,7 @@ import {
   Upload,
   Video,
 } from "lucide-react";
+import { NAV } from "@/lib/nav-labels";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -89,7 +90,7 @@ function LiveMeetingDialog({ onClose }: { onClose: () => void }) {
                 router.push("/dashboard/capture");
               }}
               className="rounded-lg bg-accent-solid px-4 py-2 font-medium text-on-accent hover:opacity-90">
-              See it under Capture
+              See it under {NAV.join}
             </button>
             <button
               type="button"
@@ -316,8 +317,8 @@ export function CaptureMenu() {
           onClick={() => setDialog("live")}
           className="flex h-9 items-center gap-2 rounded-l-lg bg-accent-solid px-3.5 text-sm font-medium text-on-accent transition-colors hover:brightness-95 sm:px-4">
           <Video aria-hidden className="h-[18px] w-[18px]" />{" "}
-          <span className="hidden sm:inline">Capture</span>
-          <span className="sr-only sm:hidden">Capture a live meeting</span>
+          <span className="hidden sm:inline">{NAV.join}</span>
+          <span className="sr-only sm:hidden">Join a live meeting</span>
         </button>
         <button
           ref={trigger}
@@ -325,7 +326,7 @@ export function CaptureMenu() {
           onClick={() => setOpen((o) => !o)}
           aria-haspopup="menu"
           aria-expanded={open}
-          aria-label="More ways to capture"
+          aria-label="More ways to join or add a meeting"
           className="grid h-9 w-9 place-items-center rounded-r-lg border-l border-on-accent/20 bg-accent-solid text-on-accent transition-colors hover:brightness-95">
           <ChevronDown
             aria-hidden
@@ -336,7 +337,7 @@ export function CaptureMenu() {
           <div
             ref={panel}
             role="menu"
-            aria-label="Capture"
+            aria-label={NAV.join}
             onKeyDown={onKeyDown}
             className="absolute right-0 top-full z-40 mt-2 w-60 rounded-xl border border-border bg-background p-1 text-foreground shadow-xl">
             <button

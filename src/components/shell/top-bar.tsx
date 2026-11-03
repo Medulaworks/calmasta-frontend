@@ -1,6 +1,7 @@
 "use client";
 
 import { dashboardPath } from "@/lib/app-routes";
+import { ADMIN_PREVIEW } from "@/lib/admin-preview";
 
 import {
   Bell,
@@ -464,7 +465,7 @@ function ProfileMenu({
               <Gauge aria-hidden className="h-4 w-4 text-muted" /> Plan and
               usage
             </Link>
-            {profile?.isStaff && (
+            {(profile?.isStaff || ADMIN_PREVIEW) && (
               <Link
                 href="/dashboard/admin"
                 role="menuitem"

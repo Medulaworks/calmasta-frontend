@@ -117,7 +117,7 @@ function GettingStarted({ d }: { d: Dashboard }) {
     ...(d.progress.hasDocument !== null
       ? [{ done: d.progress.hasDocument, title: "Turn it into a document", body: "Pick a template and edit the result.", href: latest?.href ?? "/dashboard/voice" }]
       : []),
-    { done: d.progress.hasMeetingCapture, title: "Capture a meeting", body: "Send a visible assistant to a call.", href: "/dashboard/capture" },
+    { done: d.progress.hasMeetingCapture, title: "Join a meeting", body: "Send a visible assistant to a call.", href: "/dashboard/capture" },
   ];
   if (steps.every((s) => s.done)) return null;
   const done = steps.filter((s) => s.done).length;
@@ -178,7 +178,7 @@ export function Dashboard() {
         actions={
           <>
             <ButtonLink href="/dashboard/capture" variant="secondary">
-              <Video aria-hidden className="h-4 w-4" /> Capture a meeting
+              <Video aria-hidden className="h-4 w-4" /> Join a meeting
             </ButtonLink>
             <ButtonLink href="/dashboard/voice" variant="primary">
               <Mic aria-hidden className="h-4 w-4" /> Record a thought

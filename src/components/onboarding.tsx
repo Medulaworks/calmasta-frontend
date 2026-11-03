@@ -49,7 +49,7 @@ const FIRST_ACTIONS = [
   },
   {
     href: "/dashboard/capture",
-    title: "Capture a meeting",
+    title: "Join a meeting",
     body: "Send a visible assistant to a Meet, Teams or Zoom call.",
   },
 ] as const;
@@ -283,7 +283,7 @@ export function Onboarding() {
                     Turn conversations into useful work
                   </h1>
                   <p className="mt-3 text-muted">
-                    Capture a meeting or a thought, get a transcript, and search
+                    Join a meeting or record a thought, get a transcript, and search
                     or edit it freely. Here is how we handle recording.
                   </p>
                   <ul className="mt-6 space-y-4">

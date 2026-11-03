@@ -8,7 +8,7 @@ const TABS = [
 /** The two ways to capture a conversation. Tab selection is persisted in the URL via ?tab=bot | ?tab=voice. */
 export function CaptureTabs({ active }: { active: (typeof TABS)[number]["id"] }) {
   return (
-    <nav aria-label="Capture type" className="flex gap-6 border-b border-border">
+    <nav aria-label="Meeting or voice note" className="flex gap-6 border-b border-border">
       {TABS.map((t) => (
         <Link
           key={t.id}

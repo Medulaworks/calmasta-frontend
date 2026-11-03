@@ -1,10 +1,11 @@
 import { Suspense } from "react";
+import { NAV } from "@/lib/nav-labels";
 import { CaptureForm } from "@/components/capture-form";
 import { CaptureTabs } from "@/components/capture/capture-tabs";
 import { VoiceRecorder } from "@/components/voice-recorder";
 import { PageHeader } from "@/components/ui/page-header";
 
-export const metadata = { title: "Capture · Jooba" };
+export const metadata = { title: `${NAV.join} · Jooba` };
 
 type Props = {
   searchParams: Promise<{ tab?: string }>;
@@ -24,7 +25,7 @@ async function VoicePageInner({ searchParams }: Props) {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Capture"
+        title={isVoice ? "Record a voice note" : "Join a meeting"}
         description={
           isVoice
             ? "Record a thought or upload audio, then turn it into a brief, minutes or follow-up."

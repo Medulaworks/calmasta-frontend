@@ -10,6 +10,7 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
+import { NAV } from "@/lib/nav-labels";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -419,7 +420,7 @@ export function DocumentStudio({ id }: { id: string }) {
           aria-label="Breadcrumb"
           className="flex min-w-0 items-center gap-1 text-sm text-muted">
           <Link href="/dashboard/library" className="hover:text-foreground">
-            Library
+            {NAV.folder}
           </Link>
           <ChevronRight aria-hidden className="h-3.5 w-3.5 shrink-0" />
           {doc.captureId ? (

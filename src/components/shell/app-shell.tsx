@@ -10,6 +10,8 @@ import {
   Settings,
   ShieldCheck,
 } from "lucide-react";
+import { ADMIN_PREVIEW } from "@/lib/admin-preview";
+import { NAV as NAV_LABELS } from "@/lib/nav-labels";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -41,13 +43,13 @@ const NAV: readonly {
   { href: "/dashboard", label: "Home", Icon: House },
   {
     href: "/dashboard/voice",
-    label: "Capture",
+    label: NAV_LABELS.join,
     Icon: Mic,
     also: ["/dashboard/capture"],
   },
   {
     href: "/dashboard/library",
-    label: "Library",
+    label: NAV_LABELS.folder,
     Icon: Library,
     also: ["/dashboard/captures"],
   },
@@ -258,7 +260,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 pathname={pathname}
                 tone="sidebar"
               />
-              {profile?.isStaff && (
+              {(profile?.isStaff || ADMIN_PREVIEW) && (
                 <NavLink
                   href="/dashboard/admin"
                   label="Staff area"

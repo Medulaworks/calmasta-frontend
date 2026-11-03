@@ -1,5 +1,6 @@
 "use client";
 import { SkeletonRows } from "@/components/ui/skeleton";
+import { NAV } from "@/lib/nav-labels";
 
 import { dashboardPath } from "@/lib/app-routes";
 
@@ -188,7 +189,7 @@ export function LibraryList() {
     <div className="space-y-4">
       {searchBar}
       <Tabs
-        label="Library"
+        label={NAV.folder}
         items={tabs.map((t) => ({ id: t.id, label: t.label, count: t.count ?? undefined }))}
         active={tab}
         onChange={(id) => router.replace(id === "documents" ? "/dashboard/library" : "/dashboard/library?tab=recordings")}
