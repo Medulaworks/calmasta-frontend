@@ -258,7 +258,7 @@ export function CalendarView() {
                   const a = conns.connections.length;
                   return (
                     <span className="text-muted">
-                      · {a} {a === 1 ? "account" : "accounts"}, {n}{" "}
+                      · {a} {a === 1 ? "email" : "emails"}, {n}{" "}
                       {n === 1 ? "calendar" : "calendars"}
                     </span>
                   );
