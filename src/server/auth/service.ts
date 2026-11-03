@@ -185,7 +185,9 @@ export class AuthService {
       const session = await this.session(request);
       if (!session && !isPublicRoute) return this.unauthorized();
       const transcriptEdit=request.method==="PATCH"&&segments.length===4&&segments[0]==="library"&&segments[1]==="captures"&&segments[3]==="transcript";
-      const body = request.method === "GET" || request.method === "DELETE" && !request.body ? undefined : await readJson(request,transcriptEdit?262144:16384);
+      const bodylessInsight = request.method === "POST" && segments.length === 3 && segments[0] === "captures" && ["recap", "questions"].includes(segments[2]);
+      if (bodylessInsight && request.body) throw new HttpError(400, "This request does not accept a body");
+      const body = request.method === "GET" || bodylessInsight || request.method === "DELETE" && !request.body ? undefined : await readJson(request,transcriptEdit?262144:16384);
       const url = new URL(request.url);
       const pathAndQuery = "/" + segments.map(encodeURIComponent).join("/") + url.search;
       const upstream = isPublicRoute

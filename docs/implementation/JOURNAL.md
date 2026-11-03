@@ -253,3 +253,9 @@
 - **Proof (command + result + revision):**aff752b; isolated pnpm10 frozen install463packages, frozen lockfile validation, privacy lint/TypeScript/diff and52-route production build passed; see implementation evidence.
 - **What is NOT done:**Final policy approval, Vercel deployment/hosted acceptance, backend/auth changes, agent commit/push/deploy.
 - **Next action (task ID + files):**FE-A02 release owner syncs pnpm-lock.yaml to deploy/main and redeploys; confirm policy jurisdiction/retention/providers.
+
+## 2026-11-03 — FE-L03 meeting insights
+- **What was done (files + behavior):** Meeting insights client/query/UI, narrow bodyless BFF POSTs, transcript invalidation and one-time audio seeks; LIBRARY/WORK_PLAN/HANDOFF updated.
+- **Proof (command + result + revision):**2edcb81 working tree: vitest294/294, next build52routes/TypeScript, targeted lint/diff passed;3existing capture-detail warnings. Fixture proof only; evidence/2026-11-03-meeting-insights.md.
+- **What is NOT done:** Hosted/browser/live generation/email, migration/config/backend edits, paid dispatch or commit/push/deploy.
+- **Next action (task ID + files):** FE-L03 — operator prerequisites in backend FRONTEND_MEETING_INSIGHTS_HANDOFF.md, then separately authorized hosted acceptance.

@@ -1,6 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
 import { getProfile } from "./profile-client";
-import { getCapturePolicy, getPrivateAudio, listCaptures, getCapture } from "./upload-client";
+import { ApiError, getCapturePolicy, getPrivateAudio, listCaptures, getCapture } from "./upload-client";
 import { searchLibraryPage } from "./library-client";
 import type { LibraryQuery } from "./library-client";
 import { fetchUsageSummary } from "./usage-client";
@@ -19,6 +19,8 @@ import {
   guestSlots,
 } from "./booking-client";
 import { adminGet } from "./admin-client";
+import { getMeetingInsights, getMeetingPreferences } from "./meeting-insights-client";
+import { insightsPollInterval } from "./meeting-insights";
 
 // hierarchical keys
 export const qk = {
@@ -26,6 +28,8 @@ export const qk = {
   capturePolicy: () => ["capturePolicy"] as const,
   captures: (limit: number, kind?: "meetings" | "recordings") => ["captures", { limit, kind }] as const,
   capture: (id: string) => ["capture", id] as const,
+  meetingInsights: (id: string) => ["capture", id, "insights"] as const,
+  meetingPreferences: () => ["meetingPreferences"] as const,
   privateAudio: (id: string) => ["privateAudio", id] as const,
   library: (q: LibraryQuery, cursor?: string, limit?: number) => ["library", q, cursor, limit] as const,
   usage: () => ["usage", "summary"] as const,
@@ -92,6 +96,24 @@ export const privateAudioQuery = (id: string) =>
     gcTime: 2 * 60 * 1000,
     enabled: !!id,
   });
+
+export const meetingInsightsQuery = (id: string) => queryOptions({
+  queryKey: qk.meetingInsights(id),
+  queryFn: ({ signal }) => getMeetingInsights(id, signal),
+  enabled: !!id,
+  staleTime: 0,
+  retry: (failures, error) => failures < 3 && !(error instanceof ApiError && [401, 403, 404, 409, 503].includes(error.status)),
+  retryDelay: attempt => Math.min(3000 * 2 ** attempt, 30_000),
+  refetchIntervalInBackground: false,
+  refetchInterval: query => insightsPollInterval(query.state.data, query.state.fetchFailureCount, query.state.error),
+});
+
+export const meetingPreferencesQuery = queryOptions({
+  queryKey: qk.meetingPreferences(),
+  queryFn: ({ signal }) => getMeetingPreferences(signal),
+  staleTime: 60_000,
+  retry: false,
+});
 
 export const libraryQuery = (q: LibraryQuery, cursor?: string, limit = 25) =>
   queryOptions({

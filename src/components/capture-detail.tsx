@@ -14,7 +14,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useProfile } from "@/components/shell/profile-context";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,8 @@ import { ActionsPanel } from "@/components/actions-panel";
 import { MeetingVideo } from "./meeting-video";
 import { MeetingPanel } from "@/components/meeting-panel";
 import { TranscriptEditor } from "@/components/transcript-editor";
+import { MeetingInsights } from "@/components/meeting-insights";
+import { seekInsightAudio } from "@/lib/meeting-insights";
 import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TEMPLATE_CHOICES } from "@/lib/documents-client";
@@ -80,6 +82,12 @@ export function CaptureDetail({
   const [picked, setTemplate] = useState<string | null>(null);
   const template = picked ?? profile?.defaultTemplate ?? TEMPLATE_CHOICES[1].id;
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const meetingAudio = useRef<HTMLAudioElement>(null);
+  const [seekTarget, setSeekTarget] = useState<{ captureId: string; startMs: number } | null>(null);
+  const appliedSeek = useRef<typeof seekTarget>(null);
+  useEffect(() => {
+    if (seekTarget?.captureId === id && appliedSeek.current !== seekTarget && seekInsightAudio(meetingAudio.current, seekTarget.startMs)) appliedSeek.current = seekTarget;
+  }, [id, search, seekTarget]);
 
   const cancelMutation = useCancelMeeting();
   const deleteMutation = useDeleteCapture();
@@ -323,6 +331,17 @@ export function CaptureDetail({
         </div>
       )}
 
+      {cap.source === "meeting_url" && <MeetingInsights
+        key={cap.id}
+        id={cap.id}
+        transcriptVersion={cap.transcriptVersion}
+        audioAvailable={!!cap.audio?.url}
+        onSeek={startMs => {
+          setSeekTarget({ captureId: cap.id, startMs });
+          router.replace("?tab=recording", { scroll: false });
+        }}
+      />}
+
       <Tabs
         label="Conversation"
         items={[
@@ -359,7 +378,10 @@ export function CaptureDetail({
               <Card>
                 <CardHeader title="Audio" />
                 <div className="space-y-4 p-5 text-sm">
-                  <audio controls preload="metadata" src={cap.audio.url} onLoadedMetadata={(e) => setAudioSeconds(Number.isFinite(e.currentTarget.duration) ? e.currentTarget.duration : null)} className="w-full" aria-label="Meeting audio" />
+                  <audio ref={meetingAudio} controls preload="metadata" src={cap.audio.url} onLoadedMetadata={(e) => {
+                    setAudioSeconds(Number.isFinite(e.currentTarget.duration) ? e.currentTarget.duration : null);
+                    if (seekTarget?.captureId === id && appliedSeek.current !== seekTarget && seekInsightAudio(e.currentTarget, seekTarget.startMs)) appliedSeek.current = seekTarget;
+                  }} className="w-full" aria-label="Meeting audio" />
                   <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
                     <div><dt className="text-muted">Source</dt><dd>Meeting</dd></div>
                     <div><dt className="text-muted">Added</dt><dd>{timeAgo(cap.createdAt)}</dd></div>
