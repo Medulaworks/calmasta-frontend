@@ -15,6 +15,9 @@ export interface ProfileView {
   outputsOnly: boolean;
   audioRetentionDays: number;
   isStaff: boolean;
+  /** True only after the separate staff sign-in; being on the staff list is not enough. */
+  staffSession?: boolean;
+  staffSessionUntil?: string | null;
   avatarUrl: string | null;
   avatarExpiresAt: string | null;
   avatarVersion: number;

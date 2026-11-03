@@ -6,9 +6,13 @@ import { dashboardPath } from "./app-routes";
 
 it("redirects legacy authenticated page URLs into the dashboard namespace", async () => {
   const redirects = await nextConfig.redirects?.();
-  for (const root of ["voice", "capture", "captures", "library", "calendar", "booking", "plan", "profile", "settings", "admin", "welcome"]) {
+  for (const root of ["voice", "capture", "captures", "library", "calendar", "booking", "plan", "profile", "settings", "welcome"]) {
     expect(redirects).toContainEqual({ source: `/${root}/:path*`, destination: `/dashboard/${root}/:path*`, permanent: false });
   }
+  // The staff area moves under /dashboard too, except /admin/login, which is the staff sign-in page itself.
+  expect(redirects).toContainEqual({ source: "/admin", destination: "/dashboard/admin", permanent: false });
+  expect(redirects).toContainEqual({ source: "/admin/:path((?!login$).+)", destination: "/dashboard/admin/:path", permanent: false });
+  expect(redirects).not.toContainEqual(expect.objectContaining({ source: "/admin/:path*" }));
 });
 
 it("keeps authenticated workspace, onboarding and staff layouts under dashboard", () => {

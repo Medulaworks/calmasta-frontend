@@ -13,8 +13,12 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Keeps the dev-only Next badge off the bottom-left corner, where the staff sidebar puts Sign out.
+  devIndicators: { position: "bottom-right" },
   async redirects() {
-    return [...AUTHENTICATED_PAGE_ROOTS.map((page) => ({
+    // /admin/login is the staff sign-in page itself, so it must not be sent on to /dashboard/admin/login.
+    return [{ source: "/admin", destination: "/dashboard/admin", permanent: false }, { source: "/admin/:path((?!login$).+)", destination: "/dashboard/admin/:path", permanent: false },
+      ...AUTHENTICATED_PAGE_ROOTS.filter((page) => page !== "admin").map((page) => ({
       source: `/${page}/:path*`,
       destination: `/dashboard/${page}/:path*`,
       permanent: false,
