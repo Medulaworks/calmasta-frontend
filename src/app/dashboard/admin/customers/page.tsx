@@ -1,11 +1,11 @@
-import { PageHeader } from "@/components/ui/page-header";
-import { CustomerSearch } from "@/components/admin/customers-view";
+import { AdminHeader } from "@/components/admin/section-tabs";
+import { UserDirectory } from "@/components/admin/users-view";
 
-export default function CustomersPage() {
+export default function UsersPage() {
   return (
     <div className="space-y-6">
-      <PageHeader title="Customers" description="Look up an account by email, name or id. Opening an account is recorded in the audit trail." />
-      <CustomerSearch basePath="/dashboard/admin/customers" />
+      <AdminHeader title="Users" />
+      <UserDirectory basePath="/dashboard/admin/customers" />
     </div>
   );
 }

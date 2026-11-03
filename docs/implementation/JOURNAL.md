@@ -259,3 +259,9 @@
 - **Proof (command + result + revision):**2edcb81 working tree: vitest294/294, next build52routes/TypeScript, targeted lint/diff passed;3existing capture-detail warnings. Fixture proof only; evidence/2026-11-03-meeting-insights.md.
 - **What is NOT done:** Hosted/browser/live generation/email, migration/config/backend edits, paid dispatch or commit/push/deploy.
 - **Next action (task ID + files):** FE-L03 — operator prerequisites in backend FRONTEND_MEETING_INSIGHTS_HANDOFF.md, then separately authorized hosted acceptance.
+
+## 2026-11-03 — selective admin screens
+- **What was done (files + behavior):** FE-ADM01 imported admin-only routes/screens/helpers fromf40ee72 onto staging28992c0, adapted existing staff/session gate, disabled unavailable admin operations; customer features/concurrent calendar edits preserved.
+- **Proof (command + result + revision):**28992c0 working tree:24focused tests, TypeScript,59-route build, admin lint/diff passed; read-only review no blockers. Fixture proof only.
+- **What is NOT done:** B-ADMIN-01 APIs, preview/staff-auth bypass, branch customer rename/deletion redesign, browser automation or commit/push/deploy.
+- **Next action (task ID + files):** FE-X06/B-ADMIN-01 backend contracts before enabling admin-client.ts/capabilities; FE-ADM01 hosted/visual acceptance pending.
