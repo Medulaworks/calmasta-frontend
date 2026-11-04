@@ -51,7 +51,7 @@ export function PrivacyView() {
                       <RowMenu label={`Actions for ${who(x)}`} items={[
                         { label: "See details", onSelect: () => setOpen(x) },
                         { label: "Try again now…", onSelect: () => setRetrying(x), divider: true, disabled: !x.retry.allowed, reason: x.retry.reason },
-                        ...(x.customerId ? [{ label: "Open account", href: `/dashboard/admin/customers/${x.customerId}` }] : []),
+                        ...(x.customerId ? [{ label: "Open account", href: `/admin/customers/${x.customerId}` }] : []),
                       ]} />
                     </MenuTd>
                   </ClickRow>

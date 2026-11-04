@@ -32,7 +32,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       },
       (err) => {
         if (cancelled) return;
-        if (err instanceof ProfileError && err.status === 401) router.replace(`/auth/login?returnTo=${encodeURIComponent(window.location.pathname)}`);
+        if (err instanceof ProfileError && err.status === 401) router.replace(`/admin/auth/login?returnTo=${encodeURIComponent(window.location.pathname)}`);
         else setCheck({ state: "failed" });
       },
     );
@@ -70,7 +70,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 {profile?.email ? <><span className="font-medium text-foreground">{profile.email}</span> isn&rsquo;t an admin.</> : "This account isn't an admin."} Ask an admin for access.
               </p>
               <div className="flex flex-wrap justify-center gap-2 pt-1">
-                <Link href={`/auth/login?returnTo=${encodeURIComponent(pathname)}`} className={buttonClass("primary")}>Sign in as an admin</Link>
+                <Link href={`/admin/auth/login?returnTo=${encodeURIComponent(pathname)}`} className={buttonClass("primary")}>Sign in as an admin</Link>
                 <Link href="/dashboard" className={buttonClass("secondary")}>Back to Jooba</Link>
               </div>
             </>
@@ -114,9 +114,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             );
           })}
           <Link
-            href="/dashboard/admin/profile"
-            aria-current={pathname === "/dashboard/admin/profile" ? "page" : undefined}
-            className={`flex h-9 items-center gap-3 whitespace-nowrap rounded-lg px-3 text-sm transition-colors md:hidden ${pathname === "/dashboard/admin/profile" ? "bg-accent/10 font-medium text-accent" : "text-muted hover:bg-surface hover:text-foreground"}`}>
+            href="/admin/profile"
+            aria-current={pathname === "/admin/profile" ? "page" : undefined}
+            className={`flex h-9 items-center gap-3 whitespace-nowrap rounded-lg px-3 text-sm transition-colors md:hidden ${pathname === "/admin/profile" ? "bg-accent/10 font-medium text-accent" : "text-muted hover:bg-surface hover:text-foreground"}`}>
             <UserRound aria-hidden className="h-[18px] w-[18px] shrink-0" />
             My profile
           </Link>
@@ -125,10 +125,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <div className="mt-4 hidden border-t border-border pt-3 md:mt-auto md:block">
           {profile && (
             <Link
-              href="/dashboard/admin/profile"
-              aria-current={pathname === "/dashboard/admin/profile" ? "page" : undefined}
+              href="/admin/profile"
+              aria-current={pathname === "/admin/profile" ? "page" : undefined}
               title={profile.email}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-surface ${pathname === "/dashboard/admin/profile" ? "bg-accent/10" : ""}`}>
+              className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-surface ${pathname === "/admin/profile" ? "bg-accent/10" : ""}`}>
               <span aria-hidden className="grid size-7 shrink-0 place-items-center rounded-full bg-accent/10 text-xs font-semibold text-accent">{(profile.name || profile.email).trim().charAt(0).toUpperCase()}</span>
               <span className="min-w-0">
                 <span className="block truncate text-sm font-medium">{profile.name || profile.email}</span>

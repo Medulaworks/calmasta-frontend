@@ -45,7 +45,7 @@ export function AuditView() {
   }
   const menu = (e: Entry) => [
     { label: "See details", onSelect: () => setOpen(e) },
-    ...(e.customerId ? [{ label: "Open account", href: `/dashboard/admin/customers/${e.customerId}` }] : []),
+    ...(e.customerId ? [{ label: "Open account", href: `/admin/customers/${e.customerId}` }] : []),
     { label: "Copy reference", onSelect: () => void copy(e.correlationId), divider: true },
   ];
 
@@ -109,7 +109,7 @@ export function AuditView() {
             ["Why", open.reason ?? "No reason given"],
             ["Reference (quote this when asking for help)", <code key="r" className="break-all text-xs">{open.correlationId}</code>],
           ]}
-          actions={open.customerId ? <a href={`/dashboard/admin/customers/${open.customerId}`} className="inline-flex min-h-9 items-center rounded-lg border border-border px-4 text-sm font-medium hover:bg-surface">Open account</a> : null}
+          actions={open.customerId ? <a href={`/admin/customers/${open.customerId}`} className="inline-flex min-h-9 items-center rounded-lg border border-border px-4 text-sm font-medium hover:bg-surface">Open account</a> : null}
         />
       )}
       <ToastStack items={toasts.items} onDismiss={toasts.dismiss} />

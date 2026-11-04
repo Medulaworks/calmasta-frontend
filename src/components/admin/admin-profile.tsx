@@ -107,7 +107,7 @@ export function AdminProfile() {
             ))}
           </ul>
         )}
-        <p className="border-t border-border px-5 py-3 text-xs"><Link href="/dashboard/admin/audit" className="text-muted underline hover:text-foreground">See all activity</Link></p>
+        <p className="border-t border-border px-5 py-3 text-xs"><Link href="/admin/audit" className="text-muted underline hover:text-foreground">See all activity</Link></p>
       </Card>
       <ToastStack items={toasts.items} onDismiss={toasts.dismiss} />
     </div>

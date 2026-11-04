@@ -32,7 +32,7 @@ export function DunningView() {
               <thead><tr><Th>User</Th><Th>Status</Th><Th wide>Keeps access until</Th><Th><span className="sr-only">Actions</span></Th></tr></thead>
               <tbody>
                 {d.rows.map((r) => {
-                  const href = `/dashboard/admin/customers/${r.userId}`;
+                  const href = `/admin/customers/${r.userId}`;
                   const s = STATUS[r.status] ?? { label: "Ended", tone: "neutral" as const };
                   return (
                     <ClickRow key={r.userId} href={href}>

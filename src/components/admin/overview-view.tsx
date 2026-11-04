@@ -84,12 +84,12 @@ export function OverviewView() {
         return (
           <div className="space-y-6">
             <HealthStrip />
-            {o.banner && <Notice tone={o.banner.level}>{o.banner.text} {o.paused && <Link href="/dashboard/admin/usage" className="font-medium underline">Open Usage and cost to resume</Link>}</Notice>}
+            {o.banner && <Notice tone={o.banner.level}>{o.banner.text} {o.paused && <Link href="/admin/usage" className="font-medium underline">Open Usage and cost to resume</Link>}</Notice>}
 
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-sm text-muted">{spanText(period)}</p>
-                <PeriodPicker period={period} onChange={(p) => router.replace(`/dashboard/admin${periodQuery(p)}`, { scroll: false })} />
+                <PeriodPicker period={period} onChange={(p) => router.replace(`/admin${periodQuery(p)}`, { scroll: false })} />
               </div>
               <BusinessMetrics o={o} period={period} fetching={res.fetching} />
             </div>

@@ -54,7 +54,7 @@ export function UsageView() {
                 <thead><tr><Th>User</Th><Th>Minutes</Th><Th><span className="sr-only">Actions</span></Th></tr></thead>
                 <tbody>
                   {r.topCustomers.map((t) => {
-                    const href = `/dashboard/admin/customers/${t.userId}`;
+                    const href = `/admin/customers/${t.userId}`;
                     return (
                       <ClickRow key={t.userId} href={href}>
                         <Td><RowOpen href={href}>{t.email}</RowOpen></Td>

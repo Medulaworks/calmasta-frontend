@@ -47,7 +47,7 @@ export function AdminsView() {
       {({ admins, invites }) => {
         const lastOne = admins.length <= 1;
         const adminMenu = (a: Member) => [
-          { label: "Open account", href: `/dashboard/admin/customers/${a.id}`, disabled: a.id.startsWith("p-"), reason: "No account page for this sample person." },
+          { label: "Open account", href: `/admin/customers/${a.id}`, disabled: a.id.startsWith("p-"), reason: "No account page for this sample person." },
           { label: "Remove admin…", onSelect: () => setRemoving(a), danger: true, divider: true, disabled: !can.allowed || a.you || lastOne, reason: !can.allowed ? can.reason : a.you ? "You can't remove yourself. Ask another admin." : "There must always be at least one admin." },
         ];
         const inviteMenu = (i: Invite) => [
@@ -70,7 +70,7 @@ export function AdminsView() {
                   <thead><tr><Th>Admin</Th><Th>Added</Th><Th wide>Last signed in</Th><Th><span className="sr-only">Actions</span></Th></tr></thead>
                   <tbody>
                     {admins.map((a) => {
-                      const open = a.id.startsWith("p-") ? undefined : `/dashboard/admin/customers/${a.id}`;
+                      const open = a.id.startsWith("p-") ? undefined : `/admin/customers/${a.id}`;
                       return (
                         <ClickRow key={a.id} href={open}>
                           <Td>

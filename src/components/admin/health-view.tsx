@@ -108,7 +108,7 @@ export function HealthView() {
                 <CardHeader title="Waiting to be processed, last 6 hours" />
                 <div className="space-y-2 p-5">
                   <Sparkline values={h.queueDepth} />
-                  <p className="text-xs text-muted">Every 15 minutes. <Link href="/dashboard/admin" className="underline underline-offset-2">See what’s waiting</Link></p>
+                  <p className="text-xs text-muted">Every 15 minutes. <Link href="/admin" className="underline underline-offset-2">See what’s waiting</Link></p>
                 </div>
               </Card>
             </div>
@@ -146,7 +146,7 @@ export function HealthStrip() {
   if (!res.data) return null;
   const bad = res.data.services.filter((s) => s.status === "degraded" || s.status === "down");
   return (
-    <Link href="/dashboard/admin/health" className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-background px-4 py-3 text-sm transition-colors hover:bg-surface">
+    <Link href="/admin/health" className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-background px-4 py-3 text-sm transition-colors hover:bg-surface">
       <StatusBadge status={res.data.overall} />
       <span className="text-muted">{bad.length === 0 ? `${res.data.services.length} services checked.` : bad.map((s) => s.name).join(", ")}</span>
       <span className="ml-auto text-xs text-accent">System status</span>

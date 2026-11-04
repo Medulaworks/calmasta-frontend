@@ -1,6 +1,6 @@
 import { CreditCard, House, ScrollText, Settings2, Users } from "lucide-react";
 
-const A = "/dashboard/admin";
+const A = "/admin";
 
 /**
  * The staff area in five places. Pages that belong together (all about money, all about people) share one place and

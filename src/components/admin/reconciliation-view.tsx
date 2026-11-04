@@ -28,8 +28,8 @@ export function ReconciliationView() {
         const menu = (f: Finding) => [
           { label: "See details", onSelect: () => setOpen(f) },
           ...(f.severity === "safe_to_fix" ? [{ label: "Fix this…", onSelect: () => setFixing(f), divider: true }] : []),
-          ...(f.userId ? [{ label: "Open account", href: `/dashboard/admin/customers/${f.userId}`, divider: f.severity !== "safe_to_fix" }] : []),
-          ...(f.webhookId ? [{ label: "See the store message", href: "/dashboard/admin/webhooks?filter=attention" }] : []),
+          ...(f.userId ? [{ label: "Open account", href: `/admin/customers/${f.userId}`, divider: f.severity !== "safe_to_fix" }] : []),
+          ...(f.webhookId ? [{ label: "See the store message", href: "/admin/webhooks?filter=attention" }] : []),
         ];
         return (
           <div className="space-y-6">

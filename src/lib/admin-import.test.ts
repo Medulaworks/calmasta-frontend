@@ -15,10 +15,10 @@ it("keeps all unimplemented admin capabilities disabled",()=>{
   expect(capability(name)).toMatchObject({allowed:false,reason:expect.any(String)});
  }
 });
-it("groups existing and new staff pages without losing legacy admin routes",()=>{
- expect(sectionFor("/dashboard/admin/customers/user-id")?.id).toBe("users");
- expect(sectionFor("/dashboard/admin/health")?.id).toBe("home");
- expect(sectionFor("/dashboard/admin/audit")?.id).toBe("activity");
+it("groups existing and new staff pages under /admin without losing admin routes",()=>{
+ expect(sectionFor("/admin/customers/user-id")?.id).toBe("users");
+ expect(sectionFor("/admin/health")?.id).toBe("home");
+ expect(sectionFor("/admin/audit")?.id).toBe("activity");
  const paths=SECTIONS.flatMap(s=>s.tabs.map(t=>t.href));
- for(const suffix of ["","/customers","/entitlements","/usage","/webhooks","/reconciliation","/dunning","/privacy","/plans","/settings","/integrations","/admins","/audit","/health"])expect(paths).toContain(`/dashboard/admin${suffix}`);
+ for(const suffix of ["","/customers","/entitlements","/usage","/webhooks","/reconciliation","/dunning","/privacy","/plans","/settings","/integrations","/admins","/audit","/health"])expect(paths).toContain(`/admin${suffix}`);
 });

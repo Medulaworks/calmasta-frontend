@@ -48,7 +48,7 @@ export function RegistryView() {
               <thead><tr><Th>User</Th><Th>Plan</Th><Th>Status</Th><Th wide>Ends or renews</Th><Th><span className="sr-only">Actions</span></Th></tr></thead>
               <tbody>
                 {rows.map((r) => {
-                  const href = `/dashboard/admin/customers/${r.id}`;
+                  const href = `/admin/customers/${r.id}`;
                   const s = STATUS[r.status] ?? { label: r.status.replace("_", " "), tone: "neutral" as const };
                   return (
                     <ClickRow key={r.id} href={href}>
