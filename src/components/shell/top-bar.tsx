@@ -466,7 +466,7 @@ function ProfileMenu({
             </Link>
             {profile?.isStaff && (
               <Link
-                href="/dashboard/admin"
+                href="/admin"
                 role="menuitem"
                 onClick={close}
                 className={item}>

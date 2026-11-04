@@ -1,15 +1,22 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 import { dashboardPath } from "../../lib/app-routes";
 
-export function safeReturnTo(value: string | null): string {
-  if (!value || value.length > 2048) return "/dashboard";
+export function safeReturnTo(value: string | null, fallback = "/dashboard"): string {
+  if (!value || value.length > 2048) return fallback;
   try {
     const decoded = decodeURIComponent(value);
-    if (!decoded.startsWith("/") || decoded.startsWith("//") || /[\\\x00-\x20]/.test(decoded)) return "/dashboard";
+    if (!decoded.startsWith("/") || decoded.startsWith("//") || /[\\\x00-\x20]/.test(decoded)) return fallback;
     const path = new URL(decoded, "https://local.invalid");
-    if (path.origin !== "https://local.invalid" || (path.pathname.startsWith("/login") || path.pathname.startsWith("/auth/login")) || path.pathname.startsWith("/api/")) return "/dashboard";
+    if (
+      path.origin !== "https://local.invalid" ||
+      path.pathname.startsWith("/login") ||
+      path.pathname.startsWith("/auth/login") ||
+      path.pathname.startsWith("/admin/auth/login") ||
+      path.pathname.startsWith("/dashboard/admin/auth/login") ||
+      path.pathname.startsWith("/api/")
+    ) return fallback;
     return dashboardPath(path.pathname + path.search + path.hash);
-  } catch { return "/dashboard"; }
+  } catch { return fallback; }
 }
 export function sameOrigin(request: Request, origin: string): boolean {
   return request.headers.get("origin") === origin && !["cross-site", "same-site"].includes(request.headers.get("sec-fetch-site") ?? "");

@@ -1,177 +1,161 @@
 "use client";
 
-import {
-  ArrowLeft,
-  BellRing,
-  Gauge,
-  LayoutDashboard,
-  ListChecks,
-  ScrollText,
-  Scale,
-  ShieldCheck,
-  Users,
-  Webhook,
-} from "lucide-react";
+import { ArrowLeft, ExternalLink, ShieldAlert, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import {
-  ProfileError,
-  type ProfileView,
-  getProfile,
-} from "@/lib/profile-client";
+import { Button, buttonClass } from "@/components/ui/button";
+import { Loading, Skeleton, SkeletonPanel } from "@/components/ui/skeleton";
+import { ProfileError, type ProfileView, getProfile } from "@/lib/profile-client";
+import { SECTIONS, sectionFor } from "./admin-nav";
 
-const NAV = [
-  {
-    href: "/dashboard/admin",
-    label: "Overview and jobs",
-    Icon: LayoutDashboard,
-    exact: true,
-  },
-  { href: "/dashboard/admin/customers", label: "Customers", Icon: Users },
-  {
-    href: "/dashboard/admin/entitlements",
-    label: "Entitlements",
-    Icon: ShieldCheck,
-  },
-  { href: "/dashboard/admin/usage", label: "Usage and cost", Icon: Gauge },
-  { href: "/dashboard/admin/webhooks", label: "Webhook health", Icon: Webhook },
-  {
-    href: "/dashboard/admin/reconciliation",
-    label: "Reconciliation",
-    Icon: Scale,
-  },
-  {
-    href: "/dashboard/admin/dunning",
-    label: "Dunning monitor",
-    Icon: BellRing,
-  },
-  {
-    href: "/dashboard/admin/privacy",
-    label: "Privacy and audit",
-    Icon: ScrollText,
-  },
-] as const;
+type Check = { state: "checking" } | { state: "failed" } | { state: "ready"; profile: ProfileView };
 
 /**
  * The staff area's own frame, separate from the customer app. Staff status comes from the server (the profile's
  * `isStaff`); this only decides what to SHOW. Every staff endpoint checks again, so hiding the page is not the security.
+ * Not signed in goes to the existing Jooba sign-in; signed in but not staff sees a clear "no access" page that names the account.
  */
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [state, setState] = useState<{
-    ready: boolean;
-    profile: ProfileView | null;
-  }>({ ready: false, profile: null });
+  const current = sectionFor(pathname);
+  const [check, setCheck] = useState<Check>({ state: "checking" });
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     getProfile().then(
-      (profile) => !cancelled && setState({ ready: true, profile }),
+      (profile) => {
+        if (cancelled) return;
+        setCheck({ state: "ready", profile });
+      },
       (err) => {
         if (cancelled) return;
-        if (err instanceof ProfileError && err.status === 401)
-          router.replace(
-            `/auth/login?returnTo=${encodeURIComponent(window.location.pathname)}&reason=expired`,
-          );
-        else setState({ ready: true, profile: null });
+        if (err instanceof ProfileError && err.status === 401) router.replace(`/admin/auth/login?returnTo=${encodeURIComponent(window.location.pathname)}`);
+        else setCheck({ state: "failed" });
       },
     );
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [router, attempt]);
 
-  const denied = state.ready && !state.profile?.isStaff;
+  function leaveAdmin() { router.push("/dashboard"); }
+
+  const profile = check.state === "ready" ? check.profile : null;
+  const allowed = !!profile?.isStaff;
+  const notStaff = check.state === "ready" && !allowed;
+
+  if (notStaff || check.state === "failed") {
+    return (
+      <main id="main" className="grid min-h-dvh place-items-center bg-surface px-4">
+        <div role="alert" className="w-full max-w-md space-y-4 rounded-2xl border border-border bg-background p-8 text-center shadow-[0_24px_60px_-28px_rgb(0_0_0/0.3)]">
+          <span aria-hidden className="mx-auto grid size-12 place-items-center rounded-2xl bg-surface text-muted">
+            <ShieldAlert className="size-6" />
+          </span>
+          {check.state === "failed" ? (
+            <>
+              <h1 className="text-xl font-semibold">Couldn&rsquo;t check your access</h1>
+              <p className="text-sm text-muted">Something went wrong. Try again.</p>
+              <div className="flex justify-center gap-2 pt-1">
+                <Button variant="primary" onClick={() => { setCheck({ state: "checking" }); setAttempt((n) => n + 1); }}>Try again</Button>
+                <Link href="/dashboard" className={buttonClass("secondary")}>Back to Jooba</Link>
+              </div>
+            </>
+          ) : (
+            <>
+              <h1 className="text-xl font-semibold">You don&rsquo;t have access to this area</h1>
+              <p className="text-sm text-muted">
+                {profile?.email ? <><span className="font-medium text-foreground">{profile.email}</span> isn&rsquo;t an admin.</> : "This account isn't an admin."} Ask an admin for access.
+              </p>
+              <div className="flex flex-wrap justify-center gap-2 pt-1">
+                <Link href={`/admin/auth/login?returnTo=${encodeURIComponent(pathname)}`} className={buttonClass("primary")}>Sign in as an admin</Link>
+                <Link href="/dashboard" className={buttonClass("secondary")}>Back to Jooba</Link>
+              </div>
+            </>
+          )}
+        </div>
+      </main>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
-      {!denied && (
-        <aside className="border-b border-border bg-surface/40 p-3 md:sticky md:top-0 md:h-screen md:w-60 md:shrink-0 md:overflow-y-auto md:border-b-0 md:border-r">
-          <div className="flex items-center justify-between gap-2 px-3 md:block md:py-2">
-            <p className="flex items-center gap-2 text-base font-semibold tracking-tight">
-              <span
-                aria-hidden
-                className="grid h-7 w-7 place-items-center rounded-lg bg-danger-solid text-sm font-semibold text-white">
-                S
-              </span>
-              Staff area
-            </p>
-            <Link
-              href="/dashboard"
-              className="mt-0 inline-flex items-center gap-1.5 text-xs text-muted hover:text-foreground md:mt-2">
-              <ArrowLeft aria-hidden className="h-3.5 w-3.5" /> Back to Jooba
-            </Link>
+      <aside className="border-b border-border bg-surface/40 p-3 md:sticky md:top-0 md:flex md:h-screen md:w-60 md:shrink-0 md:flex-col md:overflow-y-auto md:border-b-0 md:border-r">
+        <div className="flex items-center justify-between gap-2 px-3 md:block md:py-2">
+          <p className="flex items-center gap-2 text-base font-semibold tracking-tight">
+            <span aria-hidden className="grid h-7 w-7 place-items-center rounded-lg bg-danger-solid text-sm font-semibold text-white">S</span>
+            Admin
+          </p>
+          {/* Opens the Jooba app in its own tab, so the staff area stays where it is. */}
+          <a href="/dashboard" target="_blank" rel="noopener noreferrer" className="hidden h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background text-sm font-medium text-muted transition-colors hover:bg-surface hover:text-foreground md:mt-4 md:flex">
+            Open Jooba <ExternalLink aria-hidden className="size-3.5" /><span className="sr-only">(opens in a new tab)</span>
+          </a>
+          {/* On a phone the same two actions sit in the top bar as icons. */}
+          <div className="flex items-center gap-1 md:hidden">
+            <a href="/dashboard" target="_blank" rel="noopener noreferrer" aria-label="Open Jooba (opens in a new tab)" title="Open Jooba" className="grid size-9 place-items-center rounded-lg text-muted hover:bg-surface hover:text-foreground"><ExternalLink aria-hidden className="size-[18px]" /></a>
+            <button type="button" onClick={() => leaveAdmin()} aria-label="Back to Jooba" title="Back to Jooba" className="grid size-9 place-items-center rounded-lg text-muted hover:bg-surface hover:text-foreground disabled:opacity-50"><ArrowLeft aria-hidden className="size-[18px]" /></button>
           </div>
-          <nav
-            aria-label="Staff"
-            className="mt-3 flex gap-1 overflow-x-auto md:mt-5 md:flex-col">
-            {NAV.map(({ href, label, Icon, ...rest }) => {
-              const active =
-                "exact" in rest
-                  ? pathname === href
-                  : pathname === href || pathname.startsWith(`${href}/`);
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  aria-current={active ? "page" : undefined}
-                  className={`flex h-9 items-center gap-3 whitespace-nowrap rounded-lg px-3 text-sm transition-colors ${active ? "bg-accent/10 font-medium text-accent" : "text-muted hover:bg-surface hover:text-foreground"}`}>
-                  <Icon aria-hidden className="h-[18px] w-[18px] shrink-0" />
-                  {label}
-                </Link>
-              );
-            })}
-          </nav>
-          {state.profile && (
-            <p
-              className="mt-4 hidden truncate px-1 text-xs text-muted md:block"
-              title={state.profile.email}>
-              Signed in as {state.profile.email}
-            </p>
+        </div>
+
+        <nav aria-label="Admin" className="mt-3 flex gap-1 overflow-x-auto [scrollbar-width:none] md:mt-4 md:flex-col">
+          {SECTIONS.map(({ id, label, Icon, tabs }) => {
+            const active = current?.id === id;
+            return (
+              <Link
+                key={id}
+                href={tabs[0].href}
+                aria-current={active ? "page" : undefined}
+                className={`flex h-9 items-center gap-3 whitespace-nowrap rounded-lg px-3 text-sm transition-colors ${active ? "bg-accent/10 font-medium text-accent" : "text-muted hover:bg-surface hover:text-foreground"}`}>
+                <Icon aria-hidden className="h-[18px] w-[18px] shrink-0" />
+                {label}
+              </Link>
+            );
+          })}
+          <Link
+            href="/admin/profile"
+            aria-current={pathname === "/admin/profile" ? "page" : undefined}
+            className={`flex h-9 items-center gap-3 whitespace-nowrap rounded-lg px-3 text-sm transition-colors md:hidden ${pathname === "/admin/profile" ? "bg-accent/10 font-medium text-accent" : "text-muted hover:bg-surface hover:text-foreground"}`}>
+            <UserRound aria-hidden className="h-[18px] w-[18px] shrink-0" />
+            My profile
+          </Link>
+        </nav>
+
+        <div className="mt-4 hidden border-t border-border pt-3 md:mt-auto md:block">
+          {profile && (
+            <Link
+              href="/admin/profile"
+              aria-current={pathname === "/admin/profile" ? "page" : undefined}
+              title={profile.email}
+              className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-surface ${pathname === "/admin/profile" ? "bg-accent/10" : ""}`}>
+              <span aria-hidden className="grid size-7 shrink-0 place-items-center rounded-full bg-accent/10 text-xs font-semibold text-accent">{(profile.name || profile.email).trim().charAt(0).toUpperCase()}</span>
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-medium">{profile.name || profile.email}</span>
+                <span className="block text-xs text-muted">My profile</span>
+              </span>
+            </Link>
           )}
-        </aside>
-      )}
+          <button type="button" onClick={() => leaveAdmin()} title="Back to Jooba" className="mt-3 flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-border bg-background text-sm font-medium transition-colors hover:bg-surface disabled:opacity-50">
+            <ArrowLeft aria-hidden className="size-4" /> Back to Jooba
+          </button>
+        </div>
+      </aside>
+
       <main id="main" tabIndex={-1} className="min-w-0 flex-1 outline-none">
         <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 md:px-8 md:py-8">
-          {!state.ready && (
-            <div
-              role="status"
-              aria-label="Loading"
-              aria-busy="true"
-              className="space-y-6">
+          {check.state === "checking" ? (
+            <Loading label="Checking your access" className="space-y-6">
               <div aria-hidden className="space-y-2">
-                <div className="h-6 w-48 jb-skel rounded bg-border" />
-                <div className="h-3.5 w-72 max-w-full jb-skel rounded bg-border" />
+                <Skeleton className="h-6 w-48" />
+                <Skeleton className="h-3.5 w-72 max-w-full" />
               </div>
-              <div
-                aria-hidden
-                className="h-64 jb-skel rounded-xl border border-border bg-surface"
-              />
-            </div>
+              <SkeletonPanel className="h-64" />
+            </Loading>
+          ) : (
+            // Rendered only once we know, so a customer never sees a staff page flash. The staff endpoints refuse them anyway.
+            children
           )}
-          {denied && (
-            <div
-              role="alert"
-              className="mx-auto mt-16 max-w-md space-y-3 text-center">
-              <ListChecks aria-hidden className="mx-auto h-8 w-8 text-muted" />
-              <h1 className="text-xl font-semibold">
-                You don&rsquo;t have access to this area
-              </h1>
-              <p className="text-sm text-muted">
-                The staff area is only for people on the staff list. If you
-                think you should be able to open it, ask an administrator.
-              </p>
-              <Link
-                href="/dashboard"
-                className="inline-block font-medium text-accent underline underline-offset-2">
-                Back to Jooba
-              </Link>
-            </div>
-          )}
-          {/* Rendered but hidden until we know, so a customer never sees a staff page flash. The staff endpoints refuse them anyway. */}
-          <div hidden={!state.ready || denied}>{children}</div>
         </div>
       </main>
     </div>

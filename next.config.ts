@@ -14,15 +14,20 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   async redirects() {
-    return [...AUTHENTICATED_PAGE_ROOTS.map((page) => ({
-      source: `/${page}/:path*`,
-      destination: `/dashboard/${page}/:path*`,
-      permanent: false,
-    })), ...AUTH_PAGE_ROOTS.map((page) => ({
-      source: `/${page}/:path*`,
-      destination: `/auth/${page}/:path*`,
-      permanent: false,
-    })), { source: "/dashboard/change-password/:path*", destination: "/auth/change-password/:path*", permanent: false }];
+    return [
+      { source: "/dashboard/admin/:path*", destination: "/admin/:path*", permanent: false },
+      ...AUTHENTICATED_PAGE_ROOTS.map((page) => ({
+        source: `/${page}/:path*`,
+        destination: `/dashboard/${page}/:path*`,
+        permanent: false,
+      })),
+      ...AUTH_PAGE_ROOTS.map((page) => ({
+        source: `/${page}/:path*`,
+        destination: `/auth/${page}/:path*`,
+        permanent: false,
+      })),
+      { source: "/dashboard/change-password/:path*", destination: "/auth/change-password/:path*", permanent: false },
+    ];
   },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
