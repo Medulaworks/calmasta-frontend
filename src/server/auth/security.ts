@@ -71,3 +71,19 @@ export async function readJson(request: Request,maxBytes=16384): Promise<Record<
     throw new HttpError(400, "Invalid JSON object");
   } finally { reader.releaseLock(); }
 }
+
+/** A POST can have a transport stream even when its payload is zero bytes. */
+export async function assertEmptyBody(request: Request): Promise<void> {
+  const reader = request.body?.getReader();
+  if (!reader) return;
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) return;
+      if (value.byteLength) {
+        await reader.cancel();
+        throw new HttpError(400, "This request does not accept a body");
+      }
+    }
+  } finally { reader.releaseLock(); }
+}

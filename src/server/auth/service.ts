@@ -2,7 +2,7 @@ import { isIP } from "node:net";
 import { authErrorRedirect } from "./flash";
 import type { AuthConfig } from "./config";
 import type { AuthStore, SessionData } from "./store";
-import { cookie,hashId,HttpError,opaqueId,readCookie,readJson,safeReturnTo,sameOrigin } from "./security";
+import { cookie,hashId,HttpError,opaqueId,readCookie,readJson,assertEmptyBody,safeReturnTo,sameOrigin } from "./security";
 type Profile=Record<string,unknown>&{userId:string;subject:string;role:string;onboarded:boolean};
 type Credentials={accessToken:string;refreshToken:string;expiresIn:number;user:{id:string;email:string;name:string|null;emailVerified:boolean}};
 const headers={"Cache-Control":"no-store","Pragma":"no-cache"};
@@ -186,7 +186,7 @@ export class AuthService {
       if (!session && !isPublicRoute) return this.unauthorized();
       const transcriptEdit=request.method==="PATCH"&&segments.length===4&&segments[0]==="library"&&segments[1]==="captures"&&segments[3]==="transcript";
       const bodylessInsight = request.method === "POST" && segments.length === 3 && segments[0] === "captures" && ["recap", "questions"].includes(segments[2]);
-      if (bodylessInsight && request.body) throw new HttpError(400, "This request does not accept a body");
+      if (bodylessInsight) await assertEmptyBody(request);
       const body = request.method === "GET" || bodylessInsight || request.method === "DELETE" && !request.body ? undefined : await readJson(request,transcriptEdit?262144:16384);
       const url = new URL(request.url);
       const pathAndQuery = "/" + segments.map(encodeURIComponent).join("/") + url.search;

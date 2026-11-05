@@ -24,3 +24,22 @@ it("rejects bodies on no-body insight endpoints", async () => {
  const res=await auth.proxy(new Request(`${app}/api/captures/m/recap`,{method:"POST",headers:{Origin:app,Cookie:"sid=fixture","Content-Type":"application/json"},body:'{"recipient":"arbitrary@example.test"}'}),["captures","m","recap"]);
  expect(res.status).toBe(400); expect(fetch).not.toHaveBeenCalled();
 });
+
+it.each(["recap", "questions"])("forwards a zero-byte POST stream for %s as no body", async kind => {
+ const fetcher=vi.fn().mockResolvedValue(Response.json({id:"a",state:"queued",failureReason:null},{status:202}));vi.stubGlobal("fetch",fetcher);
+ const req=new Request(`${app}/api/captures/m/${kind}`,{method:"POST",headers:{Origin:app,Cookie:"sid=fixture","Content-Length":"0"},body:""});
+ expect(req.body).not.toBeNull();
+ const res=await auth.proxy(req,["captures","m",kind]);
+ expect(res.status).toBe(202);expect(fetcher).toHaveBeenCalledOnce();expect(fetcher.mock.calls[0][1].body).toBeUndefined();
+});
+it.each(["{}", " ", '{"recipient":"arbitrary@example.test"}'])("does not forward nonempty insight payload %s",async body=>{
+ const fetcher=vi.fn();vi.stubGlobal("fetch",fetcher);
+ const req=new Request(`${app}/api/captures/m/questions`,{method:"POST",headers:{Origin:app,Cookie:"sid=fixture","Content-Type":"application/json"},body});
+ const res=await auth.proxy(req,["captures","m","questions"]);expect(res.status).toBe(400);expect(fetcher).not.toHaveBeenCalled();
+});
+it("rejects a streaming payload at its first nonempty chunk without buffering it", async()=>{
+ let cancelled=false;const stream=new ReadableStream<Uint8Array>({start(controller){controller.enqueue(new Uint8Array());controller.enqueue(new TextEncoder().encode("x"));},cancel(){cancelled=true;}});
+ vi.stubGlobal("fetch",vi.fn());
+ const req=new Request(`${app}/api/captures/m/questions`,{method:"POST",headers:{Origin:app,Cookie:"sid=fixture"},body:stream,duplex:"half"} as RequestInit);
+ const res=await auth.proxy(req,["captures","m","questions"]);expect(res.status).toBe(400);expect(cancelled).toBe(true);expect(fetch).not.toHaveBeenCalled();
+});
