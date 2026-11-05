@@ -312,3 +312,9 @@
 - **Proof (command + result + revision):** Base81620a5;20/20focused tests, TypeScript, changed-file lint and diff checks passed; regression failed before fix.
 - **What is NOT done:** Hosted/browser visual acceptance and release completion pending; no paid calls.
 - **Next action (task ID + files):** FE-L03 — publish aligned frontend main/staging and verify deployed capture tabs.
+
+## 2026-11-05 — structured meeting summaries
+- **What was done (files + behavior):** Format2 purpose/takeaways/topics/technical notes/owner actions, recapv3/questionsv2 policy, trusted metadata, old-result compatibility and held-job protection.
+- **Proof (command + result + revision):** Basef0ef3b2/324ad90;45backend/49frontend focused tests, TypeScript/OpenAPI/lint passed; review finding fixed.
+- **What is NOT done:** No live generation/backfill/env/schema change; hosted acceptance pending.
+- **Next action (task ID + files):** B-INSIGHTS-01/FE-L03 — release aligned branch heads and verify a fresh explicitly requested recap.

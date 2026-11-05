@@ -63,3 +63,11 @@ it("uses newer insights as authoritative when the completed capture cache is old
  const {html}=render({...base,transcriptVersion:2,recap:{...artifact(recap),transcriptVersion:2}});
  expect(html).not.toContain("older transcript");expect(html).not.toContain("Waiting for the current transcript");expect(html).toContain("Extract meeting questions");
 });
+
+it("renders structured meeting notes with trusted metadata, nested topics and owner-grouped actions",()=>{
+ const summary={...recap,formatVersion:2 as const,meetingPurpose:"Review launch blockers.",topics:[{title:"Quota issue",points:[{text:"Demo blocked <script>",details:["Fix individual quotas."]}]}],technicalNotes:["Configure telemetry."],actionItems:[{owner:"Josiah",task:"Fix the quota.",due:"tomorrow"},{owner:"Josiah",task:"Review the fix.",due:null},{owner:null,task:"Investigate deployment.",due:null}]};
+ const {html}=render({...base,meeting:{title:"Team Stand-Up",recordedAt:"2026-11-05T09:00:00Z",recordingPath:"/dashboard/captures/m#recording-audio"},recap:artifact(summary)});
+ for(const value of ["Team Stand-Up","View recording","Meeting Purpose","Key Takeaways","Topics","Quota issue","Fix individual quotas.","Technical &amp; Admin Notes","Next Steps","Josiah","tomorrow","Owner not specified"])expect(html).toContain(value);
+ expect(html).toContain('href="/dashboard/captures/m#recording-audio"');expect(html).toContain("&lt;script&gt;");expect(html).not.toContain("<script>");expect(html).not.toContain("Detailed recap");
+ expect((html.match(/<h5[^>]*>Josiah<\/h5>/g)??[])).toHaveLength(1);expect(fetch).not.toHaveBeenCalled();
+});

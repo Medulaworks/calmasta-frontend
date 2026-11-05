@@ -186,7 +186,7 @@ export function LibraryRecording({ id }: { id: string }) {
               )}
             </section>
           )}
-          <PrivateAudio key={capture.id} id={capture.id} onAudioChange={onAudioChange} />
+          <div id="recording-audio"><PrivateAudio key={capture.id} id={capture.id} onAudioChange={onAudioChange} /></div>
           {capture.source === "meeting_url" ? (
             <Card>
               <div className="px-5 pt-4">

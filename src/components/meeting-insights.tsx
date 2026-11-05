@@ -10,7 +10,7 @@ import { formatDuration } from "../lib/audio";
 import { meetingInsightsQuery, meetingPreferencesQuery, qk } from "../lib/queries";
 import { meetingInsightMutationOptions, meetingPreferencesMutationOptions } from "../lib/meeting-insights-queries";
 import { canRequestInsight, emailStatusMessage, insightErrorMessage, insightMessage, questionStartMs } from "../lib/meeting-insights";
-import type { InsightArtifact, InsightKind, MeetingInsights as Insights, QuestionsResult, RecapResult } from "../lib/meeting-insights-client";
+import type { InsightArtifact, InsightKind, MeetingInsights as Insights, QuestionsResult, RecapResult, StructuredRecapResult, MeetingMetadata } from "../lib/meeting-insights-client";
 
 function InsightError({ error }: { error: unknown }) {
   if (!error) return null;
@@ -18,7 +18,42 @@ function InsightError({ error }: { error: unknown }) {
     {insightErrorMessage(error)} {error instanceof ApiError && error.status === 401 && <Link href="/auth/login" className="underline">Sign in</Link>}
   </p>;
 }
-function Recap({ result }: { result: RecapResult }) {
+function SummaryList({title,items}:{title:string;items:string[]}) {
+  return <section className="space-y-2">
+    <h4 className="font-semibold">{title}</h4>
+    {items.length?<ul className="list-disc space-y-2 pl-5">{items.map((item,index)=><li key={index} className="whitespace-pre-wrap break-words">{item}</li>)}</ul>:<p className="text-muted">None identified.</p>}
+  </section>;
+}
+function StructuredRecap({result,meeting}:{result:StructuredRecapResult;meeting?:MeetingMetadata}) {
+  const owners=Array.from(new Set(result.actionItems.map(action=>action.owner)));
+  const recorded=meeting?new Date(meeting.recordedAt):null;
+  return <article className="space-y-6">
+    {meeting&&<header className="space-y-2 border-b border-border pb-4">
+      <h4 className="text-lg font-semibold">{meeting.title}{recorded&&Number.isFinite(recorded.getTime())&&<> — <time dateTime={meeting.recordedAt}>{recorded.toLocaleDateString("en",{month:"long",day:"numeric",year:"numeric",timeZone:"UTC"})}</time></>}</h4>
+      <Link href={meeting.recordingPath} className="text-accent underline underline-offset-4">View recording</Link>
+    </header>}
+    <section className="space-y-2"><h4 className="font-semibold">Meeting Purpose</h4><p className="whitespace-pre-wrap break-words">{result.meetingPurpose}</p></section>
+    <SummaryList title="Key Takeaways" items={result.highlights}/>
+    <section className="space-y-4">
+      <h4 className="font-semibold">Topics</h4>
+      {result.topics.length?result.topics.map((topic,index)=><section className="space-y-2" key={index}>
+        <h5 className="font-medium">{topic.title}</h5>
+        <ul className="list-disc space-y-2 pl-5">{topic.points.map((point,i)=><li className="whitespace-pre-wrap break-words" key={i}>{point.text}{point.details.length>0&&<ul className="mt-2 list-[circle] space-y-1 pl-5">{point.details.map((detail,j)=><li key={j}>{detail}</li>)}</ul>}</li>)}</ul>
+      </section>):<p className="text-muted">No distinct topics identified.</p>}
+    </section>
+    {result.technicalNotes.length>0&&<SummaryList title="Technical & Admin Notes" items={result.technicalNotes}/>}
+    {result.decisions.length>0&&<SummaryList title="Decisions" items={result.decisions}/>}
+    <section className="space-y-4">
+      <h4 className="font-semibold">Next Steps</h4>
+      {owners.length?owners.map(owner=><section className="space-y-2" key={owner??"unassigned"}>
+        <h5 className="font-medium">{owner??"Owner not specified"}</h5>
+        <ul className="list-disc space-y-2 pl-5">{result.actionItems.filter(action=>action.owner===owner).map((action,index)=><li className="whitespace-pre-wrap break-words" key={index}>{action.task}{action.due&&<span className="text-muted"> — {action.due}</span>}</li>)}</ul>
+      </section>):<p className="text-muted">No next steps identified.</p>}
+    </section>
+  </article>;
+}
+function Recap({ result,meeting }: { result: RecapResult;meeting?:MeetingMetadata }) {
+  if(result.formatVersion===2)return <StructuredRecap result={result} meeting={meeting}/>;
   return <div className="space-y-4">
     <p className="whitespace-pre-wrap break-words">{result.briefSummary}</p>
     <details className="rounded-lg border border-border p-3">
@@ -55,11 +90,11 @@ function InsightSection({ id, kind, data, readFailed, audioAvailable, onSeek }: 
     : artifact?.isStale ? "Extract questions from current transcript" : artifact?.state === "blocked" ? "Retry question admission" : "Extract meeting questions";
   return <section className="space-y-3" aria-label={kind === "recap" ? "Meeting recap" : "Meeting questions"}>
     <h3 className="font-medium">{kind === "recap" ? "Meeting recap" : "Meeting questions"}</h3>
-    {artifact?.isStale && <p className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm">Based on an older transcript. Review this content against the current transcript.</p>}
+    {artifact?.isStale && <p className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm">Based on an older transcript or summary format. Review this content against the current transcript.</p>}
     {artifact ? <>
       <p role="status" className="text-muted">{insightMessage(artifact)}</p>
       {artifact.state === "ready" && artifact.result && (kind === "recap"
-        ? <Recap result={(artifact as InsightArtifact<RecapResult>).result!} />
+        ? <Recap result={(artifact as InsightArtifact<RecapResult>).result!} meeting={data.meeting} />
         : <Questions result={(artifact as InsightArtifact<QuestionsResult>).result!} audioAvailable={audioAvailable} onSeek={onSeek} />)}
       {artifact.state === "ready" && !artifact.result && <p className="text-muted">Refresh insights to load the result.</p>}
       {kind === "recap" && emailStatusMessage[artifact.emailStatus] && <p className="text-xs text-muted">{emailStatusMessage[artifact.emailStatus]}</p>}

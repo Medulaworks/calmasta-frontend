@@ -3,13 +3,23 @@ import { api } from "./upload-client";
 export type InsightKind = "recap" | "questions";
 export type InsightState = "pending" | "queued" | "running" | "ready" | "blocked" | "failed" | "reconciliation_required";
 export type EmailStatus = "not_requested" | "pending" | "sending" | "sent" | "unknown" | "skipped";
-export interface RecapResult {
+export interface LegacyRecapResult {
+  formatVersion?: 1;
   briefSummary: string;
   detailedSummary: string;
   highlights: string[];
   decisions: string[];
   nextSteps: string[];
 }
+export interface StructuredRecapResult extends Omit<LegacyRecapResult,"formatVersion"> {
+  formatVersion: 2;
+  meetingPurpose: string;
+  topics: {title:string;points:{text:string;details:string[]}[]}[];
+  technicalNotes: string[];
+  actionItems: {owner:string|null;task:string;due:string|null}[];
+}
+export type RecapResult=LegacyRecapResult|StructuredRecapResult;
+export interface MeetingMetadata {title:string;recordedAt:string;recordingPath:string;}
 export interface MeetingQuestion {
   text: string;
   sources: { segmentId: string; startMs: number; endMs: number; speakerId: string | null }[];
@@ -30,6 +40,7 @@ export interface InsightArtifact<Result> {
   updatedAt: string;
 }
 export interface MeetingInsights {
+  meeting?: MeetingMetadata;
   captureId: string;
   transcriptVersion: number | null;
   transcriptReady: boolean;
