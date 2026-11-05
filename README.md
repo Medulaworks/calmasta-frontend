@@ -8,7 +8,7 @@ Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, Tiptap 3, lucide-
 
 ## What is here
 
-- `src/app/`: pages. `auth/` (login, verification, recovery and password change), `dashboard/welcome` (onboarding), `deleted`, the signed-in app under `dashboard/(app)/` (dashboard, capture with voice and meeting bot, library, recording and document detail, calendar, booking, plan and usage, settings), the public guest booking pages under `(public)/` (`book/`, `manage/`), and the separate staff area under `dashboard/admin/`.
+- `src/app/`: pages. `auth/` (login, verification, recovery and password change), `dashboard/welcome` (onboarding), `deleted`, the signed-in app under `dashboard/(app)/` (dashboard, capture with voice and meeting bot, library, recording and document detail, calendar, booking, plan and usage, settings), the public guest booking pages under `(public)/` (`book/`, `manage/`), and the separate staff area under `admin/` (with admin sign-in at `/admin/auth/login`).
 - `src/components/`: shared UI kit (`ui/`), app shell, dashboard, Document Studio editor, voice recorder, forms.
 - `src/lib/`: browser-side helpers that call the API (`*-client.ts`), status wording, roles, audio, the header search palette rules, theme and sidebar boot, plan pricing and calendar/booking rules (all with tests).
 - `src/server/domain/`: the document template definitions and shared types the UI reads. UI-only copy; the backend owns the real ones.

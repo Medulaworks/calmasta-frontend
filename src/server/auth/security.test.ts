@@ -3,8 +3,10 @@ import { safeReturnTo, sameOrigin, seal, unseal, readCookie, readJson } from "./
 
 describe("authentication boundaries", () => {
   it("rejects external and encoded redirect paths", () => {
-    for (const path of ["//evil.invalid", "https://evil.invalid", "/\\evil", "/%2f%2fevil.invalid", "/api/auth/login", "/auth/login", "/%0aevil"]) expect(safeReturnTo(path)).toBe("/dashboard");
+    for (const path of ["//evil.invalid", "https://evil.invalid", "/\\evil", "/%2f%2fevil.invalid", "/api/auth/login", "/auth/login", "/admin/auth/login", "/dashboard/admin/auth/login", "/%0aevil"]) expect(safeReturnTo(path)).toBe("/dashboard");
     expect(safeReturnTo("/dashboard/library?filter=mine")).toBe("/dashboard/library?filter=mine");
+    expect(safeReturnTo("/admin/customers")).toBe("/admin/customers");
+    expect(safeReturnTo("/dashboard/admin/customers")).toBe("/admin/customers");
   });
   it("requires the configured origin for cookie-authenticated writes", () => {
     expect(sameOrigin(new Request("https://app.invalid/api/me", { headers: { origin: "https://app.invalid" } }), "https://app.invalid")).toBe(true);

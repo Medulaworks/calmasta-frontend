@@ -3,6 +3,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PrivateAudio } from "@/components/private-audio";
+import { MeetingInsights } from "@/components/meeting-insights";
+import { seekInsightAudio } from "@/lib/meeting-insights";
 import { useCallback, useEffect, useState } from "react";
 import { TranscriptEditor } from "@/components/transcript-editor";
 import { getLibraryCapture, saveLibraryTranscript } from "@/lib/library-client";
@@ -19,6 +21,13 @@ import { formatDuration } from "@/lib/audio";
 import Image from "next/image";
 export function LibraryRecording({ id }: { id: string }) {
   const router = useRouter();
+  const [insightAudio, setInsightAudio] = useState<{
+    captureId: string;
+    element: HTMLAudioElement;
+  } | null>(null);
+  const onAudioChange = useCallback((audio: HTMLAudioElement | null) => {
+    setInsightAudio(audio && audio.readyState >= 1 ? { captureId: id, element: audio } : null);
+  }, [id]);
   const [consent, setConsent] = useState(false),
     [busy, setBusy] = useState(false);
   const [capture, setCapture] = useState<CaptureView | null>(null),
@@ -164,7 +173,20 @@ export function LibraryRecording({ id }: { id: string }) {
               )}
             </section>
           )}
-          <PrivateAudio key={capture.id} id={capture.id} />
+          <PrivateAudio key={capture.id} id={capture.id} onAudioChange={onAudioChange} />
+          {capture.source === "meeting_url" && (
+            <MeetingInsights
+              key={capture.id}
+              id={capture.id}
+              transcriptVersion={capture.transcriptVersion}
+              audioAvailable={insightAudio?.captureId === capture.id && capture.id === id}
+              onSeek={(startMs) => {
+                if (insightAudio?.captureId === capture.id && capture.id === id) {
+                  seekInsightAudio(insightAudio.element, startMs);
+                }
+              }}
+            />
+          )}
           <TranscriptEditor
             key={capture.id}
             cap={capture}

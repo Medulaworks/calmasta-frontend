@@ -13,24 +13,32 @@ import { AuthLayout } from "@/components/auth-layout";
 import { buttonClass } from "@/components/ui/button";
 
 /** Only same-site paths survive; mirrors the server's check so the link we build is already safe. */
-const safePath = (p: string | null) =>
+const safePath = (p: string | null, fallback = "/dashboard") =>
   p &&
   p.startsWith("/") &&
   !p.startsWith("//") &&
   !p.includes("\\") &&
   !p.startsWith("/login") &&
   !p.startsWith("/auth/login") &&
-  !p.startsWith("/api/auth")
+  !p.startsWith("/admin/auth/login") &&
+  !p.startsWith("/dashboard/admin/auth/login") &&
+  !p.startsWith("/api/")
     ? dashboardPath(p)
-    : "/dashboard";
+    : fallback;
 
-export function Login() {
+export function Login({
+  defaultReturnTo = "/dashboard",
+  admin = false,
+}: {
+  defaultReturnTo?: string;
+  admin?: boolean;
+} = {}) {
   const router = useRouter();
   const params = useSearchParams();
-  const returnTo = safePath(params.get("returnTo"));
+  const returnTo = safePath(params.get("returnTo"), defaultReturnTo);
 
   const [mode, setMode] = useState<"signin" | "signup" | "forgot">(
-    params.get("signup") === "1" ? "signup" : "signin",
+    admin ? "signin" : params.get("signup") === "1" ? "signup" : "signin",
   );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -84,7 +92,7 @@ export function Login() {
           } else if (profile && !profile.onboarded) {
             router.replace("/dashboard/welcome");
           } else {
-            const target = returnTo === "/dashboard/welcome" ? "/dashboard" : returnTo;
+            const target = returnTo === "/dashboard/welcome" ? defaultReturnTo : returnTo;
             router.replace(target);
           }
         } else if (res.status === 401) {
@@ -108,7 +116,7 @@ export function Login() {
     return () => {
       cancelled = true;
     };
-  }, [returnTo, reloadKey, router]);
+  }, [returnTo, reloadKey, router, defaultReturnTo]);
 
   function returnToSignIn() {
     setMode("signin");
@@ -139,7 +147,7 @@ export function Login() {
         if (data.emailVerified === false) {
           router.replace("/auth/verify-email");
         } else if (data.onboarded) {
-          router.replace(returnTo === "/dashboard/welcome" ? "/dashboard" : returnTo);
+          router.replace(returnTo === "/dashboard/welcome" ? defaultReturnTo : returnTo);
         } else {
           router.replace("/dashboard/welcome");
         }
@@ -170,12 +178,20 @@ export function Login() {
   return (
     <AuthLayout>
           <h1 className={AUTH_HEADING}>
-            {mode === "signin" ? <>Turn every conversation into <span className="text-accent">finished work</span>.</> : <>Start with your <span className="text-accent">next conversation</span>.</>}
+            {admin ? (
+              <>Sign in to <span className="text-accent">Admin</span>.</>
+            ) : mode === "signin" ? (
+              <>Turn every conversation into <span className="text-accent">finished work</span>.</>
+            ) : (
+              <>Start with your <span className="text-accent">next conversation</span>.</>
+            )}
           </h1>
           <p className={AUTH_DESCRIPTION}>
-            {mode === "signin"
-              ? "Meetings and voice notes become transcripts, briefs and follow-ups. Pick up where you left off."
-              : "Start capturing, transcribing, and organizing your conversations."}
+            {admin
+              ? "Sign in with your staff account to access the administration console."
+              : mode === "signin"
+                ? "Meetings and voice notes become transcripts, briefs and follow-ups. Pick up where you left off."
+                : "Start capturing, transcribing, and organizing your conversations."}
           </p>
 
           {expired && (
@@ -396,37 +412,39 @@ export function Login() {
             </div>
           </div>
 
-          <div className="mt-[clamp(0.75rem,2.6vh,1.5rem)] text-center text-sm text-muted">
-            {mode === "signin" ? (
-              <p>
-                Don&apos;t have an account?{" "}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMode("signup");
-                    setShowPassword(false);
-                    setFormError(null);
-                  }}
-                  className="font-medium text-foreground underline hover:no-underline">
-                  Sign up
-                </button>
-              </p>
-            ) : (
-              <p>
-                Already have an account?{" "}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMode("signin");
-                    setShowPassword(false);
-                    setFormError(null);
-                  }}
-                  className="font-medium text-foreground underline hover:no-underline">
-                  Sign in
-                </button>
-              </p>
-            )}
-          </div>
+          {!admin && (
+            <div className="mt-[clamp(0.75rem,2.6vh,1.5rem)] text-center text-sm text-muted">
+              {mode === "signin" ? (
+                <p>
+                  Don&apos;t have an account?{" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode("signup");
+                      setShowPassword(false);
+                      setFormError(null);
+                    }}
+                    className="font-medium text-foreground underline hover:no-underline">
+                    Sign up
+                  </button>
+                </p>
+              ) : (
+                <p>
+                  Already have an account?{" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode("signin");
+                      setShowPassword(false);
+                      setFormError(null);
+                    }}
+                    className="font-medium text-foreground underline hover:no-underline">
+                    Sign in
+                  </button>
+                </p>
+              )}
+            </div>
+          )}
           </>}
     </AuthLayout>
   );

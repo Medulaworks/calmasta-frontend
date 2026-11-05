@@ -31,3 +31,13 @@ Current design changes are local/uncommitted; no original-PR merge, push or depl
 ## Prior selective checkpoint validation
 
 See evidence/2026-10-31-selective-import.md. Focused141tests and51-route production build passed. Existing screen lint diagnostics were compared against49d7482: one pre-existing top-bar error and seven warnings, no new rule/severity diagnostics. New skeleton/status/notification files passed targeted lint. Browser/live-provider verification remains pending. Query/mutation/upload client modules and auth/layout/brand files are unchanged from the auth checkpoint. The original feature branch was not merged.
+
+## 2026-11-03 — admin console, staging remains authoritative
+
+Source: origin/feature/admin-consolef40ee72 (two commits beyond its shared base); target: staging28992c0, matching origin/staging at preflight. No branch merge or cherry-pick: imported only src/app/dashboard/admin/, src/components/admin/ and supporting admin types/period/money/units/word helpers/tests. Existing admin routes retained; added health/plans/integrations/settings/admins/audit/profile routes. Supported personal name editing reuses the existing profile API.
+
+Adaptations: preserve staging authentication/BFF and DB-authoritative isStaff; no new staff-session cookie/login/invite routes. Back-to-app navigation does not pretend to sign out a separate staff session. All unimplemented admin endpoints/capabilities reject locally; their canonical existing gap is backend B-ADMIN-01, not new backend ownership. No mock-data or preview bypass imported. Remove cross-customer placeholder reuse in the imported resource hook.
+
+Deferred branch changes: ordinary customer Capture/Library renaming and palette/sidebar modifications; account-deletion redesign/contracts; separate staff login/invite acceptance; NEXT_PUBLIC_ADMIN_PREVIEW/NEXT_PUBLIC_ADMIN_API flags and preview business data. These are not needed for the safe admin screen import and were not merged over staging. Existing staging capture/meeting insights/library/auth/server/query consumers were not replaced. Concurrent calendar-view changes belong to another working task and were left intact.
+
+Verification: focused24tests, TypeScript,59-route production build, targeted lint/diff; no browser/screenshot, production APIs or live operations. Local changes remain uncommitted; FE-ADM01 visual/hosted proof pending and FE-X06 runtime remains BLOCKED.

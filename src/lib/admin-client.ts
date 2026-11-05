@@ -1,9 +1,10 @@
-import { api } from "./upload-client";
+import { ApiError } from "./upload-client";
 
-/** Staff-area requests. A 403 means "not staff": the shell shows a permission-denied page for it. */
-export const adminGet = <T>(url: string) => api<T>(url, { cache: "no-store" });
-export const adminPost = <T = { ok: true }>(url: string, body: unknown) =>
-  api<T>(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+/** No staff HTTP contracts exist in the current backend. Never send speculative requests or return sample success. */
+const unavailable = <T>(): Promise<T> => Promise.reject(new ApiError(503, "The staff API is not available yet.", "feature_unavailable"));
+export const adminGet = <T>(url: string): Promise<T> => { void url; return unavailable<T>(); };
+export const adminPost = <T = { ok: true }>(url: string, body: unknown): Promise<T> => { void url; void body; return unavailable<T>(); };
+export const adminPatch = <T = { ok: true }>(url: string, body: unknown): Promise<T> => { void url; void body; return unavailable<T>(); };
 
 /** Staff-facing times are always shown in UTC and say so, so nobody has to guess the zone. */
 export const fmtUtc = (v: string | Date | null | undefined) => {

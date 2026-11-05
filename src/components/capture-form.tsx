@@ -28,7 +28,12 @@ export function CaptureForm() {
   const [url, setUrl] = useState(() => search.get("link") ?? "");
   const [consent, setConsent] = useState(false);
   const { data: policy, error: policyErrorRaw } = useQuery(capturePolicyQuery);
-  const policyError = policyErrorRaw instanceof Error ? policyErrorRaw.message : policyErrorRaw ? String(policyErrorRaw) : null;
+  const policyError =
+    policyErrorRaw instanceof Error
+      ? policyErrorRaw.message
+      : policyErrorRaw
+        ? String(policyErrorRaw)
+        : null;
   const [durationMinutes] = useState(30);
   const [titleMode, setTitleMode] = useState<"auto" | "mine">("auto");
   const [title, setTitle] = useState("");
@@ -44,11 +49,17 @@ export function CaptureForm() {
   const captures = useQuery({
     ...capturesQuery(50, "meetings"),
     refetchInterval: (q) => {
-      const data = q.state.data as Array<{ source: string; state: string; status: string }> | undefined;
+      const data = q.state.data as
+        | Array<{ source: string; state: string; status: string }>
+        | undefined;
       if (!data) return 8000;
       const hasActive = data.some((c) => {
         if (isMeetingActive(c.status)) return true;
-        const st = captureStatus({ source: c.source ?? "meeting_url", state: c.state ?? c.status, status: c.status });
+        const st = captureStatus({
+          source: c.source ?? "meeting_url",
+          state: c.state ?? c.status,
+          status: c.status,
+        });
         return st.active;
       });
       return hasActive ? 8000 : false;
@@ -57,8 +68,18 @@ export function CaptureForm() {
   const items = captures.data ?? null;
   const toasts = useToasts();
   useMeetingToasts(items, toasts.push);
-  const listError = captures.isError ? (captures.error instanceof Error ? captures.error.message : "Could not load your captures.") : null;
-  const filtered = items ? items.filter((c) => !q.trim() || (c.title ?? "").toLowerCase().includes(q.trim().toLowerCase())) : null;
+  const listError = captures.isError
+    ? captures.error instanceof Error
+      ? captures.error.message
+      : "Could not load your captures."
+    : null;
+  const filtered = items
+    ? items.filter(
+        (c) =>
+          !q.trim() ||
+          (c.title ?? "").toLowerCase().includes(q.trim().toLowerCase()),
+      )
+    : null;
 
   const busy = requestMutation.isPending;
 
@@ -140,8 +161,12 @@ export function CaptureForm() {
                 aria-describedby="meeting-bot-name-help"
                 className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2"
               />
-              <span id="meeting-bot-name-help" className="mt-1.5 block text-xs text-muted">
-                Leave blank to use {policy?.botName ?? "the default assistant name"}. This is separate from your meeting title.
+              <span
+                id="meeting-bot-name-help"
+                className="mt-1.5 block text-xs text-muted">
+                Leave blank to use{" "}
+                {policy?.botName ?? "the default assistant name"}. This is
+                separate from your meeting title.
               </span>
             </label>
             {policy?.meetingEnabled && (
@@ -161,9 +186,10 @@ export function CaptureForm() {
                 <span className="sr-only">Title</span>
                 <select
                   value={titleMode}
-                  onChange={(e) => setTitleMode(e.target.value as "auto" | "mine")}
-                  className="rounded-lg border border-border bg-surface px-3 py-2 text-sm"
-                >
+                  onChange={(e) =>
+                    setTitleMode(e.target.value as "auto" | "mine")
+                  }
+                  className="rounded-lg border border-border bg-surface px-3 py-2 text-sm">
                   <option value="auto">Auto-generated title</option>
                   <option value="mine">Choose a title</option>
                 </select>
@@ -181,19 +207,26 @@ export function CaptureForm() {
                 </label>
               )}
             </div>
-            <label className={`flex items-start gap-3 text-sm ${!policy?.videoEnabled ? "opacity-60" : ""}`}>
+            <label
+              className={`flex items-start gap-3 text-sm ${!policy?.videoEnabled ? "opacity-60" : ""}`}>
               <input
                 type="checkbox"
                 checked={recordVideo}
                 onChange={(e) => setRecordVideo(e.target.checked)}
                 disabled={!policy?.videoEnabled}
-                title={!policy?.videoEnabled ? "Video recording is not enabled for this account yet — see backend doc" : undefined}
+                title={
+                  !policy?.videoEnabled
+                    ? "Video recording is not enabled for this account yet — see backend doc"
+                    : undefined
+                }
                 className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent-solid)] disabled:cursor-not-allowed"
               />
               <span>
                 <span className="font-medium">Also record the video</span>
                 <span className="mt-0.5 block text-xs text-muted">
-                  {policy?.videoEnabled ? "Off unless you choose it. Private to you, and removed on the same schedule as audio." : "Video recording is not enabled for this account yet."}
+                  {policy?.videoEnabled
+                    ? "Off unless you choose it. Private to you, and removed on the same schedule as audio."
+                    : "Video recording is not enabled for this account yet."}
                 </span>
               </span>
             </label>
@@ -205,8 +238,10 @@ export function CaptureForm() {
                 className="mt-0.5 h-4 w-4 shrink-0"
               />
               <span>
-                I have the right to record this meeting{recordVideo ? ", including its video," : ""} and I will tell its
-                participants. A visible assistant named “{policy?.botName ?? "Recording assistant"}” will join and may
+                I have the right to record this meeting
+                {recordVideo ? ", including its video," : ""} and I will tell
+                its participants. A visible assistant named “
+                {policy?.botName ?? "Recording assistant"}” will join and may
                 need to be admitted by the host.
               </span>
             </label>
@@ -270,10 +305,15 @@ export function CaptureForm() {
                 aria-label="Refresh captures"
                 title="Refresh"
                 className="grid h-7 w-7 place-items-center rounded-md border border-border text-muted transition-colors hover:bg-surface hover:text-foreground disabled:opacity-50">
-                <RefreshCw aria-hidden className={`h-3.5 w-3.5 ${captures.isFetching ? "animate-spin" : ""}`} />
+                <RefreshCw
+                  aria-hidden
+                  className={`h-3.5 w-3.5 ${captures.isFetching ? "animate-spin" : ""}`}
+                />
               </button>
               {items && items.length > 0 && (
-                <span className="text-xs tabular-nums text-muted">{items.length}</span>
+                <span className="text-xs tabular-nums text-muted">
+                  {items.length}
+                </span>
               )}
             </span>
           }
@@ -296,7 +336,11 @@ export function CaptureForm() {
           <EmptyState
             icon={<Video />}
             title={q.trim() ? "No matches" : "No meetings yet"}
-            body={q.trim() ? `No meeting titles match “${q.trim()}”.` : "Paste a meeting link and the assistant will join, record and write it up. Your captured meetings are listed here."}
+            body={
+              q.trim()
+                ? `No meeting titles match “${q.trim()}”.`
+                : "Paste a meeting link and the assistant will join, record and write it up. Your captured meetings are listed here."
+            }
           />
         ) : (
           <ul
@@ -325,18 +369,39 @@ export function CaptureForm() {
                         {c.title ?? "Meeting"}
                       </span>
                       <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-                        <Badge tone={st.tone} active={st.active} indicator={st.indicator}>
+                        <Badge
+                          tone={st.tone}
+                          active={st.active}
+                          indicator={st.indicator}>
                           {st.label}
                         </Badge>
                         <span className="inline-flex items-center gap-1.5">
                           {c.platform ? (
                             <>
-                              <Image src={c.platform === "microsoft_teams" ? "/icons/icons8-teams-96.png" : c.platform === "zoom" ? "/icons/icons8-zoom-96.png" : "/icons/icons8-google-meet-96.png"} alt={PLATFORM_LABELS[c.platform] ?? c.platform} width={16} height={16} className="h-4 w-4 shrink-0" />
+                              <Image
+                                src={
+                                  c.platform === "microsoft_teams"
+                                    ? "/icons/icons8-teams-96.png"
+                                    : c.platform === "zoom"
+                                      ? "/icons/icons8-zoom-96.png"
+                                      : "/icons/icons8-google-meet-96.png"
+                                }
+                                alt={PLATFORM_LABELS[c.platform] ?? c.platform}
+                                width={16}
+                                height={16}
+                                className="h-4 w-4 shrink-0"
+                              />
                               {PLATFORM_LABELS[c.platform] ?? c.platform}
                             </>
                           ) : c.source === "meeting_url" ? (
                             <>
-                              <Image src="/icons/icons8-google-meet-96.png" alt="Meet" width={16} height={16} className="h-4 w-4 shrink-0" />
+                              <Image
+                                src="/icons/icons8-google-meet-96.png"
+                                alt="Meet"
+                                width={16}
+                                height={16}
+                                className="h-4 w-4 shrink-0"
+                              />
                               Meet
                             </>
                           ) : (
@@ -353,7 +418,10 @@ export function CaptureForm() {
                     </span>
                   </Link>
                   {isMeetingActive(c.status) && (
-                    <Button size="sm" onClick={() => void cancel(c.id)} disabled={cancelMutation.isPending}>
+                    <Button
+                      size="sm"
+                      onClick={() => void cancel(c.id)}
+                      disabled={cancelMutation.isPending}>
                       Cancel
                     </Button>
                   )}

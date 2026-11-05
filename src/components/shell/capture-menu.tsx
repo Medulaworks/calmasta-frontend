@@ -12,7 +12,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog } from "@/components/ui/dialog";
 import { useDismiss } from "@/components/ui/use-dismiss";
 import { capturePolicyQuery } from "@/lib/queries";
@@ -29,6 +29,7 @@ const PLATFORMS = ["Google Meet", "Zoom", "Microsoft Teams"];
 /** "Add to live meeting": paste a link, say you may record, and a visible assistant joins. — mirrors /dashboard/voice?tab=bot */
 function LiveMeetingDialog({ onClose }: { onClose: () => void }) {
   const router = useRouter();
+  const qc = useQueryClient();
   const [url, setUrl] = useState("");
   const [namedByMe, setNamedByMe] = useState(false);
   const [title, setTitle] = useState("");
@@ -55,6 +56,7 @@ function LiveMeetingDialog({ onClose }: { onClose: () => void }) {
           maxDurationSeconds: Math.min(30 * 60, policy?.maxMeetingDurationSeconds ?? 1800),
         },
       );
+      qc.invalidateQueries({ queryKey: ["captures"] });
       setDone({ duplicate: r.duplicate });
     } catch (err) {
       setError(

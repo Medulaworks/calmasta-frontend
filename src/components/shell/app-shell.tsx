@@ -260,7 +260,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               />
               {profile?.isStaff && (
                 <NavLink
-                  href="/dashboard/admin"
+                  href="/admin"
                   label="Staff area"
                   Icon={ShieldCheck}
                   pathname={pathname}

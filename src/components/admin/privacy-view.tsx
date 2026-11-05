@@ -1,80 +1,96 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ToastStack, useToasts } from "@/components/ui/toast";
 import { type Json, adminPost, fmtUtc } from "@/lib/admin-client";
 import type { PrivacyReport } from "@/lib/admin-types";
+import { ClickRow, DetailsDialog, MenuTd, RowMenu, RowOpen } from "./row-menu";
 import { ActionDialog, DataTable, Notice, ResourceBoundary, Td, Th, useResource } from "./ui";
 
 type Data = Json<PrivacyReport>;
-const TONE: Record<string, "neutral" | "info" | "success" | "warning" | "danger"> = { requested: "info", in_progress: "info", partial_failure: "danger", completed: "success", cancelled: "neutral" };
+type Del = Data["deletions"][number];
+const STATUS: Record<string, { label: string; tone: "neutral" | "info" | "success" | "warning" | "danger" }> = {
+  requested: { label: "Waiting to start", tone: "info" },
+  in_progress: { label: "In progress", tone: "info" },
+  partial_failure: { label: "Stuck, needs a retry", tone: "danger" },
+  completed: { label: "Done", tone: "success" },
+  cancelled: { label: "Cancelled", tone: "neutral" },
+};
 
+/** People who asked us to delete their account. The history of what staff did lives under Activity. */
 export function PrivacyView() {
   const res = useResource<Data>("/api/admin/privacy");
-  const [retrying, setRetrying] = useState<string | null>(null);
+  const toasts = useToasts("deletions");
+  const [open, setOpen] = useState<Del | null>(null);
+  const [retrying, setRetrying] = useState<Del | null>(null);
+  const status = (x: Del) => STATUS[x.status] ?? { label: x.status.replace("_", " "), tone: "neutral" as const };
+  const who = (x: Del) => x.email ?? "Account already removed";
+
   return (
     <ResourceBoundary resource={res}>
       {(d) => (
-        <div className="space-y-8">
-          <Notice>
-            A deletion is only shown as complete when every stored audio file is gone. We remove customer data from our own database and file storage. We don&rsquo;t promise instant removal from every provider or backup, so provider-side cleanup is outside what this page can confirm.
-          </Notice>
-
-          <section aria-labelledby="del" className="space-y-3">
-            <h2 id="del" className="text-sm font-semibold">Deletion requests</h2>
+        <div className="space-y-5">
+          <Notice>Done means every stored file is gone.</Notice>
+          {d.deletions.length === 0 ? (
+            <Card><EmptyState title="No deletion requests" body="Nobody has asked to delete their account." /></Card>
+          ) : (
             <DataTable label="Deletion requests">
-              <thead><tr><Th>Requested</Th><Th>Customer</Th><Th>Status</Th><Th>Files</Th><Th>Tries</Th><Th>Problem</Th><Th><span className="sr-only">Action</span></Th></tr></thead>
+              <thead><tr><Th>Who</Th><Th>Status</Th><Th wide>Asked on</Th><Th wide>Files</Th><Th><span className="sr-only">Actions</span></Th></tr></thead>
               <tbody>
-                {d.deletions.length === 0 && <tr><Td className="text-muted">No deletion requests.</Td><Td /><Td /><Td /><Td /><Td /><Td /></tr>}
                 {d.deletions.map((x) => (
-                  <tr key={x.id}>
-                    <Td className="whitespace-nowrap">{fmtUtc(x.requestedAt)}{x.completedAt && <span className="block text-xs text-muted">Done {fmtUtc(x.completedAt)}</span>}</Td>
-                    <Td>{x.customerId ? <Link href={`/dashboard/admin/customers/${x.customerId}`} className="text-accent underline underline-offset-2">{x.email}</Link> : <span title="The account is gone; only a fingerprint of the email remains">Removed · <code>{x.fingerprint}</code></span>}</Td>
-                    <Td><Badge tone={TONE[x.status] ?? "neutral"}>{x.status.replace("_", " ")}</Badge></Td>
-                    <Td className="tabular-nums">{x.filesRemoved} removed{x.filesFailed > 0 && <span className="block text-danger">{x.filesFailed} failed</span>}</Td>
-                    <Td className="tabular-nums">{x.attempts}</Td>
-                    <Td className="max-w-xs break-words text-muted">{x.lastError ?? "–"}{x.nextAttemptAt && x.status === "partial_failure" && <span className="block text-xs">Next try {fmtUtc(x.nextAttemptAt)}</span>}</Td>
-                    <Td>{x.retry.allowed ? <Button onClick={() => setRetrying(x.id)}>Retry now</Button> : <span className="text-xs text-muted">{x.retry.reason}</span>}</Td>
-                  </tr>
+                  <ClickRow key={x.id} onOpen={() => setOpen(x)}>
+                    <Td><RowOpen onOpen={() => setOpen(x)}>{who(x)}</RowOpen></Td>
+                    <Td><Badge tone={status(x).tone}>{status(x).label}</Badge></Td>
+                    <Td wide className="whitespace-nowrap text-muted">{fmtUtc(x.requestedAt)}</Td>
+                    <Td wide className="tabular-nums">{x.filesRemoved} removed{x.filesFailed > 0 && <span className="block text-danger">{x.filesFailed} failed</span>}</Td>
+                    <MenuTd>
+                      <RowMenu label={`Actions for ${who(x)}`} items={[
+                        { label: "See details", onSelect: () => setOpen(x) },
+                        { label: "Try again now…", onSelect: () => setRetrying(x), divider: true, disabled: !x.retry.allowed, reason: x.retry.reason },
+                        ...(x.customerId ? [{ label: "Open account", href: `/admin/customers/${x.customerId}` }] : []),
+                      ]} />
+                    </MenuTd>
+                  </ClickRow>
                 ))}
               </tbody>
             </DataTable>
-          </section>
+          )}
 
-          <section aria-labelledby="aud" className="space-y-3">
-            <h2 id="aud" className="text-sm font-semibold">Staff action history</h2>
-            <DataTable label="Staff actions">
-              <thead><tr><Th>When</Th><Th>Who</Th><Th>Action</Th><Th>About</Th><Th>Reason</Th></tr></thead>
-              <tbody>
-                {d.audit.length === 0 && <tr><Td className="text-muted">No staff actions yet.</Td><Td /><Td /><Td /><Td /></tr>}
-                {d.audit.map((a) => (
-                  <tr key={a.id}>
-                    <Td className="whitespace-nowrap">{fmtUtc(a.at)}</Td>
-                    <Td>{a.actor ?? "–"}</Td>
-                    <Td>{a.action.replace(/^admin_/, "").replaceAll("_", " ")}</Td>
-                    <Td>{a.customerId ? <Link href={`/dashboard/admin/customers/${a.customerId}`} className="text-accent underline underline-offset-2"><code>{a.customerId.slice(0, 8)}</code></Link> : <code title={a.target ?? undefined}>{a.target ? a.target.slice(0, 8) : "–"}</code>}</Td>
-                    <Td className="max-w-xs break-words text-muted">{a.reason ?? "–"}</Td>
-                  </tr>
-                ))}
-              </tbody>
-            </DataTable>
-            <p className="text-xs text-muted">Looking up a customer is recorded too. Entries stay when the person they were about deletes their account, without naming them.</p>
-          </section>
-
+          {open && (
+            <DetailsDialog
+              title="Deletion request"
+              onClose={() => setOpen(null)}
+              rows={[
+                ["Who", who(open)],
+                ["Status", status(open).label],
+                ["Asked on", fmtUtc(open.requestedAt)],
+                ...(open.completedAt ? ([["Finished", fmtUtc(open.completedAt)]] as Array<[string, React.ReactNode]>) : []),
+                ["Files", `${open.filesRemoved} removed, ${open.filesFailed} failed`],
+                ["Tries so far", open.attempts],
+                ["Problem", open.lastError ?? "None"],
+                ...(open.nextAttemptAt && open.status === "partial_failure" ? ([["Next automatic try", fmtUtc(open.nextAttemptAt)]] as Array<[string, React.ReactNode]>) : []),
+              ]}
+              actions={open.retry.allowed ? <Button variant="primary" onClick={() => { setRetrying(open); setOpen(null); }}>Try again now…</Button> : null}
+            />
+          )}
           {retrying && (
             <ActionDialog
-              title="Retry this deletion now?"
-              description="It tries to remove the remaining files straight away instead of waiting for the next scheduled attempt. Nothing is reported as deleted until every file is gone."
-              confirmLabel="Retry now"
+              title="Try this deletion again now?"
+              description="Tries to remove the remaining files now."
+              confirmLabel="Try again now"
               onClose={() => setRetrying(null)}
               onSubmit={async (v) => {
-                await adminPost(`/api/admin/privacy/deletions/${retrying}/retry`, { reason: v.reason });
+                await adminPost(`/api/admin/privacy/deletions/${retrying.id}/retry`, { reason: v.reason });
+                toasts.push({ tone: "success", message: "Trying again." });
                 res.reload();
               }}
             />
           )}
+          <ToastStack items={toasts.items} onDismiss={toasts.dismiss} />
         </div>
       )}
     </ResourceBoundary>
