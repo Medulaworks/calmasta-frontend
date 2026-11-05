@@ -306,3 +306,9 @@
 - **Proof (command + result + revision):** Backend411b7eb focused115/115 and82-path OpenAPI passed; frontenda012c13 final combined checks in session.
 - **What is NOT done:** Final remote hashes/deployment and temporary-worktree cleanup pending at checkpoint.
 - **Next action (task ID + files):** F02/FE-C01 — publish identical branch heads, verify hashes, remove merged temporary worktrees only.
+
+## 2026-11-05 — FE-L03 recording detail tabs
+- **What was done (files + behavior):** Combined Transcript and Meeting insights in one tabbed card; Transcript defaults per capture, drafts/audio integration preserved.
+- **Proof (command + result + revision):** Base81620a5;20/20focused tests, TypeScript, changed-file lint and diff checks passed; regression failed before fix.
+- **What is NOT done:** Hosted/browser visual acceptance and release completion pending; no paid calls.
+- **Next action (task ID + files):** FE-L03 — publish aligned frontend main/staging and verify deployed capture tabs.

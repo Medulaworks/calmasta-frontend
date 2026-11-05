@@ -2,6 +2,7 @@
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Tabs, tabId, tabPanelId } from "@/components/ui/tabs";
 import { PrivateAudio } from "@/components/private-audio";
 import { MeetingInsights } from "@/components/meeting-insights";
 import { seekInsightAudio } from "@/lib/meeting-insights";
@@ -21,6 +22,7 @@ import { formatDuration } from "@/lib/audio";
 import Image from "next/image";
 export function LibraryRecording({ id }: { id: string }) {
   const router = useRouter();
+  const [selectedContent, setSelectedContent] = useState<{captureId:string;tab:"transcript"|"insights"}>({captureId:id,tab:"transcript"});
   const [insightAudio, setInsightAudio] = useState<{
     captureId: string;
     element: HTMLAudioElement;
@@ -91,6 +93,17 @@ export function LibraryRecording({ id }: { id: string }) {
       setBusy(false);
     }
   }
+  const transcriptEditor = capture ? (
+    <TranscriptEditor
+      key={capture.id}
+      cap={capture}
+      statusLabel={status?.label ?? "Processing"}
+      active={active}
+      onChanged={refresh}
+      loadCapture={getLibraryCapture}
+      saveChanges={saveLibraryTranscript}
+    />
+  ) : null;
   return (
     <div className="space-y-5">
       <button
@@ -174,28 +187,51 @@ export function LibraryRecording({ id }: { id: string }) {
             </section>
           )}
           <PrivateAudio key={capture.id} id={capture.id} onAudioChange={onAudioChange} />
-          {capture.source === "meeting_url" && (
-            <MeetingInsights
-              key={capture.id}
-              id={capture.id}
-              transcriptVersion={capture.transcriptVersion}
-              audioAvailable={insightAudio?.captureId === capture.id && capture.id === id}
-              onSeek={(startMs) => {
-                if (insightAudio?.captureId === capture.id && capture.id === id) {
-                  seekInsightAudio(insightAudio.element, startMs);
-                }
-              }}
-            />
+          {capture.source === "meeting_url" ? (
+            <Card>
+              <div className="px-5 pt-4">
+                <Tabs
+                  label="Recording details"
+                  items={[
+                    {id:`recording-${capture.id}-transcript`,label:"Transcript"},
+                    {id:`recording-${capture.id}-insights`,label:"Meeting insights"},
+                  ]}
+                  active={`recording-${capture.id}-${selectedContent.captureId===capture.id?selectedContent.tab:"transcript"}`}
+                  onChange={(tab)=>setSelectedContent({captureId:capture.id,tab:tab===`recording-${capture.id}-insights`?"insights":"transcript"})}
+                />
+              </div>
+              <div
+                role="tabpanel"
+                id={tabPanelId(`recording-${capture.id}-transcript`)}
+                aria-labelledby={tabId(`recording-${capture.id}-transcript`)}
+                hidden={selectedContent.captureId===capture.id&&selectedContent.tab!=="transcript"}
+                tabIndex={0}
+                className="p-5">
+                {transcriptEditor}
+              </div>
+              <div
+                role="tabpanel"
+                id={tabPanelId(`recording-${capture.id}-insights`)}
+                aria-labelledby={tabId(`recording-${capture.id}-insights`)}
+                hidden={selectedContent.captureId!==capture.id||selectedContent.tab!=="insights"}
+                tabIndex={0}
+                className="p-5 [&>section]:border-0 [&>section]:bg-transparent">
+                <MeetingInsights
+                  key={capture.id}
+                  id={capture.id}
+                  transcriptVersion={capture.transcriptVersion}
+                  audioAvailable={insightAudio?.captureId === capture.id && capture.id === id}
+                  onSeek={(startMs) => {
+                    if (insightAudio?.captureId === capture.id && capture.id === id) {
+                      seekInsightAudio(insightAudio.element, startMs);
+                    }
+                  }}
+                />
+              </div>
+            </Card>
+          ) : (
+            transcriptEditor
           )}
-          <TranscriptEditor
-            key={capture.id}
-            cap={capture}
-            statusLabel={status?.label ?? "Processing"}
-            active={active}
-            onChanged={refresh}
-            loadCapture={getLibraryCapture}
-            saveChanges={saveLibraryTranscript}
-          />
         </>
       ) : (
         !error && <p role="status">Loading recording…</p>
