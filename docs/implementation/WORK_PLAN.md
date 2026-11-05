@@ -326,3 +326,10 @@ Internal authentication supersedes hosted-provider setup for FE-A01–FE-A04. Lo
 - **Proof (command + result + revision):** Fresh focused backend100/100,82-path OpenAPI and frontend30/30 plus TypeScript passed on exact unchanged candidate trees. gh pr view confirms both MERGED/main; backend Actions42034255418 and frontend42034257810 are in_progress for exact merge commits.
 - **What is NOT done:** Workflow completion, hosted migration023/effective runtime policy and live recording are not yet verified. Staging branch not merged by this user request. External provider constraints remain.
 - **Next action (task ID + files):** B01/G01/FE-C01 — deployment workflows verify/release main, apply migration023 through normal mechanism and inspect runtime API/worker parity and null policy before user-initiated meeting test; canonical WORK_PLAN.md.
+
+
+## 2026-11-05 — main/staging synchronization
+- **What was done (files + behavior):** Preserved both branch histories: recording-cap release plus backend safe insight diagnostics and frontend zero-byte insight proxy fix. Saved all temporary-worktree checkpoints in primary checkouts; synchronized branch publication and unused-worktree cleanup authorized by user.
+- **Proof (command + result + revision):** Backend merge411b7eb passed115/115focused disposable-PG/provider/media/insight checks and82-path OpenAPI. Frontend mergea012c13 combines verified proxy/cap changes; final focused checks recorded in session. No secrets/environment files staged; source merge conflicts absent, documentation appends retained from both sides.
+- **What is NOT done:** Remote synchronization and deployment completion pending at this checkpoint; provider/live acceptance remains separate from Git equality. No force-push or commit discard authorized/performed.
+- **Next action (task ID + files):** F02/B01/FE-C01/FE-L03 — push identical final HEAD to main/staging in each repository, verify remote hashes and clean tracked trees, remove only merged temporary recording-cap worktrees, then inspect deployment workflows.

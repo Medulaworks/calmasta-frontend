@@ -300,3 +300,9 @@
 - **Proof (command + result + revision):** Frontendfbf418c/API0037499; GitHub MERGED;30frontend/100backend focused tests passed; deployment workflows running.
 - **What is NOT done:** Live release/migration/runtime verification pending; staging unchanged.
 - **Next action (task ID + files):** FE-C01/B01 — verify both main deployment runs and hosted unlimited policy.
+
+## 2026-11-05 — branch synchronization and cleanup
+- **What was done (files + behavior):** Main/staging histories combined; uncommitted frontend fix and temporary tracking notes preserved.
+- **Proof (command + result + revision):** Backend411b7eb focused115/115 and82-path OpenAPI passed; frontenda012c13 final combined checks in session.
+- **What is NOT done:** Final remote hashes/deployment and temporary-worktree cleanup pending at checkpoint.
+- **Next action (task ID + files):** F02/FE-C01 — publish identical branch heads, verify hashes, remove merged temporary worktrees only.
