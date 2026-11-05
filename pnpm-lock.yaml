@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@noble/hashes':
+        specifier: 2.0.1
+        version: 2.0.1
       '@tanstack/query-devtools':
         specifier: ^5.90.1
         version: 5.105.0(csstype@3.2.3)
@@ -68,6 +71,10 @@ importers:
         version: 5.0.5(@types/node@24.19.2)(vite@8.3.4(@types/node@24.19.2)(jiti@2.7.0))
 
 packages:
+
+  '@noble/hashes@2.0.1':
+    resolution: {integrity: sha512-XlOlEbQcE9fmuXxrVTXCTlG2nlRXa9Rj3rr5Ue/+tX+nmkgbX720YHh0VR3hBF9xDvwnb8D2shVGOwNx+ulArw==, tarball: https://registry.npmjs.org/@noble/hashes/-/hashes-2.0.1.tgz}
+    engines: {node: '>= 20.19.0'}
 
   '@alloc/quick-lru@5.3.0':
     resolution: {integrity: sha512-U4+70Pc5ZS9osnCBCE5Jha/ciHM+Yp+CNMNC/7HvYbNRk1Ldd+f7qO65W5qfhu/TCv+/ozljlXXe9Nj8419DMA==, tarball: https://registry.npmjs.org/@alloc/quick-lru/-/quick-lru-5.3.0.tgz}
@@ -2756,6 +2763,8 @@ packages:
     resolution: {integrity: sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg==, tarball: https://registry.npmjs.org/zod/-/zod-4.6.7.tgz}
 
 snapshots:
+
+  '@noble/hashes@2.0.1': {}
 
   '@alloc/quick-lru@5.3.0': {}
 

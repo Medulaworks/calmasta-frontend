@@ -21,9 +21,9 @@ const ALLOWED_EXTENSIONS = new Set(["mp3", "m4a", "mp4", "wav", "webm", "ogg"]);
 
 export type AudioCheck = { ok: true } | { ok: false; reason: string };
 
-export function checkAudioFile(file: { name: string; type: string; size: number },maxBytes=MAX_UPLOAD_BYTES): AudioCheck {
+export function checkAudioFile(file: { name: string; type: string; size: number },maxBytes:number|null=MAX_UPLOAD_BYTES): AudioCheck {
   if (file.size === 0) return { ok: false, reason: "This file is empty." };
-  if (file.size > maxBytes) {
+  if (maxBytes!==null && file.size > maxBytes) {
     return {
       ok: false,
       reason: `This file is larger than ${Math.round(maxBytes / 1024 / 1024)} MB.`,

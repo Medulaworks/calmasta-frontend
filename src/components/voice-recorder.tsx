@@ -70,7 +70,7 @@ export function VoiceRecorder() {
   const policyError = policyErrorRaw instanceof Error ? policyErrorRaw.message : policyErrorRaw ? String(policyErrorRaw) : null;
   const [consent,setConsent]=useState(false);
   const [titleMode,setTitleMode]=useState<"auto"|"mine">("auto");
-  const maxSeconds=policy?.maxUploadDurationSeconds??MAX_RECORDING_SECONDS;
+  const maxSeconds=policy ? policy.maxUploadDurationSeconds : MAX_RECORDING_SECONDS;
   const supported = useSyncExternalStore(subscribeNone, recordingSupported, () => true);
 
   const [phase, setPhase] = useState<Phase>("idle");
@@ -116,7 +116,7 @@ export function VoiceRecorder() {
     const id = setInterval(() => {
       const seconds = (Date.now() - startedAtRef.current) / 1000;
       setElapsed(seconds);
-      if (seconds >= Math.max(1,maxSeconds-1)) {
+      if (maxSeconds!==null && seconds >= Math.max(1,maxSeconds-1)) {
         if (recorderRef.current?.state === "recording") recorderRef.current.stop();
       }
     }, 250);
@@ -292,7 +292,7 @@ export function VoiceRecorder() {
             Record a thought
           </h2>
           <p className="mt-1 text-sm text-muted">
-            Record up to {formatDuration(maxSeconds)}. Keep this tab open and in the foreground: browsers can pause recording when the screen locks.
+            {maxSeconds===null ? "No recording time limit." : `Record up to ${formatDuration(maxSeconds)}.`} Keep this tab open and in the foreground: browsers can pause recording when the screen locks.
           </p>
 
           <div className="mt-auto pt-6">
@@ -325,7 +325,7 @@ export function VoiceRecorder() {
           <h2 id="upload-heading" className="mt-4 text-base font-medium">
             Upload audio
           </h2>
-          <p className="mt-1 text-sm text-muted">MP3, M4A, PCM WAV, WebM or Ogg, up to {formatBytes(policy?.maxUploadBytes??25000000)}.</p>
+          <p className="mt-1 text-sm text-muted">MP3, M4A, PCM WAV, WebM or Ogg{policy?.maxUploadBytes===null ? ", with no upload size limit." : `, up to ${formatBytes(policy?.maxUploadBytes??25000000)}.`}</p>
           <label
             onDragOver={(e) => {
               if (recording) return;

@@ -66,3 +66,11 @@ it("forwards a trimmed per-meeting bot name and omits a blank override",async()=
  expect(JSON.parse(calls[0][1].body).botName).toBe("Planning Assistant");
  expect(JSON.parse(calls[1][1].body)).not.toHaveProperty("botName");
 });
+
+it('accepts null recording caps and keeps a finite duration estimate in the request',async()=>{
+ setup();fetcher.mockImplementation(async(url:string)=>url.endsWith('policy')?json({...policy,maxUploadBytes:null,maxUploadDurationSeconds:null,maxMeetingDurationSeconds:null,recordingLimitsOverride:true}):json({id:'unlimited',state:'queued'}));
+ await expect(requestMeetingCapture('https://meet.google.com/abc-defg-hij',true,undefined,false,{maxDurationSeconds:100000})).resolves.toEqual({captureId:'unlimited',duplicate:false});
+ await requestMeetingCapture('https://meet.google.com/abc-defg-hij',true);
+ const sent=fetcher.mock.calls.filter(([url])=>url==='/api/captures/meetings').map(([,init])=>JSON.parse(init.body));
+ expect(sent[0].maxDurationSeconds).toBe(100000);expect(Number.isSafeInteger(sent[1].maxDurationSeconds)).toBe(true);
+});

@@ -68,3 +68,8 @@ it("handles 401 unauthenticated session and API error responses", async () => {
   fetcher.mockResolvedValueOnce(new Response(JSON.stringify({ error: "Server error" }), { status: 500 }));
   await expect(fetchUsageSummary()).rejects.toBeInstanceOf(UsageError);
 });
+
+it('preserves unlimited null allowances instead of showing exhausted zero',async()=>{
+ vi.stubGlobal('fetch',fetcher);fetcher.mockResolvedValue(Response.json({plan:'plan_free',processingPaused:false,limitSeconds:null,usedSeconds:42,reservedSeconds:15,remainingSeconds:null}));
+ const result=await fetchUsageSummary();expect(result.limitSeconds).toBeNull();expect(result.remainingSeconds).toBeNull();expect(result.usedSeconds).toBe(42);
+});

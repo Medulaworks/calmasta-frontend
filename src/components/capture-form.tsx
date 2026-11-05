@@ -96,7 +96,7 @@ export function CaptureForm() {
         botName,
         seconds: Math.min(
           Math.round(durationMinutes * 60),
-          policy?.maxMeetingDurationSeconds ?? 0,
+          policy?.maxMeetingDurationSeconds === null ? Infinity : policy?.maxMeetingDurationSeconds ?? 0,
         ),
       });
       setNotice(
@@ -169,7 +169,8 @@ export function CaptureForm() {
                 separate from your meeting title.
               </span>
             </label>
-            {policy?.meetingEnabled && (
+            {policy?.meetingEnabled && policy.maxMeetingDurationSeconds===null && <p className="text-sm text-muted">No recording time limit. You can stop the assistant from this page.</p>}
+            {policy?.meetingEnabled && policy.maxMeetingDurationSeconds!==null && (
               <label className="block text-sm">
                 Maximum recording minutes
                 <input
