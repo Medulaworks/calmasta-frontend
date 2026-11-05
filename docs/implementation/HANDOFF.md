@@ -42,10 +42,10 @@ You can start consuming ready local contracts now. Core auth/capture/library cod
 
 ## Current checkpoint
 
-- **What was done (files + behavior):** Removed all `DATABASE_URL` and direct PostgreSQL dependencies from `calmasta-frontend` in favor of `ApiAuthStore` (`/internal/auth/*`), and implemented `FE-X01` (dashboard aggregates), `B-NOTIFY-01` (notifications seen IDs), and `FE-X02` (avatar upload/complete/delete and `passwordUrl` in `avatar-client.ts`, `profile-client.ts`, `profile-view.tsx`, and `app-shell.tsx`).
-- **Proof (command + result + revision):** `pnpm typecheck && pnpm test && pnpm lint` and `python3 docs/implementation/validate.py` passed on revision e9ad534; `git grep -i "database_url\|databaseurl"` returned 0 matches.
-- **What is NOT done:** Live R2 bucket credentials and CORS setup for end-to-end private audio and avatar upload/playback (`FE-C03`).
-- **Next action (task ID + files):** FE-C03 — configure R2 storage credentials and CORS in `../calmasta-api/.env` and verify private upload/playback.
+- **What was done (files + behavior):** Investigated missing meeting bot for capture `462914e6-94ef-4fac-b444-734dad248246`. Confirmed failing pre-dispatch condition: capture created with 1800s duration vs worker `meetingMaxSeconds` configured at 900s, leading to `reservation_revalidation_required` pre-dispatch worker rejection before provider POST. Safely transitioned stale capture to `cancelled` and job to `completed` via authorized service cancellation, preserving rejection error and releasing reserved quota/spend. Implemented temporary recording limits override via reversible flag `RECORDING_LIMITS_OVERRIDE_ENABLED=true` in `calmasta-api` (API admission, worker revalidation, policy endpoint returning 7200s meeting duration ceiling, audio complete check to 36000s, preserving usage ledger accounting, idempotency, and $4.00/hr Recall ceiling).
+- **Proof (command + result + revision):** Backend revision `37c762ab7db6728f584734bfea8cc9ca5d1a9259` deployed to production (`calmasta-api`, `calmasta-worker`) and staging (`calmasta-staging-api`, `calmasta-staging-worker`). Test suite `test:isolated` passed 211/211 (3 skipped) with valid 82-path OpenAPI. Local and production `/health` (HTTP 200) and `/ready` (HTTP 200) verified.
+- **What is NOT done:** No live test bot was dispatched to avoid paid provider consumption. Hard technical ceilings remain: API DTO schema ceiling is 7,200s (2 hr) for meetings and 36,000s (10 hr) for audio uploads.
+- **Next action (task ID + files):** User can create a new capture with active meeting URL to verify end-to-end bot join. To revert temporary limits, set `RECORDING_LIMITS_OVERRIDE_ENABLED=false` in `/home/ubuntu/calmasta-shared/runtime.env` and reload PM2.
 
 ## 2026-10-28 — registration diagnostic support
 
