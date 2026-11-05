@@ -1,10 +1,10 @@
 export interface UsageSummaryView {
   plan: string;
   processingPaused: boolean;
-  limitSeconds: number;
+  limitSeconds: number|null;
   usedSeconds: number;
   reservedSeconds: number;
-  remainingSeconds: number;
+  remainingSeconds: number|null;
 }
 
 export class UsageError extends Error {
@@ -30,9 +30,9 @@ export async function fetchUsageSummary(): Promise<UsageSummaryView> {
   return {
     plan: String(body.plan ?? "plan_free"),
     processingPaused: Boolean(body.processingPaused),
-    limitSeconds: Number(body.limitSeconds ?? 0),
+    limitSeconds: body.limitSeconds===null?null:Number(body.limitSeconds ?? 0),
     usedSeconds: Number(body.usedSeconds ?? 0),
     reservedSeconds: Number(body.reservedSeconds ?? 0),
-    remainingSeconds: Number(body.remainingSeconds ?? 0),
+    remainingSeconds: body.remainingSeconds===null?null:Number(body.remainingSeconds ?? 0),
   };
 }

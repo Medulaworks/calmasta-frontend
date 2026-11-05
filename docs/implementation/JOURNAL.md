@@ -1,5 +1,11 @@
 # Frontend implementation journal
 
+## 2026-11-05 — temporary recording limits override and missing meeting bot investigation
+- **What was done (files + behavior):** Investigated missing meeting bot on capture `462914e6-94ef-4fac-b444-734dad248246`. Confirmed worker rejected job prior to Recall provider POST with `reservation_revalidation_required` because requested duration (1800s) exceeded configured worker ceiling (`MEETING_MAX_DURATION_SECONDS=900`). Cancelled stale capture cleanly, releasing reserved quota (1800s) and spend ($7.58) while preserving rejection error and zeroing actuals. Implemented temporary recording limits override controlled by `RECORDING_LIMITS_OVERRIDE_ENABLED=true` in `calmasta-api` across API admission, worker dispatch, uploads duration checks, and public policy endpoint (`maxMeetingDurationSeconds: 7200`, `maxUploadDurationSeconds: 36000`), preserving usage ledger accounting and the $4.00/hr Recall ceiling.
+- **Proof (command + result + revision):** Backend revision `37c762ab7db6728f584734bfea8cc9ca5d1a9259` pushed to origin `main` and `staging`. `test:isolated` passed 211/211 (3 skipped) with valid 82-path OpenAPI. Production and staging deployed via `deploy.sh`. PM2 processes online, `/health` and `/ready` return HTTP 200.
+- **What is NOT done:** No live test bot was dispatched to avoid paid provider consumption. Hard technical limits remain: API DTO schema ceiling is 7,200s (2 hr) for meetings and 36,000s (10 hr) for audio uploads.
+- **Next action (task ID + files):** User can create a new capture with active meeting URL to verify end-to-end bot join. To revert temporary limits, set `RECORDING_LIMITS_OVERRIDE_ENABLED=false` in `/home/ubuntu/calmasta-shared/runtime.env` and reload PM2.
+
 ## 2026-10-27 — API consumption audit/handoff
 - **What was done (files + behavior):** Frontend structure/client/auth audit and implementation handoff created; existing runtime behavior preserved. Backend source 5b690cc and frontend source e9ad534 inspected; ready contracts separated from unavailable/proposed endpoints.
 - **Proof (command + result + revision):** Source inspection plus `python3 docs/implementation/validate.py` passed: 15 documentation files, 48 local links, 15 READY_LOCAL contract rows, 18 unique task IDs and six matching professions. Documentation/contract validation only; no runtime, browser, provider or production database check claimed. Historical application evidence is linked through BACKEND_REFERENCE.md.
@@ -283,3 +289,14 @@
 - **Proof (command + result + revision):** Frontendc2e57c1 plus working changes; three proxy cases failed before fix. node_modules/.bin/vitest run src/server/auth/meeting-insights-proxy.test.ts src/lib/meeting-insights.test.ts src/lib/meeting-insights-queries.test.ts src/components/meeting-insights.test.tsx src/components/library-recording.test.tsx passed57/57 across5files; tsc --noEmit, changed auth/security/proxy-test eslint --max-warnings=0 and git diff --check passed. Mock HTTP only; backend read-only inspection confirms recap has no result/uncertain held job, so UI is accurately showing backend status.
 - **What is NOT done:** Hosted/browser acceptance, existing recap recovery, real question generation/email, deployment/restart, commit/push, configuration changes or uncertainty bypass. Existing worker discarded historical error detail; paired backend diagnostic fix cannot retrospectively recover it. Implementation IMPLEMENTED; overall verification PARTIALLY_TESTED.
 - **Next action (task ID + files):** FE-L03/B-INSIGHTS-01 — normal authorized release of proxy and backend safe diagnostics, then operator reviews original held provider outcome per ../calmasta-api/docs/implementation/MEETING_INSIGHTS_INCIDENT_HANDOFF.md. Existing unknown job must not be blindly retried; criteria WORK_PLAN.md FE-L03.
+## 2026-11-05 — FE-C01 unrestricted recording policy
+- **What was done (files + behavior):** Nullable policy/usage, uncapped recorder timer and upload validation, incremental blob SHA256; API migration023/release coordinated.
+- **Proof (command + result + revision):** Base0b8e51a;30focused tests/typecheck passed; changed-file lint excludes existing set-state-in-effect violation at voice-recorder144.
+- **What is NOT done:** Not deployed; provider/browser constraints remain; original unrelated dirty tree preserved.
+- **Next action (task ID + files):** FE-C01 — release matching backend/frontend fix/recording-caps branches and verify nullable policy plus fresh recording.
+
+## 2026-11-05 — frontend/backend main publication
+- **What was done (files + behavior):** Frontend PR14 and API PR17 merged to main at explicit user request.
+- **Proof (command + result + revision):** Frontendfbf418c/API0037499; GitHub MERGED;30frontend/100backend focused tests passed; deployment workflows running.
+- **What is NOT done:** Live release/migration/runtime verification pending; staging unchanged.
+- **Next action (task ID + files):** FE-C01/B01 — verify both main deployment runs and hosted unlimited policy.

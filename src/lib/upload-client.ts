@@ -1,3 +1,4 @@
+import {blobSha256} from "./blob-sha256";
 // Browser side of the upload flow: ask the API for a signed URL, PUT the file
 // with progress, tell the API it finished, then poll processing status.
 
@@ -81,7 +82,7 @@ export async function api<T>(url:string,init?:RequestInit):Promise<T>{
  const res=await fetch(url,{cache:"no-store",...init});if(res.status===204)return undefined as T;const body=await res.json().catch(()=>({}));
  if(!res.ok)throw new ApiError(res.status,res.status===401?"Your session ended. Please sign in again.":messages[body.code]??body.error??"Something went wrong. Please try again.",body.code);return body as T;
 }
-export interface CapturePolicy {maxUploadBytes:number;maxUploadDurationSeconds:number;maxMeetingDurationSeconds:number;supportedAudioTypes:string[];uploadEnabled:boolean;meetingEnabled:boolean;videoEnabled:boolean;liveProcessingEnabled:boolean;botName:string;}
+export interface CapturePolicy {maxUploadBytes:number|null;maxVideoBytes?:number|null;maxUploadDurationSeconds:number|null;maxMeetingDurationSeconds:number|null;recordingLimitsOverride?:boolean;supportedAudioTypes:string[];uploadEnabled:boolean;meetingEnabled:boolean;videoEnabled:boolean;liveProcessingEnabled:boolean;botName:string;}
 export const getCapturePolicy=(signal?:AbortSignal)=>api<CapturePolicy>("/api/uploads/policy",{signal});
 export interface PrivateAudio {url:string;expiresAt:string;contentType:string;sizeBytes:number;}
 export const getPrivateAudio=(id:string)=>api<PrivateAudio>(`/api/captures/${encodeURIComponent(id)}/audio`);
@@ -105,9 +106,9 @@ export async function uploadAudio(input:{blob:Blob;filename:string;title:string;
  current.pending=(async()=>{
   const policy=await getCapturePolicy();const contentType=audioContentType(input.blob.type,input.filename);
   if(!policy.uploadEnabled)throw new Error("Uploading is not enabled for this account yet.");
-  if(!input.blob.size||input.blob.size>policy.maxUploadBytes)throw new Error("The recording is empty or exceeds the upload size limit.");
+  if(!input.blob.size||(policy.maxUploadBytes!==null&&input.blob.size>policy.maxUploadBytes))throw new Error("The recording is empty or exceeds the upload size limit.");
   if(!policy.supportedAudioTypes.includes(contentType))throw new Error("Use MP3, M4A, PCM WAV, WebM or Ogg audio.");
-  if(!current.intent){const digest=await crypto.subtle.digest("SHA-256",await input.blob.arrayBuffer());const sha256=Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,"0")).join("");current.intent=await api<UploadIntent>("/api/uploads",{method:"POST",headers:{"Content-Type":"application/json","Idempotency-Key":current.key},body:JSON.stringify({contentType,sizeBytes:input.blob.size,sha256,consent:true,...(title?{title}:{})})});}
+  if(!current.intent){const sha256=await blobSha256(input.blob);current.intent=await api<UploadIntent>("/api/uploads",{method:"POST",headers:{"Content-Type":"application/json","Idempotency-Key":current.key},body:JSON.stringify({contentType,sizeBytes:input.blob.size,sha256,consent:true,...(title?{title}:{})})});}
   if(current.intent.state==="completed")return current.intent.captureId;
   if(!current.uploaded){if(!current.intent.upload)throw new Error("Upload link unavailable.");await putWithProgress(current.intent.upload.url,input.blob,current.intent.upload.headers,onProgress);current.uploaded=true;}
   await api(`/api/uploads/${current.intent.id}/complete`,{method:"POST",headers:{"Content-Type":"application/json","Idempotency-Key":current.completeKey},body:"{}"});return current.intent.captureId;
@@ -135,7 +136,7 @@ export async function requestMeetingCapture(meetingUrl:string,consentConfirmed:b
  if(consentConfirmed!==true)throw new Error("Confirm that you have the right to record this meeting.");
  const policy=await getCapturePolicy();if(!policy.meetingEnabled)throw new Error("Meeting capture is not available yet.");
  if(recordVideo && !policy.videoEnabled) throw new Error("Video recording is not enabled for this account yet.");
- const seconds=options?.maxDurationSeconds??policy.maxMeetingDurationSeconds;if(!Number.isSafeInteger(seconds)||seconds<30||seconds>policy.maxMeetingDurationSeconds)throw new Error("Choose a duration within the meeting limit.");
+ const seconds=options?.maxDurationSeconds??policy.maxMeetingDurationSeconds??1800;if(!Number.isSafeInteger(seconds)||seconds<30||(policy.maxMeetingDurationSeconds!==null&&seconds>policy.maxMeetingDurationSeconds))throw new Error("Choose a duration within the meeting limit.");
  const botName=options?.botName?.trim();if(botName&&(botName.length>100||/[\u0000-\u001f\u007f]/.test(botName)))throw new Error("Choose an assistant name of up to 100 characters without control characters.");
  const body={meetingUrl:meetingUrl.trim(),maxDurationSeconds:seconds,consent:true,...(title?.trim()?{title:title.trim()}:{}),...(recordVideo?{recordVideo:true}:{}),...(botName?{botName}:{})} as Record<string, unknown>;const fingerprint=JSON.stringify(body);let key=options?.idempotencyKey??meetingKeys.get(fingerprint);if(!key){key=crypto.randomUUID();meetingKeys.set(fingerprint,key);}
  const r=await api<{id:string}>("/api/captures/meetings",{method:"POST",headers:{"Content-Type":"application/json","Idempotency-Key":key},body:JSON.stringify(body)});if(meetingKeys.get(fingerprint)===key)meetingKeys.delete(fingerprint);return {captureId:r.id,duplicate:false};

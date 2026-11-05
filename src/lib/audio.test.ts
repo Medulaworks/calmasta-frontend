@@ -51,3 +51,8 @@ it("rejects formats not supported by the capture API and honors its byte limit",
  for(const [name,type] of [["a.aac","audio/aac"],["a.flac","audio/flac"]])expect(checkAudioFile({name,type,size:1}).ok).toBe(false);
  expect(checkAudioFile({name:"a.mp3",type:"audio/mpeg",size:101},100).ok).toBe(false);
 });
+
+it('accepts media beyond the old size cap when policy explicitly returns null',()=>{
+ expect(checkAudioFile({name:'large.mp3',type:'audio/mpeg',size:600000000},null)).toEqual({ok:true});
+ expect(checkAudioFile({name:'empty.mp3',type:'audio/mpeg',size:0},null).ok).toBe(false);
+});

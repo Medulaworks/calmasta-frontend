@@ -54,8 +54,8 @@ export function QuotaCard() {
   if (!data) return null;
 
   const totalCommitted = data.usedSeconds + data.reservedSeconds;
-  const percentUsed = data.limitSeconds > 0 ? Math.min(100, Math.round((totalCommitted / data.limitSeconds) * 100)) : 0;
-  const isZero = data.remainingSeconds <= 0 && data.limitSeconds > 0;
+  const percentUsed = data.limitSeconds!==null && data.limitSeconds > 0 ? Math.min(100, Math.round((totalCommitted / data.limitSeconds) * 100)) : 0;
+  const isZero = data.remainingSeconds!==null && data.remainingSeconds <= 0 && data.limitSeconds!==null && data.limitSeconds > 0;
 
   return (
     <Card>
@@ -97,9 +97,9 @@ export function QuotaCard() {
           <div className="flex items-center justify-between text-xs text-muted">
             <span className="flex items-center gap-1.5 font-medium text-foreground">
               <Gauge aria-hidden className="h-3.5 w-3.5 text-muted" />
-              {formatSeconds(data.remainingSeconds)} remaining
+              {data.remainingSeconds===null?"Unlimited":formatSeconds(data.remainingSeconds)} remaining
             </span>
-            <span>{formatSeconds(data.limitSeconds)} total limit</span>
+            <span>{data.limitSeconds===null?"No recording cap":`${formatSeconds(data.limitSeconds)} total limit`}</span>
           </div>
 
           <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-border" aria-hidden>
@@ -124,7 +124,7 @@ export function QuotaCard() {
           <div>
             <span className="block text-xs text-muted">Remaining</span>
             <span className={`mt-0.5 block font-medium tabular-nums ${isZero ? "text-danger" : ""}`}>
-              {formatSeconds(data.remainingSeconds)}
+              {data.remainingSeconds===null?"Unlimited":formatSeconds(data.remainingSeconds)}
             </span>
           </div>
         </div>
