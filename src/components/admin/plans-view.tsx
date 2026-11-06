@@ -13,7 +13,7 @@ import { formatMinutes } from "@/lib/status";
 import { PlanCard } from "./plan-card";
 import { PlanEditor } from "./plan-editor";
 import { MenuTd, RowMenu } from "./row-menu";
-import { DataTable, ResourceBoundary, SimpleDialog, Td, Th, useResource } from "./ui";
+import { AdminUnavailable, DataTable, ResourceBoundary, SimpleDialog, Td, Th, useResource } from "./ui";
 
 type Plan = Json<AdminPlan>;
 type Pack = Json<AdminPack>;
@@ -33,7 +33,12 @@ export function PlansView() {
 
   return (
     <ResourceBoundary resource={res}>
-      {({ plans, packs, annualDiscountPct, enterpriseUrl }) => (
+      {(data: Json<PlanList> & { available?: boolean; reason?: string; items?: unknown[] }) => {
+        if ((data as { available?: boolean }).available === false) {
+          return <AdminUnavailable title="Plans unavailable" ><p className="text-sm text-muted">{(data as { reason?: string }).reason ?? "Not available yet."} — commerce policy not approved.</p></AdminUnavailable>;
+        }
+        const { plans, packs, annualDiscountPct, enterpriseUrl } = data as Json<PlanList>;
+        return (
         <div className="space-y-10">
           <ul className="grid gap-5 md:grid-cols-3">
             {plans.map((p) => <li key={p.id}><PlanCard plan={p} discountPct={annualDiscountPct} onOpen={() => setEditing(p)} /></li>)}
@@ -82,7 +87,8 @@ export function PlansView() {
           )}
           <ToastStack items={toasts.items} onDismiss={toasts.dismiss} />
         </div>
-      )}
+        );
+      }}
     </ResourceBoundary>
   );
 }

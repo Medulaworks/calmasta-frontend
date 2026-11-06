@@ -26,9 +26,9 @@ export function UserDirectory({ basePath }: { basePath: string }) {
   const [acting, setActing] = useState<{ user: Row; dialog: UserDialogKind } | null>(null);
   const toasts = useToasts("users");
   const p = new URLSearchParams();
-  if (f.q) p.set("q", f.q);
+  if (f.q) p.set("search", f.q);
   for (const k of ["plan", "status"] as const) if (f[k] !== "all") p.set(k, f[k]);
-  const list = usePaged<Row, Page>(`/api/admin/customers${p.size ? `?${p}` : ""}`, (pg) => pg.users);
+  const list = usePaged<Row, Page & { items?: Row[]; available?: boolean }>(`/api/admin/customers${p.size ? `?${p}` : ""}`, (pg) => (pg as unknown as { items?: Row[]; users?: Row[] }).items ?? (pg as unknown as { users: Row[] }).users ?? []);
   const filtered = f.q !== "" || f.plan !== "all" || f.status !== "all";
 
   if (list.status === "unavailable") return <AdminUnavailable />;

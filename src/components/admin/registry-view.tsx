@@ -8,7 +8,7 @@ import { ToastStack, useToasts } from "@/components/ui/toast";
 import { type Json, fmtUtc } from "@/lib/admin-client";
 import type { RegistryRow } from "@/lib/admin-types";
 import { ClickRow, MenuTd, RowMenu, RowOpen } from "./row-menu";
-import { DataTable, ResourceBoundary, Td, Th, useResource } from "./ui";
+import { AdminUnavailable, DataTable, ResourceBoundary, Td, Th, useResource } from "./ui";
 import { type UserDialogKind, UserDialogs, userMenuItems } from "./user-admin";
 
 const FILTERS = [
@@ -29,7 +29,7 @@ export function RegistryView() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("all");
   const [acting, setActing] = useState<{ row: Row; dialog: UserDialogKind } | null>(null);
   const toasts = useToasts("plans");
-  const res = useResource<{ rows: Row[] }>(`/api/admin/registry?filter=${filter}`);
+  const res = useResource<{ rows: Row[] } & { available?: boolean; reason?: string; items?: Row[] }>(`/api/admin/registry?filter=${filter}`);
   return (
     <div className="space-y-4">
       <div role="group" aria-label="Show" className="flex flex-wrap gap-2">
@@ -40,7 +40,10 @@ export function RegistryView() {
         ))}
       </div>
       <ResourceBoundary resource={res}>
-        {({ rows }) =>
+        {(data: { rows: Row[] } & { available?: boolean; reason?: string; items?: Row[] }) => {
+          if ((data as { available?: boolean }).available === false) return <AdminUnavailable title="Entitlements unavailable"><p className="text-sm text-muted">{(data as { reason?: string }).reason ?? "Not available yet."} — entitlements policy not approved.</p></AdminUnavailable>;
+          const rows = (data as { rows?: Row[]; items?: Row[] }).rows ?? (data as { items?: Row[] }).items ?? [];
+          return (
           rows.length === 0 ? (
             <Card><EmptyState title="Nobody here" body="No one matches this filter." /></Card>
           ) : (
@@ -65,7 +68,8 @@ export function RegistryView() {
               </tbody>
             </DataTable>
           )
-        }
+          );
+        }}
       </ResourceBoundary>
       {acting && <UserDialogs user={{ id: acting.row.id, email: acting.row.email, plan: acting.row.plan, planSource: acting.row.source }} dialog={acting.dialog} onClose={() => setActing(null)} onDone={(message) => { toasts.push({ tone: "success", message }); res.reload(); }} />}
       <ToastStack items={toasts.items} onDismiss={toasts.dismiss} />

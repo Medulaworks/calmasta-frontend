@@ -31,7 +31,7 @@ export function AuditView() {
   if (applied.q) params.set("q", applied.q);
   if (applied.outcome !== "all") params.set("outcome", applied.outcome);
   if (applied.action !== "all") params.set("action", applied.action);
-  const list = usePaged<Entry, Page>(`/api/admin/audit${params.size ? `?${params}` : ""}`, (p) => p.entries);
+  const list = usePaged<Entry, Page & { items?: Entry[] }>(`/api/admin/audit${params.size ? `?${params}` : ""}`, (p) => (p as unknown as { items?: Entry[]; entries?: Entry[] }).items ?? (p as unknown as { entries: Entry[] }).entries ?? []);
   const { rows, status: state, message, more, hasMore, loadMore } = list;
   const filtered = applied.q !== "" || applied.outcome !== "all" || applied.action !== "all";
 

@@ -1,86 +1,45 @@
 "use client";
 
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ToastStack, useToasts } from "@/components/ui/toast";
-import { type Json, adminPost, fmtUtc } from "@/lib/admin-client";
+import { type Json, fmtUtc } from "@/lib/admin-client";
 import type { Reconciliation } from "@/lib/admin-types";
-import { ClickRow, DetailsDialog, MenuTd, RowMenu, RowOpen } from "./row-menu";
-import { ActionDialog, DataTable, Metric, ResourceBoundary, Td, Th, useResource } from "./ui";
+import { ClickRow, DetailsDialog } from "./row-menu";
+import { DataTable, Notice, ResourceBoundary, Td, Th, useResource } from "./ui";
 
 type Data = Json<Reconciliation>;
-type Finding = Data["findings"][number];
+type NewItem = { id: string; workspaceId: string; state: string; reservedCostMicros: number; actualCostMicros: number | null; createdAt: string };
+type NewResp = { items: NewItem[]; nextCursor: string | null; available: boolean };
 
 export function ReconciliationView() {
-  const res = useResource<Data>("/api/admin/reconciliation");
-  const toasts = useToasts("mismatches");
-  const [open, setOpen] = useState<Finding | null>(null);
-  const [fixing, setFixing] = useState<Finding | null>(null);
-
+  const res = useResource<Data & NewResp>("/api/admin/reconciliation");
+  const [open, setOpen] = useState<NewItem | null>(null);
   return (
     <ResourceBoundary resource={res}>
-      {(d) => {
-        const fixable = d.findings.filter((f) => f.severity === "safe_to_fix").length;
-        const review = d.findings.length - fixable;
-        const menu = (f: Finding) => [
-          { label: "See details", onSelect: () => setOpen(f) },
-          ...(f.severity === "safe_to_fix" ? [{ label: "Fix this…", onSelect: () => setFixing(f), divider: true }] : []),
-          ...(f.userId ? [{ label: "Open account", href: `/admin/customers/${f.userId}`, divider: f.severity !== "safe_to_fix" }] : []),
-          ...(f.webhookId ? [{ label: "See the store message", href: "/admin/webhooks?filter=attention" }] : []),
-        ];
-        return (
-          <div className="space-y-6">
-            <div className="grid grid-cols-3 gap-3">
-              <Metric label="Can fix here" value={fixable} hint="Out-of-date records" />
-              <Metric label="Need a person" value={review} tone={review > 0 ? "warning" : undefined} hint="Money or customer data" />
-              <Metric label="Usage not matched" value={d.unreconciledUsage} hint="Older than 3 days" />
-            </div>
-            <p className="text-sm text-muted">Checked {fmtUtc(d.checkedAt)}.</p>
-
-            {d.findings.length === 0 ? (
-              <Card><EmptyState title="Everything agrees" body="No mismatches found." /></Card>
-            ) : (
-              <DataTable label="Mismatches">
-                <thead><tr><Th>What</Th><Th wide>Who</Th><Th>Next step</Th><Th><span className="sr-only">Actions</span></Th></tr></thead>
-                <tbody>
-                  {d.findings.map((f) => (
-                    <ClickRow key={f.key} onOpen={() => setOpen(f)}>
-                      <Td><RowOpen onOpen={() => setOpen(f)}>{f.summary}</RowOpen></Td>
-                      <Td wide className="text-muted">{f.email ?? "–"}</Td>
-                      <Td><Badge tone={f.severity === "safe_to_fix" ? "info" : "warning"}>{f.severity === "safe_to_fix" ? "Can fix here" : "Needs a person"}</Badge></Td>
-                      <MenuTd><RowMenu label={`Actions for ${f.summary}`} items={menu(f)} /></MenuTd>
-                    </ClickRow>
-                  ))}
-                </tbody>
-              </DataTable>
-            )}
-
-            {open && (
-              <DetailsDialog
-                title={open.summary}
-                onClose={() => setOpen(null)}
-                rows={[["What happened", open.detail], ...(open.email ? ([["Who", open.email]] as Array<[string, React.ReactNode]>) : []), ["Next step", open.severity === "safe_to_fix" ? "Can be fixed here. Only an out-of-date status changes." : "Needs a person to look. Money or customer data is involved."]]}
-                actions={open.severity === "safe_to_fix" ? <Button variant="primary" onClick={() => { setFixing(open); setOpen(null); }}>Fix this…</Button> : null}
-              />
-            )}
-            {fixing && (
-              <ActionDialog
-                title="Fix this record?"
-                description={<>{fixing.detail} Only the plan status changes.</>}
-                confirmLabel="Fix it"
-                onClose={() => setFixing(null)}
-                onSubmit={async (v) => {
-                  await adminPost("/api/admin/reconciliation", { kind: fixing.kind, userId: fixing.userId, reason: v.reason });
-                  toasts.push({ tone: "success", message: "Record fixed." });
-                  res.reload();
-                }}
-              />
-            )}
-            <ToastStack items={toasts.items} onDismiss={toasts.dismiss} />
-          </div>
+      {(d: Data & Partial<NewResp>) => {
+        const isNew = Array.isArray((d as NewResp).items);
+        if (isNew) {
+          const nd = d as unknown as NewResp;
+          return (
+            <>
+              <Notice>Hold view only — not permission to repair balances or release jobs.</Notice>
+              {nd.items.length === 0 ? <Card><EmptyState title="No reserved holds" /></Card> : (
+                <DataTable label="Reserved holds">
+                  <thead><tr><Th>ID</Th><Th>Workspace</Th><Th>Reserved</Th><Th>Actual</Th><Th>Created</Th></tr></thead>
+                  <tbody>{nd.items.map((r) => <ClickRow key={r.id} onOpen={() => setOpen(r)}><Td>{r.id.slice(0, 8)}</Td><Td>{r.workspaceId.slice(0, 8)}</Td><Td>{(r.reservedCostMicros / 1e6).toFixed(2)}</Td><Td>{r.actualCostMicros == null ? "–" : (r.actualCostMicros / 1e6).toFixed(2)}</Td><Td>{fmtUtc(r.createdAt)}</Td></ClickRow>)}</tbody>
+                </DataTable>
+              )}
+              {open && <DetailsDialog title="Hold" onClose={() => setOpen(null)} rows={[["ID", open.id],["Workspace", open.workspaceId],["Reserved", String(open.reservedCostMicros)],["Actual", open.actualCostMicros == null ? "–" : String(open.actualCostMicros)],["Created", fmtUtc(open.createdAt)]]} />}
+            </>
+          );
+        }
+        const od = d as Data;
+        return od.findings.length === 0 ? <Card><EmptyState title="Everything agrees" /></Card> : (
+          <DataTable label="Mismatches">
+            <thead><tr><Th>What</Th><Th>Who</Th><Th>Next step</Th></tr></thead>
+            <tbody>{od.findings.map((f) => <ClickRow key={f.key} onOpen={() => setOpen(f as unknown as NewItem)}><Td>{f.summary}</Td><Td>{f.email ?? "–"}</Td><Td>{f.severity}</Td></ClickRow>)}</tbody>
+          </DataTable>
         );
       }}
     </ResourceBoundary>

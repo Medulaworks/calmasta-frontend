@@ -61,31 +61,62 @@ function ServiceCard({ s }: { s: Json<ServiceHealth> }) {
   );
 }
 
+type NewHealth = { api: string; environment: string; processes: Array<{ service: string; instanceId: string; environment: string; release: string | null; lastSeenAt: string; healthy: boolean }>; worker: string; telemetry: { enabled: boolean; deliveryVerified: boolean }; policy: { version: number; processingPaused: boolean; updatedAt: string; scope: string; adoption: string; editableKeys: string[]; bootstrapSettingsEditable: boolean } };
 export function HealthView() {
-  const res = useResource<Data>("/api/admin/health");
+  const res = useResource<Data & NewHealth>("/api/admin/health");
   return (
     <ResourceBoundary resource={res}>
-      {(h) => {
+      {(h: Data & NewHealth) => {
+        const isNew = typeof (h as NewHealth).api === "string";
+        if (isNew) {
+          const nh = h as unknown as NewHealth;
+          return (
+            <div className="space-y-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm"><Badge tone={nh.worker === "healthy" ? "success" : "neutral"}>{nh.worker}</Badge> <span className="ml-2 text-muted">API {nh.api} · {nh.environment} {nh.telemetry.enabled ? (nh.telemetry.deliveryVerified ? "· telemetry verified" : "· telemetry not verified — no collector receipt") : "· telemetry off"} </span></p>
+                <Button onClick={res.reload}><RefreshCw aria-hidden className="size-4" /> Refresh</Button>
+              </div>
+              {!nh.telemetry.deliveryVerified && nh.telemetry.enabled && <Notice tone="warning">Telemetry enabled but delivery not verified by backend.</Notice>}
+              {nh.processes.length === 0 ? <p className="text-sm text-muted">No heartbeat — unknown/stale, not healthy. Telemetry flag does not prove collector delivery.</p> : (
+                <Card>
+                  <CardHeader title="Processes" />
+                  <ul className="divide-y divide-border text-sm">
+                    {nh.processes.map((p) => (
+                      <li key={p.instanceId} className="flex items-center justify-between gap-3 px-5 py-3">
+                        <div className="min-w-0"><p className="truncate font-medium">{p.service}</p><p className="text-xs text-muted">{p.environment} {p.release ? `· ${p.release}` : ""} · last seen {fmtUtc(p.lastSeenAt)}</p></div>
+                        <Badge tone={p.healthy ? "success" : "neutral"}>{p.healthy ? "healthy" : "unknown/stale"}</Badge>
+                      </li>
+                    ))}
+                  </ul>
+                </Card>
+              )}
+              <Card>
+                <CardHeader title="Policy" />
+                <div className="space-y-2 p-5 text-sm"><p>Version {nh.policy.version} · paused {String(nh.policy.processingPaused)} · scope {nh.policy.scope}</p><p className="text-xs text-muted">Adoption {nh.policy.adoption} · editable {nh.policy.editableKeys.join(", ") || "–"}</p></div>
+              </Card>
+            </div>
+          );
+        }
         const groups = ["Core", "Providers", "Integrations"] as const;
         const GROUP_NAME = { Core: "Jooba itself", Providers: "Outside services we pay for", Integrations: "Connected apps" } as const;
         return (
           <div className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="flex items-center gap-2 text-sm">
-                <StatusBadge status={h.overall} />
-                <span className="text-muted">{h.overall === "operational" ? "Everything we can check is working." : h.overall === "unknown" ? "We can't tell yet." : "Something needs a look."} Updated {fmtUtc(h.generatedAt)}.</span>
+                <StatusBadge status={(h as Data).overall} />
+                <span className="text-muted">{(h as Data).overall === "operational" ? "Everything we can check is working." : (h as Data).overall === "unknown" ? "We can't tell yet." : "Something needs a look."} Updated {fmtUtc((h as Data).generatedAt)}.</span>
               </p>
               <Button onClick={res.reload}><RefreshCw aria-hidden className="size-4" /> Refresh</Button>
             </div>
 
-            {h.incidents.some((i) => !i.resolvedAt) && (
-              <Notice tone="warning">{h.incidents.filter((i) => !i.resolvedAt).map((i) => i.title).join(" · ")}</Notice>
+            {(h as Data).incidents.some((i) => !i.resolvedAt) && (
+              <Notice tone="warning">{(h as Data).incidents.filter((i) => !i.resolvedAt).map((i) => i.title).join(" · ")}</Notice>
             )}
 
             {groups.map((g) => (
               <section key={g} aria-labelledby={`g-${g}`} className="space-y-3">
                 <h2 id={`g-${g}`} className="text-sm font-semibold">{GROUP_NAME[g]}</h2>
-                <ul className="grid gap-3 md:grid-cols-2">{h.services.filter((s) => s.group === g).map((s) => <ServiceCard key={s.id} s={s} />)}</ul>
+                <ul className="grid gap-3 md:grid-cols-2">{(h as Data).services.filter((s) => s.group === g).map((s) => <ServiceCard key={s.id} s={s} />)}</ul>
               </section>
             ))}
 
@@ -93,7 +124,7 @@ export function HealthView() {
               <Card>
                 <CardHeader title="Processing" />
                 <ul className="divide-y divide-border text-sm">
-                  {h.workers.map((w) => (
+                  {(h as Data).workers.map((w) => (
                     <li key={w.name} className="flex items-center justify-between gap-3 px-5 py-3">
                       <div className="min-w-0">
                         <p className="truncate font-medium">{w.name}</p>
@@ -107,7 +138,7 @@ export function HealthView() {
               <Card>
                 <CardHeader title="Waiting to be processed, last 6 hours" />
                 <div className="space-y-2 p-5">
-                  <Sparkline values={h.queueDepth} />
+                  <Sparkline values={(h as Data).queueDepth} />
                   <p className="text-xs text-muted">Every 15 minutes. <Link href="/admin" className="underline underline-offset-2">See what’s waiting</Link></p>
                 </div>
               </Card>
@@ -115,11 +146,11 @@ export function HealthView() {
 
             <Card>
               <CardHeader title="Past problems" />
-              {h.incidents.length === 0 ? (
+              {(h as Data).incidents.length === 0 ? (
                 <p className="p-5 text-sm text-muted">No problems recorded.</p>
               ) : (
                 <ul className="divide-y divide-border text-sm">
-                  {h.incidents.map((i) => (
+                  {(h as Data).incidents.map((i) => (
                     <li key={i.id} className="space-y-1 px-5 py-3">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-medium">{i.title}</span>
@@ -142,13 +173,25 @@ export function HealthView() {
 
 /** A one-line summary for the Overview. Quietly absent when health isn't available, so it never shows a made-up "all good". */
 export function HealthStrip() {
-  const res = useResource<Data>("/api/admin/health");
+  const res = useResource<Data & NewHealth>("/api/admin/health");
   if (!res.data) return null;
-  const bad = res.data.services.filter((s) => s.status === "degraded" || s.status === "down");
+  const d = res.data as Data & Partial<NewHealth>;
+  if (Array.isArray((d as Data).services)) {
+    const bad = (d as Data).services.filter((s) => s.status === "degraded" || s.status === "down");
+    return (
+      <Link href="/admin/health" className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-background px-4 py-3 text-sm transition-colors hover:bg-surface">
+        <StatusBadge status={(d as Data).overall} />
+        <span className="text-muted">{bad.length === 0 ? `${(d as Data).services.length} services checked.` : bad.map((s) => s.name).join(", ")}</span>
+        <span className="ml-auto text-xs text-accent">System status</span>
+      </Link>
+    );
+  }
+  const nh = d as unknown as NewHealth;
+  const unhealthy = nh.processes.filter((p) => !p.healthy).length;
   return (
     <Link href="/admin/health" className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-background px-4 py-3 text-sm transition-colors hover:bg-surface">
-      <StatusBadge status={res.data.overall} />
-      <span className="text-muted">{bad.length === 0 ? `${res.data.services.length} services checked.` : bad.map((s) => s.name).join(", ")}</span>
+      <Badge tone={nh.worker === "healthy" ? "success" : "neutral"}>{nh.worker}</Badge>
+      <span className="text-muted">{unhealthy === 0 ? `${nh.processes.length} processes` : `${unhealthy} unhealthy`} · API {nh.api}</span>
       <span className="ml-auto text-xs text-accent">System status</span>
     </Link>
   );

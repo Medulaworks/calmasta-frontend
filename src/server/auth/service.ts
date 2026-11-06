@@ -19,6 +19,12 @@ export class AuthService {
  private async upstream(path:string,method="GET",body?:Record<string,unknown>,session?:SessionData,key?:string,clientIp?:string){
   const h:Record<string,string>={Accept:"application/json"};if(body!==undefined)h["Content-Type"]="application/json";if(session)h.Authorization=`Bearer ${session.accessToken}`;if(key)h["Idempotency-Key"]=key;
   if(clientIp){h["X-Auth-Client-IP"]=clientIp;h["X-Bff-Secret"]=hashId(`calmasta-bff-store:${this.config.sessionSecret}`);}
+  // Propagate validated W3C traceparent same-origin only; backend ignores malformed parents
+  try{
+    const { randomBytes } = await import("node:crypto");
+    const traceId = randomBytes(16).toString("hex"), spanId = randomBytes(8).toString("hex");
+    h["traceparent"] = `00-${traceId}-${spanId}-01`;
+  }catch{}
   return fetch(new URL(path,this.config.apiOrigin),{method,headers:h,body:body===undefined?undefined:JSON.stringify(body),cache:"no-store",redirect:"error",signal:AbortSignal.timeout(15000)});
  }
  private api(session:SessionData,path:string,method="GET",body?:Record<string,unknown>,key?:string){return this.upstream(path,method,body,session,key);}
@@ -209,6 +215,47 @@ export class AuthService {
    const id=readCookie(req,this.config.sessionCookie);if(id)await this.store.revoke(hashId(id),body.all===true);
    const res=json({redirectTo:this.config.appOrigin+"/auth/login",scope:body.all===true?"all_calmasta_sessions":"current_session"});
    this.setCookie(res,this.config.sessionCookie,"",0);return this.setCookie(res,this.config.transactionCookie,"",0);
+  }catch(e){return this.error(e);}
+ }
+ async adminLogin(req:Request){
+  try{
+   this.checkOrigin(req);
+   const body=await readJson(req) as {email?:unknown;password?:unknown};
+   if(typeof body.email!=="string"||typeof body.password!=="string"||!body.email.trim()||!body.password)throw new HttpError(400,"Invalid request");
+   const res=await this.upstream("/admin/auth/login","POST",{email:body.email,password:body.password},undefined,undefined,this.clientIp(req));
+   if(!res.ok){const data=await res.json().catch(()=>({}));const code=typeof data.code==="string"?data.code:undefined;const corr=res.headers.get("x-correlation-id")??undefined;return json({code:code??"authentication_failed",correlationId:corr},res.status);}
+   const data=await res.json() as Credentials & {principal?:unknown};
+   return this.establishSession(req,data);
+  }catch(e){return this.error(e);}
+ }
+ async adminLogout(req:Request){
+  try{
+   this.checkOrigin(req);
+   const session=await this.session(req);if(!session)return this.unauthorized();
+   const res=await this.upstream("/admin/auth/logout","POST",{},session,undefined,this.clientIp(req));
+   if(!res.ok&&res.status!==401){const data=await res.json().catch(()=>({}));return json({code:data.code??"logout_failed",correlationId:res.headers.get("x-correlation-id")??undefined},res.status);}
+   const id=readCookie(req,this.config.sessionCookie);if(id)await this.store.revoke(hashId(id),false);
+   const out=json({ok:true});return this.setCookie(out,this.config.sessionCookie,"",0);
+  }catch(e){return this.error(e);}
+ }
+ async adminMe(req:Request){
+  try{
+   if(req.method!=="GET")throw new HttpError(405,"Method not allowed");
+   const session=await this.session(req);if(!session)return this.unauthorized();
+   const res=await this.upstream("/admin/me","GET",undefined,session,undefined,this.clientIp(req));
+   if(res.status===401)return this.unauthorized();
+   const data=await res.json().catch(()=>({}));if(!res.ok)return json({code:data.code??"request_failed",correlationId:res.headers.get("x-correlation-id")??undefined},res.status);
+   return json({id:data.id,name:data.name,email:data.email,email_verified:data.email_verified,emailVerified:data.emailVerified??data.email_verified,role:data.role,permissions:data.permissions});
+  }catch(e){return this.error(e);}
+ }
+ async adminCapabilities(req:Request){
+  try{
+   if(req.method!=="GET")throw new HttpError(405,"Method not allowed");
+   const session=await this.session(req);if(!session)return this.unauthorized();
+   const res=await this.upstream("/admin/capabilities","GET",undefined,session,undefined,this.clientIp(req));
+   if(res.status===401)return this.unauthorized();
+   const data=await res.json().catch(()=>({}));if(!res.ok)return json({code:data.code??"request_failed",correlationId:res.headers.get("x-correlation-id")??undefined},res.status);
+   return json(data);
   }catch(e){return this.error(e);}
  }
  private unauthorized(){return this.setCookie(json({error:"Your session expired. Please sign in again."},401),this.config.sessionCookie,"",0);}

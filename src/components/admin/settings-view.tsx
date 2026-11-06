@@ -31,19 +31,48 @@ export function SettingsView() {
   return <ResourceBoundary resource={res}>{(d) => <Editor key={d.version} data={d} reload={res.reload} />}</ResourceBoundary>;
 }
 
+type NewSettings = { version: number; processingPaused: boolean; updatedAt: string | null; scope: string; adoption: string; editableKeys: string[]; recordingLimitsOverride?: unknown; bootstrapSettingsEditable: boolean };
 function Editor({ data, reload }: { data: Data; reload: () => void }) {
   const can = capability("settings_edit");
   const toasts = useToasts("settings");
-  // Typed text per key; absent means untouched. Booleans and selects store their value as text too.
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [reviewing, setReviewing] = useState(false);
   const [conflict, setConflict] = useState(false);
-
+  const [paused, setPaused] = useState((data as unknown as NewSettings).processingPaused ?? false);
+  const settingsList = (data as unknown as Data).settings;
   const groups = useMemo(() => {
     const m = new Map<string, Setting[]>();
-    for (const s of data.settings) m.set(s.group, [...(m.get(s.group) ?? []), s]);
+    if (!Array.isArray(settingsList)) return [...m] as Array<[string, Setting[]]>;
+    for (const s of settingsList) m.set(s.group, [...(m.get(s.group) ?? []), s]);
     return [...m];
-  }, [data.settings]);
+  }, [settingsList]);
+  const isNew = !Array.isArray((data as unknown as NewSettings & Data).settings);
+  if (isNew) {
+    const ns = data as unknown as NewSettings;
+    return (
+      <div className="space-y-6">
+        <p className="text-sm text-muted">Version {ns.version} · scope {ns.scope} · adoption {ns.adoption} {ns.updatedAt ? `· updated ${fmtUtc(ns.updatedAt)}` : ""}</p>
+        {!can.allowed && <Notice>{can.reason}</Notice>}
+        {conflict && <Notice tone="warning"><span className="flex flex-wrap items-center justify-between gap-3">Version conflict — refetch before another deliberate edit.<Button onClick={() => { setConflict(false); reload(); }}>Reload settings</Button></span></Notice>}
+        <Card><CardHeader title="Processing pause (shared database)" />
+          <div className="space-y-3 p-5 text-sm">
+            <label className="inline-flex items-center gap-2"><input type="checkbox" checked={paused} disabled={!can.allowed || !ns.editableKeys.includes("processingPaused")} onChange={(e) => setPaused(e.target.checked)} className="size-4" /> Paused</label>
+            <p className="text-xs text-muted">Deliberate operator pause, not a quota change. Reads/callbacks/cancel/settlement remain available.</p>
+          </div>
+        </Card>
+        {can.allowed && paused !== ns.processingPaused && (
+          <ActionDialog title={paused ? "Pause processing?" : "Resume processing?"} description={`Version ${ns.version} → ${ns.version + 1}. Shared DB policy.`} confirmLabel={paused ? "Pause" : "Resume"} onClose={() => setPaused(ns.processingPaused)} onSubmit={async (v) => {
+            try { await adminPatch("/api/admin/settings", { version: ns.version, processingPaused: paused, reason: v.reason }, { "Idempotency-Key": crypto.randomUUID().replace(/-/g, "").slice(0, 16).padEnd(8, "0") }); toasts.push({ tone: "success", message: "Settings saved." }); reload(); } catch (err) { if (err instanceof ApiError && (err as unknown as { code?: string }).code === "settings_version_conflict") setConflict(true); throw err; }
+          }} />
+        )}
+        <Button variant="primary" disabled={!can.allowed || paused === ns.processingPaused} onClick={() => setReviewing(true)}>Review and save…</Button>
+        {reviewing && <ActionDialog title="Save?" description={`processingPaused ${String(ns.processingPaused)} → ${String(paused)}`} confirmLabel="Save" onClose={() => setReviewing(false)} onSubmit={async (v) => {
+          try { await adminPatch("/api/admin/settings", { version: ns.version, processingPaused: paused, reason: v.reason }, { "Idempotency-Key": crypto.randomUUID().replace(/-/g, "").slice(0, 16).padEnd(8, "0") }); toasts.push({ tone: "success", message: "Saved." }); reload(); } catch (err) { if (err instanceof ApiError && (err as unknown as { code?: string }).code === "settings_version_conflict") setConflict(true); throw err; }
+        }} />}
+        <ToastStack items={toasts.items} onDismiss={toasts.dismiss} />
+      </div>
+    );
+  }
 
   const parsed = (s: Setting): { value: Value } | { error: string } | null => {
     const t = draft[s.key];

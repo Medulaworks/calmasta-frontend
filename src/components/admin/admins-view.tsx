@@ -19,13 +19,10 @@ type Invite = Json<AdminInvite>;
 const field = "mt-1.5 block h-10 w-full rounded-lg border border-border bg-background px-3 text-sm";
 const EMAIL = /^\S+@\S+\.\S+$/;
 const daysLeft = (iso: string) => Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
+const key = () => crypto.randomUUID().replace(/-/g, "").slice(0, 16).padEnd(8, "0");
 
-/**
- * Who can use the staff area. People are added by invitation: you enter an email, they get a link, and they become an admin
- * only when they accept it. Nothing here needs a typed reason or a password; the sign-in to the staff area is the proof.
- */
 export function AdminsView() {
-  const res = useResource<Json<AdminList>>("/api/admin/staff");
+  const res = useResource<Json<AdminList> & { items?: Array<{ id: string; role: string; name: string | null; email: string; active: boolean }> }>("/api/admin/staff");
   const toasts = useToasts("admins");
   const can = capability("staff_manage");
   const [inviting, setInviting] = useState(false);
@@ -34,7 +31,7 @@ export function AdminsView() {
 
   async function resend(i: Invite) {
     try {
-      await adminPost(`/api/admin/staff/invites/${i.id}/resend`, {});
+      await adminPost(`/api/admin/staff/invites/${i.id}/resend`, { reason: "Resend staff invite" }, { "Idempotency-Key": key() });
       toasts.push({ tone: "success", message: `Invite sent again to ${i.email}.` });
       res.reload();
     } catch (err) {
@@ -44,7 +41,11 @@ export function AdminsView() {
 
   return (
     <ResourceBoundary resource={res}>
-      {({ admins, invites }) => {
+      {(data: Json<AdminList> & { items?: Array<{ id: string; role: string; name: string | null; email: string; active: boolean }> }) => {
+        // New shape: {items, nextCursor} vs old {admins, invites}
+        const isNew = Array.isArray((data as { items?: unknown[] }).items);
+        const admins: Member[] = isNew ? (data as { items: Array<{ id: string; name: string | null; email: string }> }).items.map((it) => ({ id: it.id, email: it.email, name: it.name, addedAt: null, addedBy: null, lastSignInAt: null, you: false })) : (data as Json<AdminList>).admins;
+        const invites: Invite[] = isNew ? [] : (data as Json<AdminList>).invites;
         const lastOne = admins.length <= 1;
         const adminMenu = (a: Member) => [
           { label: "Open account", href: `/admin/customers/${a.id}`, disabled: a.id.startsWith("p-"), reason: "No account page for this sample person." },
@@ -123,7 +124,7 @@ export function AdminsView() {
                 busyLabel="Removing…"
                 onClose={() => setRemoving(null)}
                 onSubmit={async () => {
-                  await adminPost(`/api/admin/staff/${removing.id}/remove`, {});
+                  await adminPost(`/api/admin/staff/${removing.id}/remove`, { reason: "Remove staff member" }, { "Idempotency-Key": key() });
                   toasts.push({ tone: "success", message: `${removing.email} is no longer an admin.` });
                   res.reload();
                 }}
@@ -138,7 +139,7 @@ export function AdminsView() {
                 busyLabel="Cancelling…"
                 onClose={() => setCancelling(null)}
                 onSubmit={async () => {
-                  await adminPost(`/api/admin/staff/invites/${cancelling.id}/cancel`, {});
+                  await adminPost(`/api/admin/staff/invites/${cancelling.id}/cancel`, { reason: "Cancel staff invite" }, { "Idempotency-Key": key() });
                   toasts.push({ tone: "success", message: "Invite cancelled." });
                   res.reload();
                 }}
@@ -154,21 +155,21 @@ export function AdminsView() {
 
 function InviteDialog({ onClose, onSent }: { onClose: () => void; onSent: (email: string) => void }) {
   const [email, setEmail] = useState("");
-  const [note, setNote] = useState("");
-  const [noting, setNoting] = useState(false);
+  const [role, setRole] = useState("viewer");
+  const [reason, setReason] = useState("");
   const clean = email.trim();
   const touched = clean.length > 3 && !EMAIL.test(clean);
 
   return (
     <SimpleDialog
       title="Invite an admin"
-      description="They get an email link that works for 7 days."
+      description="They get an email link that expires in 48 hours. Raw tokens are never shown."
       confirmLabel="Send invite"
       busyLabel="Sending…"
-      canSubmit={EMAIL.test(clean)}
+      canSubmit={EMAIL.test(clean) && reason.trim().length > 0}
       onClose={onClose}
       onSubmit={async () => {
-        await adminPost("/api/admin/staff/invites", { email: clean, ...(note.trim() ? { note: note.trim() } : {}) });
+        await adminPost("/api/admin/staff/invites", { email: clean, role, reason: reason.trim() }, { "Idempotency-Key": key() });
         onSent(clean);
       }}
     >
@@ -177,14 +178,18 @@ function InviteDialog({ onClose, onSent }: { onClose: () => void; onSent: (email
         <input type="email" autoComplete="off" inputMode="email" spellCheck={false} placeholder="name@company.com" value={email} onChange={(e) => setEmail(e.target.value)} aria-invalid={touched} className={field} />
         {touched && <span role="alert" className="mt-1 block text-xs text-danger">Enter a full email address, like name@company.com.</span>}
       </label>
-      {noting ? (
-        <label className="block text-sm">
-          <span className="font-medium">Personal note <span className="font-normal text-muted">(optional)</span></span>
-          <textarea rows={3} maxLength={300} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Included in the email" className={`${field} h-auto py-2`} />
-        </label>
-      ) : (
-        <button type="button" onClick={() => setNoting(true)} className="text-sm text-muted underline underline-offset-2 hover:text-foreground">Add a personal note</button>
-      )}
+      <label className="block text-sm">
+        <span className="font-medium">Role</span>
+        <select value={role} onChange={(e) => setRole(e.target.value)} className={field}>
+          <option value="viewer">Viewer</option>
+          <option value="operator">Operator</option>
+          <option value="owner">Owner</option>
+        </select>
+      </label>
+      <label className="block text-sm">
+        <span className="font-medium">Reason (required, no secrets)</span>
+        <input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} placeholder="Why invite this person" className={field} />
+      </label>
     </SimpleDialog>
   );
 }
