@@ -1,5 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
+import {readInsightTab,insightSearch,listenInsightNavigation,updateInsightUrl} from "@/lib/insight-navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, tabId, tabPanelId } from "@/components/ui/tabs";
@@ -23,6 +24,7 @@ import Image from "next/image";
 export function LibraryRecording({ id }: { id: string }) {
   const router = useRouter();
   const [selectedContent, setSelectedContent] = useState<{captureId:string;tab:"transcript"|"insights"}>({captureId:id,tab:"transcript"});
+  useEffect(()=>{const sync=()=>setSelectedContent({captureId:id,tab:readInsightTab(insightSearch())});sync();return listenInsightNavigation(sync);},[id]);
   const [insightAudio, setInsightAudio] = useState<{
     captureId: string;
     element: HTMLAudioElement;
@@ -193,11 +195,11 @@ export function LibraryRecording({ id }: { id: string }) {
                 <Tabs
                   label="Recording details"
                   items={[
-                    {id:`recording-${capture.id}-transcript`,label:"Transcript"},
                     {id:`recording-${capture.id}-insights`,label:"Meeting insights"},
+                    {id:`recording-${capture.id}-transcript`,label:"Transcript"},
                   ]}
                   active={`recording-${capture.id}-${selectedContent.captureId===capture.id?selectedContent.tab:"transcript"}`}
-                  onChange={(tab)=>setSelectedContent({captureId:capture.id,tab:tab===`recording-${capture.id}-insights`?"insights":"transcript"})}
+                  onChange={(value)=>{const tab=value===`recording-${capture.id}-insights`?"insights":"transcript";setSelectedContent({captureId:capture.id,tab});updateInsightUrl({tab});}}
                 />
               </div>
               <div

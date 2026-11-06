@@ -70,3 +70,12 @@ it("polls queued to ready with real observer backoff, then stops",async()=>{
   await vi.advanceTimersByTimeAsync(60000);expect(fetcher).toHaveBeenCalledTimes(4);
  }finally{unsubscribe();qc.clear();vi.useRealTimers();}
 });
+
+it("template receipts update only their own cache and preserve legacy Enhanced",async()=>{
+ const qc=new QueryClient(),enhanced={id:"enhanced",state:"ready" as const,transcriptVersion:1,isStale:false,result:null,failureReason:null,emailStatus:"not_requested" as const,updatedAt:""};
+ const source={...data,recap:enhanced,summary:{templateId:"sales-bant",templateRevision:1,sourceKind:"recap" as const,artifact:null}};
+ qc.setQueryData(qk.meetingInsights("m"),{...data,recap:enhanced});qc.setQueryData(qk.meetingInsights("m","sales-bant"),source);
+ vi.stubGlobal("fetch",vi.fn().mockResolvedValue(Response.json({id:"bant",state:"queued",failureReason:null,templateId:"sales-bant",sourceKind:"recap"},{status:202})));
+ await new MutationObserver(qc,meetingInsightMutationOptions(qc,"m","recap","sales-bant")).mutate();
+ const view=qc.getQueryData<MeetingInsights>(qk.meetingInsights("m","sales-bant"));expect(view?.recap?.id).toBe("enhanced");expect(view?.summary?.artifact?.id).toBe("bant");expect(qc.getQueryData<MeetingInsights>(qk.meetingInsights("m"))?.recap?.id).toBe("enhanced");qc.clear();
+});

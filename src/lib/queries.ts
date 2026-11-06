@@ -28,7 +28,8 @@ export const qk = {
   capturePolicy: () => ["capturePolicy"] as const,
   captures: (limit: number, kind?: "meetings" | "recordings") => ["captures", { limit, kind }] as const,
   capture: (id: string) => ["capture", id] as const,
-  meetingInsights: (id: string) => ["capture", id, "insights"] as const,
+  meetingInsights: (id: string,templateId="enhanced") => templateId==="enhanced"?["capture", id, "insights"] as const:["capture", id, "insights",templateId] as const,
+  meetingQuestions:(id:string)=>["capture",id,"insightQuestions"] as const,
   meetingPreferences: () => ["meetingPreferences"] as const,
   privateAudio: (id: string) => ["privateAudio", id] as const,
   library: (q: LibraryQuery, cursor?: string, limit?: number) => ["library", q, cursor, limit] as const,
@@ -97,9 +98,9 @@ export const privateAudioQuery = (id: string) =>
     enabled: !!id,
   });
 
-export const meetingInsightsQuery = (id: string) => queryOptions({
-  queryKey: qk.meetingInsights(id),
-  queryFn: ({ signal }) => getMeetingInsights(id, signal),
+export const meetingInsightsQuery = (id: string,templateId="enhanced") => queryOptions({
+  queryKey: qk.meetingInsights(id,templateId),
+  queryFn: ({ signal }) => getMeetingInsights(id, signal,templateId),
   enabled: !!id,
   staleTime: 0,
   retry: (failures, error) => failures < 3 && !(error instanceof ApiError && [401, 403, 404, 409, 503].includes(error.status)),

@@ -3,6 +3,9 @@ import type { InsightArtifact, InsightKind, InsightRequest, MeetingInsights, Mee
 
 const active = new Set(["pending", "queued", "running"]);
 const reasons: Record<string, string> = {
+  summary_templates_not_ready:"Summary formats are not enabled by the service owner yet.",
+  insight_generation_in_progress:"Another summary is still processing. You can view a saved format while it finishes.",
+  invalid_summary_template:"This summary format is unavailable.",
   insight_provider_not_configured: "Meeting insights need to be configured by the service owner.",
   insight_cost_not_configured: "Meeting insights need to be configured by the service owner.",
   insight_cost_limit_exceeded: "This request exceeds the processing limit. Contact support.",
@@ -49,7 +52,7 @@ export function canRequestInsight(data: MeetingInsights, kind: InsightKind): boo
 }
 export function insightsPollInterval(data: MeetingInsights | undefined, failures: number, error?: unknown): number | false {
   if (error instanceof ApiError && [401, 403, 404, 409, 503].includes(error.status)) return false;
-  if (!data?.enabled || !data.liveProcessingEnabled || ![data.recap, data.questions].some(a => a && active.has(a.state))) return false;
+  if (!data?.enabled || !data.liveProcessingEnabled || (![data.recap, data.questions,data.summary?.artifact].some(a => a && active.has(a.state))&&!active.has(data.activeRecap?.state??""))) return false;
   return Math.min(3000 * 2 ** Math.min(failures, 4), 30000);
 }
 export function questionStartMs(question: MeetingQuestion): number | null {

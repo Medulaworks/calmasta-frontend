@@ -45,6 +45,7 @@ vi.mock("@tanstack/react-query", async (original) => {
   const query = await original<typeof import("@tanstack/react-query")>();
   return { ...query,
     useQueryClient: (...args: Parameters<typeof query.useQueryClient>) => hooks.active && hooks.client ? hooks.client : query.useQueryClient(...args),
+    useMutation:(options:Parameters<typeof query.useMutation>[0])=>hooks.active&&hooks.client?new query.MutationObserver(hooks.client,options).getCurrentResult():query.useMutation(options),
     useQuery: (options: Parameters<typeof query.useQuery>[0]) => {
       if (!hooks.active || !hooks.client) return query.useQuery(options);
       const observer = new query.QueryObserver(hooks.client, options);
@@ -103,7 +104,7 @@ it("mounting and refreshing the meeting only read data and never dispatch genera
   const panel = find<ComponentProps<typeof MeetingInsights>>(tree, MeetingInsights)!;
   expect(panel).toBeDefined();
   hooks.cleanup.forEach(cleanup => cleanup?.()); hooks.cleanup = []; hooks.deps = []; hooks.pending = [];
-  hooks.client = clients.at(-1)!;
+  hooks.values=[];hooks.client = clients.at(-1)!;
   vi.mocked(fetch).mockImplementation((url) => Promise.resolve(Response.json(String(url).endsWith("/insights") ? insights : detail())));
   run(() => MeetingInsights(panel.props)); await effects();
   await vi.waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([url]) => String(url).endsWith("/insights"))).toBe(true));
@@ -158,8 +159,8 @@ it("groups transcript and insights in tabs, defaults to transcript, and keeps bo
  let tree = await mount();
  let tabs = find<ComponentProps<typeof Tabs>>(tree, Tabs);
  expect(tabs).toBeDefined();
- expect(tabs!.props.items.map(item => item.label)).toEqual(["Transcript", "Meeting insights"]);
- const [transcript, insights] = tabs!.props.items;
+ expect(tabs!.props.items.map(item => item.label)).toEqual(["Meeting insights", "Transcript"]);
+ const transcript=tabs!.props.items.find(t=>t.label==="Transcript")!,insights=tabs!.props.items.find(t=>t.label==="Meeting insights")!;
  function panel(node: ReactNode, id: string): ReactElement<{id:string;hidden:boolean;children?:ReactNode}> | undefined {
   if(Array.isArray(node))return node.map(child=>panel(child,id)).find(Boolean);
   if(!isValidElement<{id?:string;children?:ReactNode}>(node))return undefined;

@@ -89,3 +89,9 @@ it("permits explicit retry only for a safe pre-dispatch failure label",()=>{
  expect(insightMessage(retry)).toContain("try again");
  expect(canRequestInsight({...insights(),questions:{...retry,state:"reconciliation_required"}},"questions")).toBe(false);
 });
+
+it("polls a selected template while Enhanced and questions are already ready",()=>{
+ const selected={...artifact("queued"),result:null};
+ const data={...insights(artifact("ready")),summary:{templateId:"sales-bant",templateRevision:1,sourceKind:"recap" as const,artifact:selected}};
+ expect(insightsPollInterval(data,0)).toBe(3000);expect(insightsPollInterval({...data,summary:{...data.summary,artifact:{...selected,state:"ready"}}},0)).toBe(false);
+});
