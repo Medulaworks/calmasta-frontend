@@ -9,7 +9,7 @@ import { ToastStack, useToasts } from "@/components/ui/toast";
 import { type Json, adminPost, fmtUtc } from "@/lib/admin-client";
 import type { PrivacyReport } from "@/lib/admin-types";
 import { ClickRow, DetailsDialog, MenuTd, RowMenu, RowOpen } from "./row-menu";
-import { ActionDialog, DataTable, Notice, ResourceBoundary, Td, Th, useResource } from "./ui";
+import { ActionDialog, AdminUnavailable, DataTable, Notice, ResourceBoundary, Td, Th, useResource } from "./ui";
 
 type Data = Json<PrivacyReport>;
 type Del = Data["deletions"][number];
@@ -23,7 +23,7 @@ const STATUS: Record<string, { label: string; tone: "neutral" | "info" | "succes
 
 /** People who asked us to delete their account. The history of what staff did lives under Activity. */
 export function PrivacyView() {
-  const res = useResource<Data>("/api/admin/privacy");
+  const res = useResource<Data & { available?: boolean; reason?: string }>(`/api/admin/privacy`);
   const toasts = useToasts("deletions");
   const [open, setOpen] = useState<Del | null>(null);
   const [retrying, setRetrying] = useState<Del | null>(null);
@@ -32,7 +32,9 @@ export function PrivacyView() {
 
   return (
     <ResourceBoundary resource={res}>
-      {(d) => (
+      {(d: Data & { available?: boolean; reason?: string }) => {
+        if ((d as { available?: boolean }).available === false) return <AdminUnavailable title="Deletions unavailable"><p className="text-sm text-muted">{(d as { reason?: string }).reason ?? "Not available yet."} — deletion not implemented.</p></AdminUnavailable>;
+        return (
         <div className="space-y-5">
           <Notice>Done means every stored file is gone.</Notice>
           {d.deletions.length === 0 ? (
@@ -92,7 +94,8 @@ export function PrivacyView() {
           )}
           <ToastStack items={toasts.items} onDismiss={toasts.dismiss} />
         </div>
-      )}
+        );
+      }}
     </ResourceBoundary>
   );
 }

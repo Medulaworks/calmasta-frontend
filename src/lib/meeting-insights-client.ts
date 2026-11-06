@@ -31,8 +31,12 @@ export interface MeetingQuestion {
 }
 export interface QuestionsResult {
   formatVersion?:2;
-  coverage: "ai_extraction_not_guaranteed_exhaustive";
+  coverage: "ai_extraction_not_guaranteed_exhaustive" | "partial_ai_extraction";
   questions: MeetingQuestion[];
+  rejectedQuestionCount?: number;
+  rejectedAnswerCount?: number;
+  failedExtractionRequestCount?: number;
+  failedAnswerRequestCount?: number;
 }
 /** UI projection; provider accounting fields deliberately stay out of normal UI. */
 export interface InsightArtifact<Result> {

@@ -12,7 +12,7 @@ function getService() {
   }
   return service;
 }
-type AuthRouteKind = "login" | "callback" | "logout" | "me" | "proxy" | "register" | "action";
+type AuthRouteKind = "login" | "callback" | "logout" | "me" | "proxy" | "register" | "action" | "adminLogin" | "adminLogout" | "adminMe" | "adminCapabilities";
 
 function logFailure(kind: AuthRouteKind, request: Request, segments: string[], status: number) {
   const action = segments.join("/");
@@ -29,7 +29,11 @@ export async function authRoute(kind: AuthRouteKind, request: Request, segments:
     const auth = getService();
     const response = kind === "proxy" ? await auth.proxy(request, segments)
       : kind === "action" ? await auth.action(request, segments.join("/"))
-      : await auth[kind](request);
+      : kind === "adminLogin" ? await auth.adminLogin(request)
+      : kind === "adminLogout" ? await auth.adminLogout(request)
+      : kind === "adminMe" ? await auth.adminMe(request)
+      : kind === "adminCapabilities" ? await auth.adminCapabilities(request)
+      : await (auth as unknown as Record<string, (r: Request) => Promise<Response>>)[kind](request);
     if (response.status >= 500) logFailure(kind, request, segments, response.status);
     return response;
   } catch {

@@ -1,10 +1,20 @@
 import { ApiError } from "./upload-client";
 
-/** No staff HTTP contracts exist in the current backend. Never send speculative requests or return sample success. */
-const unavailable = <T>(): Promise<T> => Promise.reject(new ApiError(503, "The staff API is not available yet.", "feature_unavailable"));
-export const adminGet = <T>(url: string): Promise<T> => { void url; return unavailable<T>(); };
-export const adminPost = <T = { ok: true }>(url: string, body: unknown): Promise<T> => { void url; void body; return unavailable<T>(); };
-export const adminPatch = <T = { ok: true }>(url: string, body: unknown): Promise<T> => { void url; void body; return unavailable<T>(); };
+async function adminFetch<T>(url: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(url, { cache: "no-store", ...init });
+  if (res.status === 204) return undefined as T;
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const corr = res.headers.get("x-correlation-id") ?? body.correlationId;
+    throw new ApiError(res.status, body.error ?? body.message ?? "Something went wrong.", body.code ?? (corr ? `correlation:${corr}` : undefined));
+  }
+  return body as T;
+}
+export const adminGet = <T>(url: string): Promise<T> => adminFetch<T>(url);
+export const adminPost = <T = { ok: true }>(url: string, body: unknown, headers?: Record<string,string>): Promise<T> =>
+  adminFetch<T>(url, { method: "POST", headers: { "Content-Type": "application/json", ...(headers ?? {}) }, body: body === undefined ? undefined : JSON.stringify(body) });
+export const adminPatch = <T = { ok: true }>(url: string, body: unknown, headers?: Record<string,string>): Promise<T> =>
+  adminFetch<T>(url, { method: "PATCH", headers: { "Content-Type": "application/json", ...(headers ?? {}) }, body: JSON.stringify(body) });
 
 /** Staff-facing times are always shown in UTC and say so, so nobody has to guess the zone. */
 export const fmtUtc = (v: string | Date | null | undefined) => {

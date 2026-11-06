@@ -173,102 +173,104 @@ export function LibraryRecording({ id }: { id: string }) {
                 <div className="grid gap-6 p-5 text-sm lg:grid-cols-[minmax(0,1fr)_320px]">
                   <div className="space-y-4">
                     <div className="grid gap-3 sm:grid-cols-3">
-                    <div>
-                      <p className="text-muted">Platform</p>
-                      <p className="flex items-center gap-2 font-medium">
-                        {capture.platform ? (
-                          <>
-                            <Image
-                              src={
-                                capture.platform === "microsoft_teams"
-                                  ? "/icons/icons8-teams-96.png"
-                                  : capture.platform === "zoom"
-                                    ? "/icons/icons8-zoom-96.png"
-                                    : "/icons/icons8-google-meet-96.png"
-                              }
-                              alt={
-                                PLATFORM_LABELS[capture.platform] ??
-                                capture.platform
-                              }
-                              width={20}
-                              height={20}
-                              className="h-5 w-5 shrink-0"
-                            />
-                            {PLATFORM_LABELS[capture.platform] ??
-                              capture.platform}
-                          </>
-                        ) : (
-                          "—"
-                        )}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted">Status</p>
-                      <p className="font-medium">{status?.label ?? "—"}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted">Usage</p>
-                      <p className="font-medium">{usage ?? "—"}</p>
-                    </div>
-                  </div>
-                  <dl className="divide-y divide-border rounded-lg border border-border">
-                    <div className="grid grid-cols-[8rem_1fr] gap-3 px-4 py-3">
-                      <dt className="text-muted">Join At</dt>
-                      <dd>{joinAt}</dd>
-                    </div>
-                    <div className="grid grid-cols-[8rem_1fr] gap-3 px-4 py-3">
-                      <dt className="text-muted">Bot Name</dt>
-                      <dd>{ext.botName ?? "—"}</dd>
-                    </div>
-                    <div className="grid grid-cols-[8rem_1fr] gap-3 px-4 py-3">
-                      <dt className="text-muted">Metadata</dt>
-                      <dd>
-                        {ext.metadata
-                          ? `${Object.keys(ext.metadata).length} field${Object.keys(ext.metadata).length === 1 ? "" : "s"}`
-                          : "—"}
-                      </dd>
-                    </div>
-                    <div className="grid grid-cols-[8rem_1fr] gap-3 px-4 py-3">
-                      <dt className="text-muted">Meeting</dt>
-                      <dd className="truncate">
-                        {meetingUrl ? (
-                          <a
-                            href={meetingUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-accent hover:underline">
-                            {meetingUrl}
-                          </a>
-                        ) : (
-                          "—"
-                        )}
-                      </dd>
-                    </div>
-                    <div className="px-4 py-3">
-                      <p className="text-muted">
-                        Participants · {(ext.participants?.length ?? 0) || 0}
-                      </p>
-                      {ext.participants?.length ? (
-                        <ul className="mt-2 flex flex-wrap gap-2">
-                          {ext.participants.map((p, i) => (
-                            <li
-                              key={i}
-                              className="rounded-full bg-surface px-3 py-1 text-xs">
-                              {p.name}
-                              {p.role ? ` · ${p.role}` : ""}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="mt-1 text-muted">
-                          No participant list yet.
+                      <div>
+                        <p className="text-muted">Platform</p>
+                        <p className="flex items-center gap-2 font-medium">
+                          {capture.platform ? (
+                            <>
+                              <Image
+                                src={
+                                  capture.platform === "microsoft_teams"
+                                    ? "/icons/icons8-teams-96.png"
+                                    : capture.platform === "zoom"
+                                      ? "/icons/icons8-zoom-96.png"
+                                      : "/icons/icons8-google-meet-96.png"
+                                }
+                                alt={
+                                  PLATFORM_LABELS[capture.platform] ??
+                                  capture.platform
+                                }
+                                width={20}
+                                height={20}
+                                className="h-5 w-5 shrink-0"
+                              />
+                              {PLATFORM_LABELS[capture.platform] ??
+                                capture.platform}
+                            </>
+                          ) : (
+                            "—"
+                          )}
                         </p>
-                      )}
+                      </div>
+                      <div>
+                        <p className="text-muted">Status</p>
+                        <p className="font-medium">{status?.label ?? "—"}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted">Usage</p>
+                        <p className="font-medium">{usage ?? "—"}</p>
+                      </div>
                     </div>
-                  </dl>
+                    <dl className="divide-y divide-border rounded-lg border border-border">
+                      <div className="grid grid-cols-[8rem_1fr] gap-3 px-4 py-3">
+                        <dt className="text-muted">Join At</dt>
+                        <dd>{joinAt}</dd>
+                      </div>
+                      <div className="grid grid-cols-[8rem_1fr] gap-3 px-4 py-3">
+                        <dt className="text-muted">Bot Name</dt>
+                        <dd>{ext.botName ?? "—"}</dd>
+                      </div>
+                      <div className="grid grid-cols-[8rem_1fr] gap-3 px-4 py-3">
+                        <dt className="text-muted">Metadata</dt>
+                        <dd>
+                          {ext.metadata
+                            ? `${Object.keys(ext.metadata).length} field${Object.keys(ext.metadata).length === 1 ? "" : "s"}`
+                            : "—"}
+                        </dd>
+                      </div>
+                      <div className="grid grid-cols-[8rem_1fr] gap-3 px-4 py-3">
+                        <dt className="text-muted">Meeting</dt>
+                        <dd className="truncate">
+                          {meetingUrl ? (
+                            <a
+                              href={meetingUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-accent hover:underline">
+                              {meetingUrl}
+                            </a>
+                          ) : (
+                            "—"
+                          )}
+                        </dd>
+                      </div>
+                      <div className="px-4 py-3">
+                        <p className="text-muted">
+                          Participants · {(ext.participants?.length ?? 0) || 0}
+                        </p>
+                        {ext.participants?.length ? (
+                          <ul className="mt-2 flex flex-wrap gap-2">
+                            {ext.participants.map((p, i) => (
+                              <li
+                                key={i}
+                                className="rounded-full bg-surface px-3 py-1 text-xs">
+                                {p.name}
+                                {p.role ? ` · ${p.role}` : ""}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="mt-1 text-muted">
+                            No participant list yet.
+                          </p>
+                        )}
+                      </div>
+                    </dl>
                   </div>
                   <div className="min-w-0">
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Timeline</p>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
+                      Timeline
+                    </p>
                     {(
                       capture as unknown as {
                         events?: Array<{
@@ -279,86 +281,88 @@ export function LibraryRecording({ id }: { id: string }) {
                       }
                     ).events?.length ? (
                       <ol className="relative space-y-0 rounded-lg border border-border bg-surface/30 p-3">
-                      {(() => {
-                        const labels: Record<
-                          string,
-                          { title: string; desc: string }
-                        > = {
-                          queued: {
-                            title: "Queued",
-                            desc: "Added to processing queue",
-                          },
-                          video_ready: {
-                            title: "Video ready",
-                            desc: "Recording secured and ready",
-                          },
-                          transcript_ready: {
-                            title: "Transcript ready",
-                            desc: "Transcript available for insights",
-                          },
-                        };
-                        const icons: Record<string, typeof Clock> = {
-                          queued: Clock,
-                          video_ready: Video,
-                          transcript_ready: FileText,
-                        };
-                        const items = (
-                          capture as unknown as {
-                            events: Array<{
-                              status: string;
-                              detail: string | null;
-                              at: string;
-                            }>;
-                          }
-                        ).events.slice(0, 3);
-                        return items.map((ev, i) => {
-                          const meta = labels[ev.status] ?? {
-                            title: ev.status.replace(/_/g, " "),
-                            desc: ev.detail ?? "",
+                        {(() => {
+                          const labels: Record<
+                            string,
+                            { title: string; desc: string }
+                          > = {
+                            queued: {
+                              title: "Queued",
+                              desc: "Added to processing queue",
+                            },
+                            video_ready: {
+                              title: "Video ready",
+                              desc: "Recording secured and ready",
+                            },
+                            transcript_ready: {
+                              title: "Transcript ready",
+                              desc: "Transcript available for insights",
+                            },
                           };
-                          const Icon = icons[ev.status] ?? Clock;
-                          const isLast = i === items.length - 1;
-                          return (
-                            <li
-                              key={i}
-                              className="relative flex gap-3 pb-4 last:pb-0">
-                              {!isLast && (
-                                <span
-                                  aria-hidden
-                                  className="absolute left-[11px] top-7 h-[calc(100%-8px)] w-px bg-border"
-                                />
-                              )}
-                              <span className="relative z-10 grid h-6 w-6 shrink-0 place-items-center rounded-full border border-border bg-background shadow-sm">
-                                <Icon
-                                  aria-hidden
-                                  className="h-3.5 w-3.5 text-muted"
-                                />
-                              </span>
-                              <span className="min-w-0 flex-1 pt-0.5">
-                                <span className="flex flex-wrap items-baseline gap-2">
-                                  <span className="text-sm font-medium capitalize">
-                                    {meta.title}
+                          const icons: Record<string, typeof Clock> = {
+                            queued: Clock,
+                            video_ready: Video,
+                            transcript_ready: FileText,
+                          };
+                          const items = (
+                            capture as unknown as {
+                              events: Array<{
+                                status: string;
+                                detail: string | null;
+                                at: string;
+                              }>;
+                            }
+                          ).events.slice(0, 3);
+                          return items.map((ev, i) => {
+                            const meta = labels[ev.status] ?? {
+                              title: ev.status.replace(/_/g, " "),
+                              desc: ev.detail ?? "",
+                            };
+                            const Icon = icons[ev.status] ?? Clock;
+                            const isLast = i === items.length - 1;
+                            return (
+                              <li
+                                key={i}
+                                className="relative flex gap-3 pb-4 last:pb-0">
+                                {!isLast && (
+                                  <span
+                                    aria-hidden
+                                    className="absolute left-[11px] top-7 h-[calc(100%-8px)] w-px bg-border"
+                                  />
+                                )}
+                                <span className="relative z-10 grid h-6 w-6 shrink-0 place-items-center rounded-full border border-border bg-background shadow-sm">
+                                  <Icon
+                                    aria-hidden
+                                    className="h-3.5 w-3.5 text-muted"
+                                  />
+                                </span>
+                                <span className="min-w-0 flex-1 pt-0.5">
+                                  <span className="flex flex-wrap items-baseline gap-2">
+                                    <span className="text-sm font-medium capitalize">
+                                      {meta.title}
+                                    </span>
+                                    <span className="text-xs text-muted">
+                                      {ev.at
+                                        ? new Date(ev.at).toLocaleString()
+                                        : ""}
+                                    </span>
                                   </span>
-                                  <span className="text-xs text-muted">
-                                    {ev.at
-                                      ? new Date(ev.at).toLocaleString()
+                                  <span className="mt-0.5 block text-xs text-muted">
+                                    {meta.desc}
+                                    {ev.detail && !labels[ev.status]
+                                      ? `: ${ev.detail}`
                                       : ""}
                                   </span>
                                 </span>
-                                <span className="mt-0.5 block text-xs text-muted">
-                                  {meta.desc}
-                                  {ev.detail && !labels[ev.status]
-                                    ? `: ${ev.detail}`
-                                    : ""}
-                                </span>
-                              </span>
-                            </li>
-                          );
-                        });
-                      })()}
-                    </ol>
+                              </li>
+                            );
+                          });
+                        })()}
+                      </ol>
                     ) : (
-                      <p className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted">No events yet</p>
+                      <p className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted">
+                        No events yet
+                      </p>
                     )}
                   </div>
                 </div>
