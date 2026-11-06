@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "./ui/button";
 import { Card, CardHeader } from "./ui/card";
+import { Loading, Skeleton, SkeletonLines } from "./ui/skeleton";
 import { ApiError } from "../lib/upload-client";
 import { meetingInsightsQuery, meetingPreferencesQuery, qk } from "../lib/queries";
 import { meetingInsightMutationOptions, meetingPreferencesMutationOptions } from "../lib/meeting-insights-queries";
@@ -158,18 +159,18 @@ export function MeetingInsights({id,transcriptVersion,audioAvailable,onSeek}:{id
  }
  return <Card><CardHeader title="Meeting insights" action={<Button size="sm" variant="ghost" disabled={query.isFetching} onClick={()=>{void query.refetch();if(data?.summaryTemplatesEnabled)void questionQuery.refetch();}}>Refresh insights</Button>}/>
  <div className="space-y-5 p-5 text-sm">
- {query.isPending&&<p role="status" className="text-muted">Loading meeting insights…</p>}<InsightError error={query.error}/>
+ {query.isPending&&<Loading label="Loading meeting insights" className="space-y-4"><div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]"><div className="space-y-4 rounded-xl border border-border p-5"><div className="flex items-center gap-2"><Skeleton className="h-5 w-5 rounded-md" /><Skeleton className="h-5 w-28" /></div><SkeletonLines lines={2} /><Skeleton className="h-24 w-full rounded-lg" /><SkeletonLines lines={3} /></div><div className="space-y-4 rounded-xl border border-border bg-surface/40 p-5"><Skeleton className="h-5 w-24" /><SkeletonLines lines={3} /><Skeleton className="h-20 w-full rounded-lg" /></div></div></Loading>}<InsightError error={query.error}/>
  {data&&!data.enabled&&<p role="status" className="text-muted">Meeting insights are currently unavailable. Your recording and transcript remain usable.</p>}
  {data?.enabled&&!data.liveProcessingEnabled&&<p role="status" className="text-muted">Insight processing is paused. Queued work cannot run until the service owner enables processing.</p>}
  {data?.enabled&&!data.transcriptReady&&<p className="text-muted">Waiting for the current transcript before requesting insights.</p>}
  {data&&<><p className="text-xs leading-relaxed text-muted">AI-generated insights may contain mistakes. Review them against the transcript before using them. Next steps are not added to your actions automatically.</p>
- <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
- <div className="min-w-0 space-y-5 rounded-xl border border-border p-4 sm:p-5">
- <div className="flex flex-wrap items-center justify-between gap-3"><SummaryTemplatePicker templates={catalogue} value={templateId} onSelect={next=>void selectTemplate(next)}/>{data.activeRecap&&data.activeRecap.templateId!==templateId&&<p role="status" className="text-xs text-muted">{catalogue.find(t=>t.id===data.activeRecap?.templateId)?.label??"Another summary"} is processing.</p>}</div>
- {failures[token]&&<p role="alert" className="text-sm text-danger">{failures[token]}</p>}
+ <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)] xl:items-start">
+ <div className="min-w-0 space-y-5 rounded-xl border border-border bg-background p-4 shadow-sm sm:p-5">
+ <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3"><SummaryTemplatePicker templates={catalogue} value={templateId} onSelect={next=>void selectTemplate(next)}/>{data.activeRecap&&data.activeRecap.templateId!==templateId&&<p role="status" className="text-xs text-muted">{catalogue.find(t=>t.id===data.activeRecap?.templateId)?.label??"Another summary"} is processing.</p>}</div>
+ {failures[token]&&<p role="alert" className="rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">{failures[token]}</p>}
  {leftData&&<InsightSection key={`summary:${id}:${templateId}:${currentVersion}`} id={id} kind={questionsOnly?"questions":"recap"} data={leftData} readFailed={query.isError} audioAvailable={audioAvailable} onSeek={onSeek} templateId={templateId} templateName={chosen?.label} showToolbar summaryLoading={!!busy[token]}/>}
  </div>
- <aside className="min-w-0 space-y-4 rounded-xl border border-border bg-surface/40 p-4 sm:p-5" aria-label="Detected questions">
+ <aside className="min-w-0 space-y-4 rounded-xl border border-border bg-surface/40 p-4 shadow-sm sm:p-5 xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:overflow-y-auto" aria-label="Detected questions">
  <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-base font-semibold">Questions</h3><SummaryToolbar result={null} meeting={data.meeting} questions={data.questions?.result??null} templateId="questions" questionsOnly disabled={questionQuery.isError||data.questions?.state!=="ready"||!!data.questions?.isStale}/></div>
  {data.viewPreferences?.enabled&&data.viewPreferences.speakerOptions.length>0&&<details className="rounded-md border border-border p-2.5"><summary className="cursor-pointer text-xs font-medium">Mark my speaker(s)</summary><p className="mt-2 text-xs text-muted">Choose your speaker labels to group your questions separately. This does not edit the transcript.</p><div className="mt-2 space-y-2">{data.viewPreferences.speakerOptions.map(s=><label key={s.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={data.viewPreferences!.selfSpeakerIds.includes(s.id)} disabled={saveView.isPending} onChange={e=>saveView.mutate({selfSpeakerIds:e.target.checked?[...data.viewPreferences!.selfSpeakerIds,s.id]:data.viewPreferences!.selfSpeakerIds.filter(id=>id!==s.id)})}/>{s.label}</label>)}</div></details>}
  <InsightError error={questionQuery.error??saveView.error}/><InsightSection key={`questions:${id}:${currentVersion}`} id={id} kind="questions" data={data} readFailed={questionQuery.isError||query.isError} audioAvailable={audioAvailable} onSeek={onSeek}/>
