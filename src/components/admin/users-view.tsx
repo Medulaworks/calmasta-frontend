@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ToastStack, useToasts } from "@/components/ui/toast";
+import { Avatar } from "@/components/ui/avatar";
 import { type Json, fmtUtc } from "@/lib/admin-client";
 import type { UserList, UserRow } from "@/lib/admin-types";
 import { ClickRow, MenuTd, RowMenu, RowOpen } from "./row-menu";
@@ -68,10 +69,15 @@ export function UserDirectory({ basePath }: { basePath: string }) {
                 return (
                   <ClickRow key={u.id} href={href}>
                     <Td>
-                      <RowOpen href={href}>{u.email}</RowOpen>
-                      <span className="block text-xs text-muted">{u.name ?? "No name"}<span className="capitalize md:hidden"> · {u.plan}</span>{u.emailVerified ? "" : " · email not confirmed"}</span>
+                      <span className="flex items-center gap-2">
+                        <Avatar name={u.name ?? u.email} src={(u as unknown as { avatarUrl?: string | null }).avatarUrl ?? null} size={32} />
+                        <span className="min-w-0">
+                          <RowOpen href={href}>{u.email}</RowOpen>
+                          <span className="block text-xs text-muted">{u.name ?? "No name"}<span className="capitalize md:hidden"> · {u.plan}</span>{u.emailVerified ? "" : " · email not confirmed"}</span>
+                        </span>
+                      </span>
                     </Td>
-                    <Td wide><span className="capitalize">{u.plan}</span>{PLAN_NOTE[u.planStatus] && <span className="block text-xs text-muted">{PLAN_NOTE[u.planStatus]}</span>}</Td>
+                    <Td wide><span className="capitalize">{(u.plan as string) ?? "free"}</span>{PLAN_NOTE[(u.planStatus as string) ?? ""] && <span className="block text-xs text-muted">{PLAN_NOTE[(u.planStatus as string) ?? ""]}</span>}</Td>
                     <Td>
                       <span className="flex flex-wrap gap-1">
                         <Badge tone={u.status === "suspended" ? "danger" : "success"}>{u.status === "suspended" ? "Suspended" : "Active"}</Badge>

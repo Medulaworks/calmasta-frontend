@@ -32,6 +32,8 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
+  // @ts-ignore - Next 16.4.1 supports instrumentationHook
+  experimental: { instrumentationHook: true } as unknown as Record<string, unknown>,
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {

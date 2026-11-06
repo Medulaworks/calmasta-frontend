@@ -20,7 +20,11 @@ export class AuthService {
   const h:Record<string,string>={Accept:"application/json"};if(body!==undefined)h["Content-Type"]="application/json";if(session)h.Authorization=`Bearer ${session.accessToken}`;if(key)h["Idempotency-Key"]=key;
   if(clientIp){h["X-Auth-Client-IP"]=clientIp;h["X-Bff-Secret"]=hashId(`calmasta-bff-store:${this.config.sessionSecret}`);}
   // Propagate validated W3C traceparent same-origin only; backend ignores malformed parents
-  try{
+  // If Next instrumentation provides a traceparent, reuse it; otherwise generate a new one
+  const incoming = (globalThis as unknown as { __traceparent?: string }).__traceparent;
+  const valid = incoming && /^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$/.test(incoming) ? incoming : null;
+  if (valid) h["traceparent"] = valid;
+  else try{
     const { randomBytes } = await import("node:crypto");
     const traceId = randomBytes(16).toString("hex"), spanId = randomBytes(8).toString("hex");
     h["traceparent"] = `00-${traceId}-${spanId}-01`;
