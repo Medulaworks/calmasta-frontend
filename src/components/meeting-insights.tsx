@@ -86,8 +86,8 @@ function InsightSection({ id, kind, data, readFailed, audioAvailable, onSeek }: 
   const artifact = data[kind];
   const canRequest = !readFailed && canRequestInsight(data, kind);
   const label = kind === "recap"
-    ? artifact?.isStale ? "Generate current recap" : artifact?.state === "blocked" ? "Retry recap admission" : "Generate recap"
-    : artifact?.isStale ? "Extract questions from current transcript" : artifact?.state === "blocked" ? "Retry question admission" : "Extract meeting questions";
+    ? artifact?.isStale ? "Generate current recap" : (artifact?.state === "blocked" || (artifact?.state === "failed" && artifact.failureReason === "insight_dispatch_blocked")) ? "Retry recap admission" : "Generate recap"
+    : artifact?.isStale ? "Extract questions from current transcript" : (artifact?.state === "blocked" || (artifact?.state === "failed" && artifact.failureReason === "insight_dispatch_blocked")) ? "Retry question admission" : "Extract meeting questions";
   return <section className="space-y-3" aria-label={kind === "recap" ? "Meeting recap" : "Meeting questions"}>
     <h3 className="font-medium">{kind === "recap" ? "Meeting recap" : "Meeting questions"}</h3>
     {artifact?.isStale && <p className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm">Based on an older transcript or summary format. Review this content against the current transcript.</p>}

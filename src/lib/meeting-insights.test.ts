@@ -82,3 +82,10 @@ it("reports a completed seek so the caller can consume it instead of reapplying 
  expect(seekInsightAudio(audio,12000)).toBe(false);
  audio.readyState=1;expect(seekInsightAudio(audio,12000)).toBe(true);
 });
+
+it("permits explicit retry only for a safe pre-dispatch failure label",()=>{
+ const retry={...artifact("failed"),result:null,failureReason:"insight_dispatch_blocked"};
+ expect(canRequestInsight({...insights(),questions:retry},"questions")).toBe(true);
+ expect(insightMessage(retry)).toContain("try again");
+ expect(canRequestInsight({...insights(),questions:{...retry,state:"reconciliation_required"}},"questions")).toBe(false);
+});

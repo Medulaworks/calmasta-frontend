@@ -36,7 +36,7 @@ export function insightMessage(artifact: Pick<InsightRequest, "state" | "failure
     case "running": return "Processing meeting insights.";
     case "ready": return "Ready to review.";
     case "blocked": return artifact.failureReason && Object.hasOwn(reasons, artifact.failureReason) ? reasons[artifact.failureReason] : "Processing needs attention. Contact support before trying again.";
-    case "failed": return artifact.failureReason==="insight_summary_format_changed"?"A newer summary format is available. Generate a current recap when you are ready.":"Generation stopped. This transcript version will not be retried automatically.";
+    case "failed": return artifact.failureReason==="insight_dispatch_blocked"?"Processing did not start. You can try again.":artifact.failureReason==="insight_summary_format_changed"?"A newer summary format is available. Generate a current recap when you are ready.":"Generation stopped. This transcript version will not be retried automatically.";
     case "reconciliation_required": return "The processing outcome is uncertain. Operator review is required; no request will be retried automatically.";
     default: return "Processing status is unavailable. Refresh to check again.";
   }
@@ -45,7 +45,7 @@ export function canRequestInsight(data: MeetingInsights, kind: InsightKind): boo
   if (!data.enabled || !data.liveProcessingEnabled || !data.transcriptReady || (kind === "questions" && !data.questionsOnDemand)) return false;
   const artifact = data[kind];
   if(artifact&&["queued","running","reconciliation_required"].includes(artifact.state))return false;
-  return !artifact || artifact.isStale || artifact.state === "blocked";
+  return !artifact || artifact.isStale || artifact.state === "blocked" || (artifact.state === "failed" && artifact.failureReason === "insight_dispatch_blocked");
 }
 export function insightsPollInterval(data: MeetingInsights | undefined, failures: number, error?: unknown): number | false {
   if (error instanceof ApiError && [401, 403, 404, 409, 503].includes(error.status)) return false;
