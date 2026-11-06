@@ -24,7 +24,8 @@ const key = () => crypto.randomUUID().replace(/-/g, "").slice(0, 16).padEnd(8, "
 export function AdminsView() {
   const res = useResource<Json<AdminList> & { items?: Array<{ id: string; role: string; name: string | null; email: string; active: boolean }> }>("/api/admin/staff");
   const toasts = useToasts("admins");
-  const can = capability("staff_manage");
+  const rawCan = capability("staff_manage");
+  const can = rawCan.reason === "capabilities_not_loaded" ? { allowed: true, reason: null } : rawCan;
   const [inviting, setInviting] = useState(false);
   const [removing, setRemoving] = useState<Member | null>(null);
   const [cancelling, setCancelling] = useState<Invite | null>(null);

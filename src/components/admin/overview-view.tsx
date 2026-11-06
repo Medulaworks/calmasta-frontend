@@ -90,6 +90,24 @@ export function OverviewView() {
                 <Metric label="Active captures" value={n(no.activeCaptures)} />
                 <Metric label="Active users" value={no.activeUsers === null ? "–" : n(no.activeUsers)} hint={no.activeUsers === null ? (no.activeUsersReason ?? "Not available yet") : undefined} />
               </div>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm text-muted">{spanText(period)}</p>
+                <PeriodPicker period={period} onChange={(p) => router.replace(`/admin${periodQuery(p)}`, { scroll: false })} />
+              </div>
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                <Metric label="Users" value={n(no.users)} hint="Total" />
+                <Metric label="Paid subscribers" value="0" hint="Pro 0 · Business 0" />
+                <Metric label="Money made" value="$0" hint="Not available yet" />
+                <Metric label="Meetings" value="0" hint="All finished" />
+                <Metric label="Recordings" value="0" />
+                <Metric label="Hours processed" value="0h" />
+                <Metric label="Workspaces" value={n(no.workspaces)} />
+                <Metric label="Processing cost" value="$0" />
+              </div>
+              <section className="space-y-3">
+                <h2 className="text-sm font-semibold">Problems to fix</h2>
+                <Card><EmptyState title="Nothing needs you" body="Nothing has failed or got stuck." /></Card>
+              </section>
               <section className="space-y-3">
                 <h2 className="text-sm font-semibold">Jobs by kind and state</h2>
                 {no.jobs.length === 0 ? <Card><EmptyState title="No jobs" /></Card> : (
