@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Bot,
   CalendarDays,
   ChevronDown,
   ExternalLink,
@@ -22,7 +23,8 @@ import {
   type AgendaEvent,
   type ConnectionView,
 } from "@/lib/calendar-client";
-import { agendaQuery, calendarConnectionsQuery } from "@/lib/queries";
+import { agendaQuery, calendarConnectionsQuery, capturePolicyQuery } from "@/lib/queries";
+import { useRequestMeeting } from "@/lib/mutations";
 import {
   EMPTY_FILTERS,
   type MeetingFilters,
@@ -468,7 +470,7 @@ export function CalendarView() {
   );
 }
 
-function MeetingRow({
+export function MeetingRow({
   e,
   timeZone,
   selected,
@@ -481,6 +483,28 @@ function MeetingRow({
   upcoming: boolean;
   onSelect: () => void;
 }) {
+  const { data: policy } = useQuery(capturePolicyQuery);
+  const sendBot = useRequestMeeting();
+  const [sent, setSent] = useState(() => !!e.capture && !["failed", "cancelled", "host_denied", "admission_timeout"].includes(e.capture.status));
+  const [botError, setBotError] = useState<string | null>(null);
+  const canSend = !!e.joinUrl && !sent && policy?.meetingEnabled !== false;
+  async function onSendBot() {
+    if (!e.joinUrl) return;
+    setBotError(null);
+    try {
+      await sendBot.mutateAsync({
+        url: e.joinUrl,
+        consent: true,
+        title: undefined,
+        botName: undefined,
+        video: false,
+        seconds: Math.min(30 * 60, policy?.maxMeetingDurationSeconds ?? 1800),
+      });
+      setSent(true);
+    } catch (err) {
+      setBotError(err instanceof Error ? err.message : "Could not send bot.");
+    }
+  }
   const others = e.attendees.filter((a) => !a.self);
   const rec = recordingOf(e);
   const st = e.capture
@@ -558,16 +582,32 @@ function MeetingRow({
           </span>
         )}
       </button>
-      {upcoming && e.joinUrl && (
-        <a
-          href={e.joinUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={`Join ${e.title}`}
-          className="flex w-14 shrink-0 items-center justify-center border-l border-border text-muted transition-colors hover:bg-accent-solid hover:text-on-accent">
-          <Video aria-hidden className="h-5 w-5" />
-        </a>
+      {e.joinUrl && (
+        <div className="flex shrink-0 flex-col border-l border-border">
+          {upcoming && (
+            <a
+              href={e.joinUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Join ${e.title}`}
+              className="flex flex-1 items-center justify-center px-3 text-muted transition-colors hover:bg-accent-solid hover:text-on-accent"
+              title="Join meeting">
+              <Video aria-hidden className="h-4 w-4" />
+            </a>
+          )}
+          <button
+            type="button"
+            onClick={() => void onSendBot()}
+            disabled={!canSend || sendBot.isPending}
+            aria-label={sent ? `Bot sent to ${e.title}` : botError ? `Retry sending bot to ${e.title}: ${botError}` : `Send bot to ${e.title}`}
+            title={botError ?? (sent ? "Bot sent" : policy?.meetingEnabled === false ? "Meeting capture not enabled" : "Send meeting bot")}
+            className={`flex flex-1 items-center justify-center gap-1 px-3 text-xs font-medium transition-colors ${sent ? "bg-success/10 text-success" : botError ? "bg-danger/10 text-danger hover:bg-danger/15" : "text-muted hover:bg-surface hover:text-foreground disabled:opacity-50"} ${upcoming ? "border-t border-border" : ""}`}>
+            <Bot aria-hidden className="h-3.5 w-3.5" />
+            {sendBot.isPending ? "Sending…" : sent ? "Sent" : botError ? "Retry" : "Bot"}
+          </button>
+        </div>
       )}
+      {botError && <span role="alert" className="sr-only">{botError}</span>}
     </li>
   );
 }

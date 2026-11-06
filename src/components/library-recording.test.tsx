@@ -155,7 +155,7 @@ it("PrivateAudio reports metadata readiness and clears the audio on error, expir
   (audio.props.ref as (node: HTMLAudioElement | null) => void)(null); expect(onAudioChange).toHaveBeenLastCalledWith(null);
 });
 
-it("groups transcript and insights in tabs, defaults to transcript, and keeps both panels mounted", async () => {
+it("groups transcript and insights in tabs, defaults to insights, and keeps both panels mounted", async () => {
  let tree = await mount();
  let tabs = find<ComponentProps<typeof Tabs>>(tree, Tabs);
  expect(tabs).toBeDefined();
@@ -166,19 +166,19 @@ it("groups transcript and insights in tabs, defaults to transcript, and keeps bo
   if(!isValidElement<{id?:string;children?:ReactNode}>(node))return undefined;
   return node.props.id===id?node as ReactElement<{id:string;hidden:boolean;children?:ReactNode}>:panel(node.props.children,id);
  }
- expect(tabs!.props.active).toBe(transcript.id);
+ expect(tabs!.props.active).toBe(insights.id);
+ expect(panel(tree,tabPanelId(insights.id))?.props.hidden).toBe(false);
+ expect(panel(tree,tabPanelId(transcript.id))?.props.hidden).toBe(true);
+ tabs!.props.onChange(transcript.id);
+ tree=run(()=>LibraryRecording({id}));tabs=find<ComponentProps<typeof Tabs>>(tree,Tabs)!;
+ expect(tabs.props.active).toBe(transcript.id);
  expect(panel(tree,tabPanelId(transcript.id))?.props.hidden).toBe(false);
  expect(panel(tree,tabPanelId(insights.id))?.props.hidden).toBe(true);
- tabs!.props.onChange(insights.id);
- tree=run(()=>LibraryRecording({id}));tabs=find<ComponentProps<typeof Tabs>>(tree,Tabs)!;
- expect(tabs.props.active).toBe(insights.id);
- expect(panel(tree,tabPanelId(transcript.id))?.props.hidden).toBe(true);
- expect(panel(tree,tabPanelId(insights.id))?.props.hidden).toBe(false);
  expect(find(tree,TranscriptEditor)).toBeDefined();expect(find(tree,MeetingInsights)).toBeDefined();
- tabs.props.onChange(transcript.id);tree=run(()=>LibraryRecording({id}));
- expect(find<ComponentProps<typeof Tabs>>(tree,Tabs)?.props.active).toBe(transcript.id);
- find<ComponentProps<typeof Tabs>>(tree,Tabs)!.props.onChange(insights.id);
+ tabs.props.onChange(insights.id);tree=run(()=>LibraryRecording({id}));
+ expect(find<ComponentProps<typeof Tabs>>(tree,Tabs)?.props.active).toBe(insights.id);
+ find<ComponentProps<typeof Tabs>>(tree,Tabs)!.props.onChange(transcript.id);
  vi.mocked(fetch).mockImplementation(()=>Promise.resolve(Response.json({...detail(),id:"another-meeting"})));
  run(()=>LibraryRecording({id:"another-meeting"}));await effects();
- await vi.waitFor(()=>expect(find<ComponentProps<typeof Tabs>>(run(()=>LibraryRecording({id:"another-meeting"})),Tabs)?.props.active).toBe("recording-another-meeting-transcript"));
+ await vi.waitFor(()=>expect(find<ComponentProps<typeof Tabs>>(run(()=>LibraryRecording({id:"another-meeting"})),Tabs)?.props.active).toBe("recording-another-meeting-insights"));
 });
