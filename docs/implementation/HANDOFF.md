@@ -377,3 +377,10 @@ You can start consuming ready local contracts now. Core auth/capture/library cod
 - **Proof (command + result + revision):** Existing insights proof64focused tests/types/lint; current booking/calendar edits checked with scopedESLint and git diff --check. Prior compatible backend3164908 and frontend8245391 both environments deployed successfully; local024/025 checksums/readiness and APIhealth verified. Final commit/remote heads recorded in the session response.
 - **What is NOT done:** No new browser/provider test, hosted flag change or live template generation. Hosted agent retains follow-up release/flag activation responsibility.
 - **Next action (task ID + files):** FE-L03/Task8 — push this complete frontend working-tree change to equal main/staging and mirror; hosted agent follows updated migration/activation handoff.
+
+
+## Staging integration guard checkpoint
+- **What was done (files + behavior):** Admin integration is committed on18064b5 and merged to staging6830ecc. Removed missing optional SDK imports and disabled the malformed browser telemetry forwarder; frontend telemetry returns explicit503until a proper bounded/sanitized OTLP path exists. Backend telemetry is unchanged.
+- **Proof (command + result + revision):** Project tsc passed;61focused auth/recording/Q&A tests passed before guard fix. Guard privacy regression and final changed-file lint/type checks recorded in session result.
+- **What is NOT done:** Frontend SDK/browser OTLP integration and live collector receipt; admin hosted user journey/deployment acceptance.
+- **Next action (task ID + files):** Merge/push staging guard; frontend agent completes OTEL-06–08 using actual supported dependencies and bounded sanitized schema before enabling collection.

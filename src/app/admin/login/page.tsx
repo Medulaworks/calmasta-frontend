@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AdminLogin } from "@/components/admin/admin-login";
 

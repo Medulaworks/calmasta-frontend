@@ -348,3 +348,9 @@
 - **Proof (command + result + revision):** `pnpm exec tsc --noEmit` PASS, `pnpm eslint` 6 files EXIT:0, `pnpm exec vitest run src/components/insights/meeting-questions.test.tsx` 3/3 PASS, `git diff --stat` 17 `+440/-398`, backend 86bc932 113-path 026/027 verified, CALMASTA_API_URL 127.0.0.1:3009 inspected without credentials.
 - **What is NOT done:** Hosted acceptance pending: `admin@myjooba.com` not yet registered/verified (operator bootstrap afterward); `ADMIN_SECRET_ENCRYPTION_KEY`/`OTEL_*` not provisioned, telemetry `deliveryVerified:false` honest; no merge/deploy.
 - **Next action (task ID + files):** FE-ADM01 — register+verify `admin@myjooba.com` via normal signup (no invented password), bootstrap owner, then live verify `POST /api/admin/auth/login` `GET /api/admin/me` `capabilities` `401/403/409` + `Idempotency-Key` + `restart_required` + `partial_ai_extraction` against staging after 86bc932, before merge.
+
+## Staging telemetry guard
+- What was done: missing SDK imports removed; malformed/unbounded telemetry forwarding disabled with explicit503.
+- Proof:61focused tests/projecttypes passed; final guard regression/lint recorded in session.
+- What is NOT done: frontend telemetry integration/live receipt and admin deployment acceptance.
+- Next action:push staging; owning frontend agent completes OTEL-06–08before enabling.
