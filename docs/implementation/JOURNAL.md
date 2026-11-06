@@ -318,3 +318,27 @@
 - **Proof (command + result + revision):** Basef0ef3b2/324ad90;45backend/49frontend focused tests, TypeScript/OpenAPI/lint passed; review finding fixed.
 - **What is NOT done:** No live generation/backfill/env/schema change; hosted acceptance pending.
 - **Next action (task ID + files):** B-INSIGHTS-01/FE-L03 — release aligned branch heads and verify a fresh explicitly requested recap.
+
+## 2026-11-06 — safe insight retry
+- Published38c68e8canonical/mirrormain/staging; guarded retryUI, no uncertain/active retries.
+- Proof:43focusedtests+TypeScript/lint; backend53/OpenAPI82/independentreview.
+- Not done: hostedrelease/questionsacceptance; unrelatedsourceedits preserved.
+- Next FE-L03: confirmworkerrelease then normal explicitquestionsretry.
+
+## 2026-11-06 — ready insights and frontend cleanup failure
+- Local recap visible after processrestart; backend353ec84bothdeployed; questions recovered through guarded explicitretry.
+- Proof: bothartifactsready/jobscompleted/settled;53backend+43frontendchecks; frontend38c68e8verificationpassed.
+- Not done: hostedproductiondeployfailedoldreleaseVitestcachepermissioncleanup; activefrontendrevisionunknown.
+- Next FE-L03: hostedagent verifies inactiveoldrelease, fixescacheownership, rerunsnormaldeploy; unrelatedsourceedits remain.
+
+## 2026-11-06 — B-INSIGHTS-01/FE-L03 summary template implementation
+- What was done: URL tabs,16formats,copy/download,shared Q&A workspace; transcript preserved.
+- Proof:64focused tests,TypeScript/scopedESLint; editor hash unchanged.
+- What is NOT done: hosted rollout/flag/model acceptance; booking/calendar edits preserved.
+- Next action:FE-L03 Task8 compatible backend migrations and hosted deployment.
+
+## 2026-11-06 — remaining frontend publication
+- What was done: publishing booking/calendar styling and accumulated trackers as requested.
+- Proof: scopedESLint/diffcheck; prior insights64tests/types/lint.
+- What is NOT done: hostedflags/liveacceptance/browserchecks.
+- Next action:FE-L03 push equal main/staging/mirror; hostedagent activation.

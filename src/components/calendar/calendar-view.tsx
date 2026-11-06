@@ -288,7 +288,7 @@ export function CalendarView() {
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-background p-3 shadow-sm">
         <div
           role="group"
           aria-label="Show"
@@ -367,7 +367,7 @@ export function CalendarView() {
       ))}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
-        <div className="min-w-0 space-y-6">
+        <div className="min-w-0 space-y-6 rounded-xl border border-border bg-background/50 p-4 shadow-sm">
           {agenda && agenda.key === winKey && agenda.error ? (
             <p
               role="alert"
@@ -417,8 +417,9 @@ export function CalendarView() {
           ) : (
             groups.map((g) => (
               <section key={g.key} aria-label={g.label}>
-                <h2 className="mb-2 text-sm font-semibold text-muted">
-                  {g.label}
+                <h2 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted">
+                  <span className="inline-flex h-6 items-center rounded-md border border-border bg-surface px-2.5">{g.label}</span>
+                  <span aria-hidden className="h-px flex-1 bg-border" />
                 </h2>
                 <ul className="space-y-2">
                   {g.events.map((e) => (
@@ -492,7 +493,7 @@ function MeetingRow({
   const platform = platformOf(e);
   return (
     <li
-      className={`flex items-stretch overflow-hidden rounded-xl border transition-colors ${selected ? "border-accent bg-accent/5 ring-1 ring-accent/30" : "border-border hover:bg-surface"}`}>
+      className={`flex items-stretch overflow-hidden rounded-xl border bg-background shadow-sm transition-colors ${selected ? "border-accent bg-accent/5 ring-1 ring-accent/30" : "border-border hover:bg-surface hover:shadow"}`}>
       <button
         type="button"
         onClick={onSelect}
