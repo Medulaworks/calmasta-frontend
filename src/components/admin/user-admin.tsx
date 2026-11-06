@@ -58,11 +58,12 @@ export function userMenuItems(u: UserLike, open: (d: UserDialogKind) => void, op
 }
 
 /** The confirm dialogs behind those menu items. Every one asks why and is recorded in Activity. */
+const key = () => crypto.randomUUID().replace(/-/g, "").slice(0, 16).padEnd(8, "0");
 export function UserDialogs({ user, dialog, onClose, onDone }: { user: UserLike; dialog: UserDialogKind | null; onClose: () => void; onDone: (message: string) => void }) {
   if (!dialog) return null;
   const id = user.id;
   const act = (action: string, done: string) => async (v: Record<string, string>) => {
-    await adminPost(`/api/admin/customers/${id}/actions`, { action, reason: v.reason });
+    await adminPost(`/api/admin/customers/${id}/actions`, { action, reason: v.reason }, { "Idempotency-Key": key() });
     onDone(done);
   };
   const entitle = (action: string, done: string) => async (v: Record<string, string>) => {
@@ -78,7 +79,7 @@ export function UserDialogs({ user, dialog, onClose, onDone }: { user: UserLike;
 
   switch (dialog) {
     case "edit":
-      return <ActionDialog title="Edit name and time zone" description="The email can't be changed here." confirmLabel="Save" fields={[{ name: "name", label: "Name", defaultValue: user.name ?? "" }, { name: "timezone", label: "Time zone", defaultValue: user.timezone ?? "", hint: "For example Europe/London or America/New_York." }]} onClose={onClose} onSubmit={async (v) => { await adminPatch(`/api/admin/customers/${id}`, { name: v.name.trim(), timezone: v.timezone.trim(), reason: v.reason }); onDone("Saved."); }} />;
+      return <ActionDialog title="Edit name and time zone" description="The email can't be changed here." confirmLabel="Save" fields={[{ name: "name", label: "Name", defaultValue: user.name ?? "" }, { name: "timezone", label: "Time zone", defaultValue: user.timezone ?? "", hint: "For example Europe/London or America/New_York." }]} onClose={onClose} onSubmit={async (v) => { await adminPatch(`/api/admin/customers/${id}`, { name: v.name.trim() || undefined, timezone: v.timezone.trim() || undefined, reason: v.reason }, { "Idempotency-Key": key() }); onDone("Saved."); }} />;
     case "suspend":
       return <ActionDialog danger title="Suspend this account?" description={<>{who} can&rsquo;t sign in until you turn the account back on. Nothing is deleted.</>} confirmLabel="Suspend account" onClose={onClose} onSubmit={act("suspend", "Account suspended.")} />;
     case "reactivate":

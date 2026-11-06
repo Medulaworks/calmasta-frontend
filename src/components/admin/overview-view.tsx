@@ -21,6 +21,7 @@ import { ActionDialog, DataTable, Metric, Notice, ResourceBoundary, Td, Th, useR
 
 type Data = Json<Overview>;
 type Job = Data["problems"][number];
+type NewOverview = { users: number; workspaces: number; activeCaptures: number; jobs: Array<{ kind: string; state: string; count: number }>; activeUsers: number | null; activeUsersReason: string | null };
 
 const n = (v: number | null | undefined) => (v === null || v === undefined ? "–" : v.toLocaleString("en"));
 const NA = "Not available yet";
@@ -76,7 +77,33 @@ export function OverviewView() {
 
   return (
     <ResourceBoundary resource={res}>
-      {(o) => {
+      {(o: Data & Partial<NewOverview>) => {
+        const isNew = typeof (o as NewOverview).users === "number";
+        if (isNew) {
+          const no = o as unknown as NewOverview;
+          return (
+            <div className="space-y-6">
+              <HealthStrip />
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                <Metric label="Users" value={n(no.users)} />
+                <Metric label="Workspaces" value={n(no.workspaces)} />
+                <Metric label="Active captures" value={n(no.activeCaptures)} />
+                <Metric label="Active users" value={no.activeUsers === null ? "–" : n(no.activeUsers)} hint={no.activeUsers === null ? (no.activeUsersReason ?? "Not available yet") : undefined} />
+              </div>
+              <section className="space-y-3">
+                <h2 className="text-sm font-semibold">Jobs by kind and state</h2>
+                {no.jobs.length === 0 ? <Card><EmptyState title="No jobs" /></Card> : (
+                  <DataTable label="Jobs">
+                    <thead><tr><Th>Kind</Th><Th>State</Th><Th>Count</Th></tr></thead>
+                    <tbody>{no.jobs.map((j, i) => <tr key={i}><Td>{taskName(j.kind)}</Td><Td>{j.state}</Td><Td>{j.count}</Td></tr>)}</tbody>
+                  </DataTable>
+                )}
+              </section>
+              <p className="text-xs text-muted"><button type="button" onClick={res.reload} className="underline">Refresh</button></p>
+              <ToastStack items={toasts.items} onDismiss={toasts.dismiss} />
+            </div>
+          );
+        }
         const jobMenu = (j: Job) => [
           { label: "See details", onSelect: () => setOpen(j) },
           { label: "Try again…", onSelect: () => setRetrying(j), disabled: !j.retry.allowed, reason: j.retry.reason, divider: true },

@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { type Json, fmtUtc } from "@/lib/admin-client";
 import type { DunningReport } from "@/lib/admin-types";
 import { ClickRow, MenuTd, RowMenu, RowOpen } from "./row-menu";
-import { DataTable, Metric, ResourceBoundary, Td, Th, useResource } from "./ui";
+import { AdminUnavailable, DataTable, Metric, ResourceBoundary, Td, Th, useResource } from "./ui";
 
 type Data = Json<DunningReport>;
 const STATUS: Record<string, { label: string; tone: "warning" | "info" | "neutral" }> = {
@@ -15,10 +15,12 @@ const STATUS: Record<string, { label: string; tone: "warning" | "info" | "neutra
 };
 
 export function DunningView() {
-  const res = useResource<Data>("/api/admin/dunning");
+  const res = useResource<Data & { available?: boolean; reason?: string }>(`/api/admin/dunning`);
   return (
     <ResourceBoundary resource={res}>
-      {(d) => (
+      {(d: Data & { available?: boolean; reason?: string }) => {
+        if ((d as { available?: boolean }).available === false) return <AdminUnavailable title="Dunning unavailable"><p className="text-sm text-muted">{(d as { reason?: string }).reason ?? "Not available yet."} — commerce policy not approved.</p></AdminUnavailable>;
+        return (
         <div className="space-y-5">
           <div className="grid grid-cols-3 gap-3">
             <Metric label="Payment late" value={d.counts.grace} tone={d.counts.grace > 0 ? "warning" : undefined} hint="Still have access for now" />
@@ -52,7 +54,8 @@ export function DunningView() {
             </DataTable>
           )}
         </div>
-      )}
+        );
+      }}
     </ResourceBoundary>
   );
 }

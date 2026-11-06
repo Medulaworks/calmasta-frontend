@@ -342,3 +342,9 @@
 - Proof: scopedESLint/diffcheck; prior insights64tests/types/lint.
 - What is NOT done: hostedflags/liveacceptance/browserchecks.
 - Next action:FE-L03 push equal main/staging/mirror; hostedagent activation.
+
+## 2026-11-07 — FE-ADM01 admin/telemetry/Q&A consumption (local verification, owner pending)
+- **What was done (files + behavior):** feature/frontend-admin-telemetry-consumption: BFF staff login/logout/me/capabilities (origin/CSRF, opaque HttpOnly, traceparent), pagination/version/Idempotency-Key+reason, write-only keys restart_required, partial_ai_extraction banner, transcript untouched, telemetry bounded allowlisted; 17 files + 3 routes.
+- **Proof (command + result + revision):** `pnpm exec tsc --noEmit` PASS, `pnpm eslint` 6 files EXIT:0, `pnpm exec vitest run src/components/insights/meeting-questions.test.tsx` 3/3 PASS, `git diff --stat` 17 `+440/-398`, backend 86bc932 113-path 026/027 verified, CALMASTA_API_URL 127.0.0.1:3009 inspected without credentials.
+- **What is NOT done:** Hosted acceptance pending: `admin@myjooba.com` not yet registered/verified (operator bootstrap afterward); `ADMIN_SECRET_ENCRYPTION_KEY`/`OTEL_*` not provisioned, telemetry `deliveryVerified:false` honest; no merge/deploy.
+- **Next action (task ID + files):** FE-ADM01 — register+verify `admin@myjooba.com` via normal signup (no invented password), bootstrap owner, then live verify `POST /api/admin/auth/login` `GET /api/admin/me` `capabilities` `401/403/409` + `Idempotency-Key` + `restart_required` + `partial_ai_extraction` against staging after 86bc932, before merge.
