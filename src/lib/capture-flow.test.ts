@@ -74,3 +74,9 @@ it('accepts null recording caps and keeps a finite duration estimate in the requ
  const sent=fetcher.mock.calls.filter(([url])=>url==='/api/captures/meetings').map(([,init])=>JSON.parse(init.body));
  expect(sent[0].maxDurationSeconds).toBe(100000);expect(Number.isSafeInteger(sent[1].maxDurationSeconds)).toBe(true);
 });
+
+it("preserves an active-meeting duplicate response and exposes a safe support reference for playback errors",async()=>{
+ setup();fetcher.mockImplementation(async(url:string)=>url.endsWith("policy")?json(policy):url.includes("/audio")?json({code:"service_unavailable",error:"The service is temporarily unavailable. Please try again.",correlationId:"11111111-1111-4111-8111-111111111111"},503):json({id:"existing-meeting",duplicate:true}));
+ expect(await requestMeetingCapture("https://meet.google.com/abc-defg-hij",true,undefined,false,{maxDurationSeconds:60})).toEqual({captureId:"existing-meeting",duplicate:true});
+ await expect(getPrivateAudio("fixture")).rejects.toMatchObject({status:503,correlationId:"11111111-1111-4111-8111-111111111111",message:expect.stringContaining("Reference:")});
+});

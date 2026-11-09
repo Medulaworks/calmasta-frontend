@@ -366,3 +366,9 @@
 - Proof:61focused tests/projecttypes passed; final guard regression/lint recorded in session.
 - What is NOT done: frontend telemetry integration/live receipt and admin deployment acceptance.
 - Next action:push staging; owning frontend agent completes OTEL-06–08before enabling.
+
+## 2026-11-09 — playback diagnostics and duplicate meeting protection
+What was done: safe staged BFF logs/support references, duplicate response/UI submit guards, fail-closed browser telemetry; docs updated.
+Proof:2983a09+diff full358/358,typecheck/build; backend93ae1e3+diff288/288,122paths; reviewed fixes verified.
+What is NOT done: deployment, original outage cause, live writes, scheduled probe/collector/notification delivery.
+Next action: FE-A04/FE-C02/OTEL-09 — backend HOSTED_AUTH_PLAYBACK_DUPLICATE_FIX_PROMPT.md and release patches.

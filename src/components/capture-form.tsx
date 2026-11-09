@@ -8,7 +8,7 @@ import { RefreshCw, Video } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -82,13 +82,16 @@ export function CaptureForm() {
     : null;
 
   const busy = requestMutation.isPending;
+  const submitting = useRef(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if(submitting.current)return;
+    submitting.current=true;
     setError(null);
     setNotice(null);
     try {
-      await requestMutation.mutateAsync({
+      const result=await requestMutation.mutateAsync({
         url,
         consent,
         title: titleMode === "mine" ? title : undefined,
@@ -100,7 +103,7 @@ export function CaptureForm() {
         ),
       });
       setNotice(
-        `Request queued for ${botName.trim() || policy?.botName || "the recording assistant"}. ${policy?.liveProcessingEnabled ? "It may need to be admitted by the host." : "Recording will start when processing becomes available."}`,
+        result.duplicate ? "An assistant is already set up for this meeting. No second one was sent." : `Request queued for ${botName.trim() || policy?.botName || "the recording assistant"}. ${policy?.liveProcessingEnabled ? "It may need to be admitted by the host." : "Recording will start when processing becomes available."}`,
       );
       setUrl("");
       setConsent(false);
@@ -114,7 +117,7 @@ export function CaptureForm() {
           ? err.message
           : "Something went wrong. Please try again.",
       );
-    }
+    } finally {submitting.current=false;}
   }
 
   async function cancel(id: string) {

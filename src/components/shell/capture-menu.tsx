@@ -37,12 +37,15 @@ function LiveMeetingDialog({ onClose }: { onClose: () => void }) {
   const [consent, setConsent] = useState(false);
   const [video, setVideo] = useState(false);
   const [busy, setBusy] = useState(false);
+  const submitting = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ duplicate: boolean } | null>(null);
   const { data: policy } = useQuery(capturePolicyQuery);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if(submitting.current)return;
+    submitting.current=true;
     setBusy(true);
     setError(null);
     try {
@@ -65,6 +68,7 @@ function LiveMeetingDialog({ onClose }: { onClose: () => void }) {
           : "Something went wrong. Please try again.",
       );
     } finally {
+      submitting.current=false;
       setBusy(false);
     }
   }

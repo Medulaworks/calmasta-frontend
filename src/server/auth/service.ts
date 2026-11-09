@@ -1,3 +1,4 @@
+import {bffContext,requestIdentity,proxyEndpoint,reportBffFailure} from "./diagnostics";
 import { isIP } from "node:net";
 import { authErrorRedirect } from "./flash";
 import type { AuthConfig } from "./config";
@@ -19,16 +20,8 @@ export class AuthService {
  private async upstream(path:string,method="GET",body?:Record<string,unknown>,session?:SessionData,key?:string,clientIp?:string){
   const h:Record<string,string>={Accept:"application/json"};if(body!==undefined)h["Content-Type"]="application/json";if(session)h.Authorization=`Bearer ${session.accessToken}`;if(key)h["Idempotency-Key"]=key;
   if(clientIp){h["X-Auth-Client-IP"]=clientIp;h["X-Bff-Secret"]=hashId(`calmasta-bff-store:${this.config.sessionSecret}`);}
-  // Propagate validated W3C traceparent same-origin only; backend ignores malformed parents
-  // If Next instrumentation provides a traceparent, reuse it; otherwise generate a new one
-  const incoming = (globalThis as unknown as { __traceparent?: string }).__traceparent;
-  const valid = incoming && /^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$/.test(incoming) ? incoming : null;
-  if (valid) h["traceparent"] = valid;
-  else try{
-    const { randomBytes } = await import("node:crypto");
-    const traceId = randomBytes(16).toString("hex"), spanId = randomBytes(8).toString("hex");
-    h["traceparent"] = `00-${traceId}-${spanId}-01`;
-  }catch{}
+  const identity=bffContext.getStore()??requestIdentity();
+  h["traceparent"]=identity.traceparent;h["x-correlation-id"]=identity.correlationId;
   return fetch(new URL(path,this.config.apiOrigin),{method,headers:h,body:body===undefined?undefined:JSON.stringify(body),cache:"no-store",redirect:"error",signal:AbortSignal.timeout(15000)});
  }
  private api(session:SessionData,path:string,method="GET",body?:Record<string,unknown>,key?:string){return this.upstream(path,method,body,session,key);}
@@ -121,7 +114,8 @@ export class AuthService {
   const id=readCookie(req,this.config.sessionCookie);if(!id)return null;
   return this.store.session(hashId(id),async previous=>{
    if(previous.accessExpiresAt>Date.now()+30000)return previous;if(!previous.refreshToken)return null;
-   const res=await this.upstream("/auth/refresh","POST",{refreshToken:previous.refreshToken},undefined,undefined,this.clientIp(req));if(res.status===401){console.warn(JSON.stringify({event:"auth_session_rejected",endpoint:"/auth/refresh",reason:"refresh_rejected"}));return null;}if(!res.ok)throw new HttpError(503,"Authentication service unavailable");
+   const context=bffContext.getStore();if(context)context.stage="session_refresh";
+   const res=await this.upstream("/auth/refresh","POST",{refreshToken:previous.refreshToken},undefined,undefined,this.clientIp(req));if(res.status===401){console.warn(JSON.stringify({event:"auth_session_rejected",endpoint:"/auth/refresh",reason:"refresh_rejected"}));return null;}if(!res.ok)throw Object.assign(new HttpError(503,"Authentication service unavailable"),{upstreamStatus:res.status,upstreamCorrelationId:res.headers.get("x-correlation-id")});
    const tokens=await res.json();return {...previous,accessToken:tokens.accessToken,refreshToken:tokens.refreshToken,accessExpiresAt:Date.now()+tokens.expiresIn*1000};
   });
  }
@@ -186,6 +180,12 @@ export class AuthService {
   }
 
   async proxy(request: Request, segments: string[]) {
+    return bffContext.run({...requestIdentity(),stage:"session_lookup",endpoint:proxyEndpoint(segments),method:["GET","POST","PATCH","PUT","DELETE"].includes(request.method)?request.method:"OTHER"},async()=>{
+      const response=await this.proxyRequest(request,segments);
+      response.headers.set("x-correlation-id",bffContext.getStore()!.correlationId);return response;
+    });
+  }
+  private async proxyRequest(request: Request, segments: string[]) {
     try {
       if (!["GET", "POST", "PATCH", "PUT", "DELETE"].includes(request.method)) throw new HttpError(405, "Method not allowed");
       if (request.method !== "GET") this.checkOrigin(request);
@@ -200,14 +200,27 @@ export class AuthService {
       const body = request.method === "GET" || bodylessInsight || request.method === "DELETE" && !request.body ? undefined : await readJson(request,transcriptEdit?262144:16384);
       const url = new URL(request.url);
       const pathAndQuery = "/" + segments.map(encodeURIComponent).join("/") + url.search;
+      bffContext.getStore()!.stage="api_request";
       const upstream = isPublicRoute
         ? await this.upstream(pathAndQuery, request.method, body, undefined, request.headers.get("idempotency-key") ?? undefined)
         : await this.api(session!, pathAndQuery, request.method, body, request.headers.get("idempotency-key") ?? undefined);
       if (upstream.status === 401) return this.unauthorized();
       if (upstream.status === 204) return new Response(null, { status: 204, headers });
-      const result = await upstream.json().catch(() => ({ error: "Invalid API response" }));
+      bffContext.getStore()!.stage="api_response";
+      const result = await upstream.json();
+      if(upstream.status>=500){
+        bffContext.getStore()!.stage="api_response";reportBffFailure(undefined,upstream.status,upstream.status,upstream.headers.get("x-correlation-id")??result?.correlationId);
+        return json({...result,correlationId:bffContext.getStore()!.correlationId},upstream.status);
+      }
       return json(result, upstream.status);
-    } catch (error) { return this.error(error); }
+    } catch (error) {
+      if(error instanceof HttpError&&error.status<500)return this.error(error);
+      const context=bffContext.getStore()!;reportBffFailure(error,503);
+      const stage=context.stage;
+      const code=stage==="session_lookup"?"session_service_unavailable":stage==="session_refresh"?"session_refresh_unavailable":"service_unavailable";
+      const message=stage==="session_lookup"?"We could not check your sign-in. Please try again.":stage==="session_refresh"?"We could not renew your sign-in. Please try again.":"The service is temporarily unavailable. Please try again.";
+      return json({code,error:message,correlationId:context.correlationId},503);
+    }
   }
 
 

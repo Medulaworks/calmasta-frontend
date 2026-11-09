@@ -13,3 +13,9 @@ it("does not forward arbitrary browser content or report collection success when
   expect((await response.json()).ok).toBe(false);
   expect(outgoing).not.toHaveBeenCalled();
 });
+
+it("rejects valid-kind browser messages without forwarding private content",async()=>{
+ vi.stubEnv("OTEL_EXPORTER_OTLP_ENDPOINT","https://collector.example.test");const outgoing=vi.fn();vi.stubGlobal("fetch",outgoing);
+ const log=vi.spyOn(console,"warn").mockImplementation(()=>{});
+ try{const response=await POST(new Request("https://app.example.test/api/telemetry",{method:"POST",headers:{origin:"https://app.example.test","content-type":"application/json"},body:JSON.stringify({kind:"fetch_error",message:"private meeting text",url:"https://private.invalid/?secret=token"})}));expect(response.status).toBe(503);expect((await response.json()).ok).toBe(false);expect(outgoing).not.toHaveBeenCalled();expect(log).not.toHaveBeenCalled();}finally{log.mockRestore();}
+});

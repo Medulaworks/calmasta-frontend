@@ -1,3 +1,4 @@
+import {bffContext} from "./diagnostics";
 import { createHash } from "node:crypto";
 import { seal, unseal } from "./security";
 export interface LoginTransaction { state: string; nonce?: string; verifier?: string; returnTo: string; provider?: "google" | "microsoft" }
@@ -25,13 +26,14 @@ export class ApiAuthStore implements AuthStore {
         "Content-Type": "application/json",
         Accept: "application/json",
         "X-Bff-Secret": this.bffSecret,
+        ...(bffContext.getStore()?{"x-correlation-id":bffContext.getStore()!.correlationId,traceparent:bffContext.getStore()!.traceparent}:{}),
       },
       body: JSON.stringify(body),
       cache: "no-store",
       redirect: "error",
       signal: AbortSignal.timeout(15_000),
     });
-    if (!response.ok) throw new Error(`Auth store request failed (${response.status})`);
+    if (!response.ok) throw Object.assign(new Error(`Auth store request failed (${response.status})`),{upstreamCorrelationId:response.headers.get("x-correlation-id")});
     return (await response.json()) as T;
   }
   async putTransaction(hash: string, value: LoginTransaction) {

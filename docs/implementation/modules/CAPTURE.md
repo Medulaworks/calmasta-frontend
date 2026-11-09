@@ -1,5 +1,13 @@
 # CAPTURE consumption
 
+## 2026-11-09 — playback diagnostics and duplicate submission safeguards
+
+- **What was done (files + behavior):** On frontend2983a09, server/auth diagnostics.ts/service.ts/store.ts now emit safe per-request BFF failure stages, frontend/upstream references and trace context without private payloads. upload-client adds support references and reads duplicate responses; capture-form/capture-menu guard in-flight submits and explain existing captures. Browser telemetry ingress fails closed to prevent arbitrary private-message forwarding; stale admin stub test updated to real denial propagation. Backend93ae1e3 local follow-up adds atomic active-meeting guard and read-only probe. Existing empty-speech UI retained.
+- **Proof (command + result + revision):**2983a09 plus local diff; full Vitest358/358 across50files, tsc --noEmit and next build passed. New auth/capture regressions observed red before fixes; review findings corrected/rechecked. Backend disposable-PG18 full288/288 and122-path OpenAPI valid. Source/fixture checks only; no browser/live provider runs. git diff --check clean.
+- **What is NOT done:** No commit/push/deploy, production auth root-cause proof, live session/media changes, notification sends, collector receipt or scheduled probe. Browser arbitrary-message collection intentionally unavailable; server logs must be collected separately. Older local backend transcription edits preserved in named stash and temporary patch before sync; deployed equivalent retained.
+- **Next action (task ID + files):** FE-A04/FE-C02/OTEL-09/B01/B03 — operator uses sibling calmasta-api/docs/implementation/HOSTED_AUTH_PLAYBACK_DUPLICATE_FIX_PROMPT.md and both release patches to deploy, trace original failure and prove scheduled fixture detection plus authorized alert delivery. WORK_PLAN.md criteria; local verification does not close hosted acceptance.
+
+
 Tasks: FE-C01/FE-C02/FE-C03. [Acceptance and authoritative statuses](../WORK_PLAN.md) · [API readiness](../API_READINESS.md) · [Backend references](../BACKEND_REFERENCE.md).
 
 Target files: src/lib/upload-client.ts, audio.ts, status.ts, src/components/voice-recorder.tsx, capture-form.tsx, private-audio.tsx, library-recording.tsx

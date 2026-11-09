@@ -3,13 +3,14 @@ import { adminGet, adminPost, adminPatch } from "./admin-client";
 import { capability } from "./admin-capabilities";
 import { SECTIONS, sectionFor } from "../components/admin/admin-nav";
 afterEach(()=>vi.unstubAllGlobals());
-it("unsupported staff operations stay unavailable without sending requests or fabricating success",async()=>{
- const fetcher=vi.fn();vi.stubGlobal("fetch",fetcher);
+it("staff API failures remain server-authoritative without fabricating success",async()=>{
+ const fetcher=vi.fn().mockImplementation(async()=>Response.json({code:"forbidden",error:"Staff access required"},{status:403}));vi.stubGlobal("fetch",fetcher);
  for(const operation of [()=>adminGet("/api/admin/overview"),()=>adminPost("/api/admin/staff/invites",{}),()=>adminPatch("/api/admin/settings",{})]){
-  await expect(operation()).rejects.toMatchObject({status:503,code:"feature_unavailable"});
+  await expect(operation()).rejects.toMatchObject({status:403,code:"forbidden"});
  }
- expect(fetcher).not.toHaveBeenCalled();
+ expect(fetcher).toHaveBeenCalledTimes(3);
 });
+
 it("keeps all unimplemented admin capabilities disabled",()=>{
  for(const name of ["user_edit_profile","user_suspend","user_revoke_sessions","user_send_mail","user_staff_role","staff_manage","settings_edit","integration_replace","integration_check","export_audit"] as const){
   expect(capability(name)).toMatchObject({allowed:false,reason:expect.any(String)});
