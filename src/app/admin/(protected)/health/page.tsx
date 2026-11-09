@@ -3,7 +3,7 @@ import { HealthView } from "@/components/admin/health-view";
 
 export default function Page() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <AdminHeader title="System status" />
       <HealthView />
     </div>

@@ -7,7 +7,7 @@ import { useDismiss } from "@/components/ui/use-dismiss";
 import { type Period, type PeriodKey, PERIOD_LABEL, periodTitle, today, validDay } from "@/lib/admin-period";
 
 const OPTIONS: Array<Exclude<PeriodKey, "range">> = ["day", "week", "month", "all"];
-const field = "mt-1 block h-9 w-full rounded-lg border border-border bg-background px-2.5 text-sm outline-none focus:border-accent focus:ring-4 focus:ring-accent-solid/15";
+const field = "mt-1 block h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-accent focus:ring-4 focus:ring-accent-solid/15";
 
 /**
  * A small filter button: pick Today, Last 7 days, Last 30 days, All time, or your own dates. The picked window is the
@@ -39,7 +39,7 @@ export function PeriodPicker({ period, onChange }: { period: Period; onChange: (
   return (
     <div className="relative">
       <Button ref={btn} size="sm" aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined} onClick={() => setOpen((o) => !o)}>
-        <Calendar aria-hidden className="size-3.5" /> {periodTitle(period, now)} <ChevronDown aria-hidden className="size-3.5" />
+        <Calendar aria-hidden className="size-4" /> {periodTitle(period, now)} <ChevronDown aria-hidden className="size-4" />
       </Button>
       {open && (
         <div ref={panel} id={id} role="dialog" aria-label="Choose a time period" className="absolute right-0 top-full z-30 mt-2 w-64 max-w-[85vw] overflow-hidden rounded-xl border border-border bg-background py-1 shadow-xl">

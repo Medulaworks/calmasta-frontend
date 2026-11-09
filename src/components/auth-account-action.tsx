@@ -61,9 +61,9 @@ export function AuthAccountAction({kind}:{kind:"verify-email"|"reset-password"|"
  {autoVerifying&&!done&&<p role="status" aria-live="polite" className="mt-6 flex items-center gap-2 text-sm text-muted"><LoaderCircle aria-hidden className="size-4 animate-spin"/>Verifying your email…</p>}
  {message&&<p role="status" className={verifying?"mt-6 rounded-lg border border-border bg-surface px-4 py-3 text-sm":"my-4"}>{message}</p>}
  {!done&&!verifying&&<form onSubmit={submit} className="mt-6 space-y-4">
- {changing&&<label className="block">Current password<input className={`${AUTH_FIELD} mt-1.5`} type="password" autoComplete="current-password" required maxLength={128} value={current} onChange={e=>setCurrent(e.target.value)}/></label>}
- <label className="block">New password<input className={`${AUTH_FIELD} mt-1.5`} type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={password} onChange={e=>setPassword(e.target.value)}/></label>
- <label className="block">Confirm new password<input className={`${AUTH_FIELD} mt-1.5`} type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={confirm} onChange={e=>setConfirm(e.target.value)}/></label>
+ {changing&&<label className="block">Current password<input className={`${AUTH_FIELD} mt-2`} type="password" autoComplete="current-password" required maxLength={128} value={current} onChange={e=>setCurrent(e.target.value)}/></label>}
+ <label className="block">New password<input className={`${AUTH_FIELD} mt-2`} type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={password} onChange={e=>setPassword(e.target.value)}/></label>
+ <label className="block">Confirm new password<input className={`${AUTH_FIELD} mt-2`} type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={confirm} onChange={e=>setConfirm(e.target.value)}/></label>
  <button className={buttonClass("primary", `${AUTH_BUTTON} disabled:opacity-50`, "lg")} disabled={busy||(!changing&&!token)}>{busy?"Please wait…":"Update password"}</button>
  </form>}
  {verifying&&!done&&(coolingDown

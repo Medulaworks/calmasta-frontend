@@ -3,7 +3,7 @@ export const AUTHENTICATED_PAGE_ROOTS = [
   "plan", "profile", "settings", "welcome",
 ] as const;
 
-export const AUTH_PAGE_ROOTS = ["login", "reset-password", "verify-email", "change-password"] as const;
+export const AUTH_PAGE_ROOTS = ["login", "register", "forgot-password", "reset-password", "verify-email", "change-password"] as const;
 
 /** Canonicalizes legacy app links, including links supplied by the backend. */
 export function dashboardPath(href: string): string {

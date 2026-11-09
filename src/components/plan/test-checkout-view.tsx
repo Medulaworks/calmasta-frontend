@@ -71,11 +71,11 @@ export function TestCheckoutView() {
       <div className="space-y-4 p-5 text-sm">
         <div>
           <p className="text-base font-medium">{title}</p>
-          <p className="mt-0.5 text-muted">{detail}</p>
+          <p className="mt-1 text-muted">{detail}</p>
           {price && <p className="mt-2 tabular-nums">{price}</p>}
         </div>
         <p className="flex gap-2 rounded-lg border border-border bg-surface px-4 py-3 text-xs text-muted">
-          <FlaskConical aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
+          <FlaskConical aria-hidden className="mt-1 h-4 w-4 shrink-0" />
           No money moves. This sends the same signed &ldquo;order completed&rdquo; message the store sends, so your plan changes exactly as it would after a real payment.
         </p>
         {error && <p role="alert" className="text-danger">{error}</p>}

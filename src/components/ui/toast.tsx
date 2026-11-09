@@ -1,9 +1,11 @@
 "use client";
 
+import { brandText } from "@/lib/brand";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CircleAlert, CircleCheck, Info, TriangleAlert, X } from "lucide-react";
 import { type Indicator, StatusIndicator } from "@/components/ui/status-indicator";
+import { type SoundName, playSound } from "@/lib/sounds";
 
 export type ToastTone = "info" | "success" | "warning" | "danger" | "recording";
 
@@ -40,12 +42,12 @@ function ToastCard({ message, tone = "info", indicator, href, actionLabel, durat
 
   const Icon = ICONS[tone];
   return (
-    <div role="status" aria-live="polite" className="flex items-start gap-3 rounded-xl border border-border bg-background px-4 py-3 text-sm shadow-[0_18px_44px_-14px_rgb(0_0_0/0.35)]">
-      <span aria-hidden className={`mt-0.5 grid size-[18px] shrink-0 place-items-center ${COLOURS[tone]}`}>
+    <div role="status" aria-live="polite" className="flex items-start gap-3 rounded-2xl border border-border bg-background shadow-sm px-4 py-3 text-sm shadow-[0_18px_44px_-14px_rgb(0_0_0/0.35)]">
+      <span aria-hidden className={`mt-1 grid size-[18px] shrink-0 place-items-center ${COLOURS[tone]}`}>
         {indicator ? <StatusIndicator kind={indicator} className={indicator === "spinner" ? "size-4" : indicator === "check" ? "size-4" : ""} /> : <Icon className="size-[18px]" />}
       </span>
       <p className="min-w-0 flex-1 leading-5">
-        {message}
+        {brandText(message)}
         {href && actionLabel && (
           <>
             {" "}
@@ -53,7 +55,7 @@ function ToastCard({ message, tone = "info", indicator, href, actionLabel, durat
           </>
         )}
       </p>
-      <button type="button" onClick={onClose} aria-label="Dismiss" className="-mr-1 -mt-0.5 grid size-7 shrink-0 place-items-center rounded-md text-muted transition-colors hover:bg-surface hover:text-foreground">
+      <button type="button" onClick={onClose} aria-label="Dismiss" className="-mr-1 -mt-1 grid size-7 shrink-0 place-items-center rounded-md text-muted transition-colors hover:bg-surface hover:text-foreground">
         <X aria-hidden className="size-4" />
       </button>
     </div>
@@ -75,11 +77,22 @@ export function ToastStack({ items, onDismiss }: { items: ToastItem[]; onDismiss
 }
 
 /** State for a `ToastStack`: `push` adds a toast (the oldest drops off past three), `dismiss` removes one. */
+/** A notice gets a matching soft sound: a rising chime when something finished, a low note for a problem. */
+export function soundFor(t: ToastInput): SoundName {
+  switch (t.tone) {
+    case "danger": return "error";
+    case "recording": return "recordStart";
+    case "success": return /\bis ready\b|\bready\b/i.test(t.message) ? "success" : "done";
+    default: return "notify";
+  }
+}
+
 export function useToasts(scope = "list") {
   const [stack, setStack] = useState<{ scope: string; items: ToastItem[] }>({ scope, items: [] });
   const next = useRef(1);
   const push = useCallback((toast: ToastInput) => {
     const id = next.current++;
+    playSound(soundFor(toast));
     setStack((cur) => ({ scope, items: [...(cur.scope === scope ? cur.items.slice(-2) : []), { id, ...toast }] }));
     return id;
   }, [scope]);

@@ -18,7 +18,7 @@ import { AdminUnavailable, DataTable, ResourceBoundary, SimpleDialog, Td, Th, us
 type Plan = Json<AdminPlan>;
 type Pack = Json<AdminPack>;
 
-const field = "mt-1.5 block h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-solid/15";
+const field = "mt-2 block h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-solid/15";
 const httpsOk = (t: string) => { if (!t.trim()) return true; try { return new URL(t.trim()).protocol === "https:"; } catch { return false; } };
 
 /** The three plans, the yearly discount, and the extra-hours packs: the same things the app's Plan page shows. */
@@ -48,7 +48,7 @@ export function PlansView() {
             <div className="flex flex-wrap items-center justify-between gap-3 p-5 text-sm">
               <div>
                 <p className="font-medium">Yearly billing: {annualDiscountPct > 0 ? `${annualDiscountPct}% off` : "no discount"}</p>
-                <p className="mt-0.5 text-muted">{enterpriseUrl ? "Custom terms link is set." : "No custom terms link."}</p>
+                <p className="mt-1 text-muted">{enterpriseUrl ? "Custom terms link is set." : "No custom terms link."}</p>
               </div>
               <Button onClick={() => setDiscount(true)}>Edit</Button>
             </div>

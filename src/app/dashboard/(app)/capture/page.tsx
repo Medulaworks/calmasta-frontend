@@ -1,17 +1,30 @@
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
+import { CaptureForm } from "@/components/capture-form";
+import { PageHeader } from "@/components/ui/page-header";
 
-export const metadata = { title: "Capture · Jooba" };
+export const metadata = { title: "Meet · Jooba" };
 
 type Props = {
-  searchParams: Promise<{ tab?: string; link?: string }>;
+  searchParams: Promise<{ tab?: string }>;
 };
 
-export default async function CapturePage({ searchParams }: Props) {
-  const params = await searchParams;
-  // Preserve tab if explicitly requested, otherwise default to bot. Preserve meeting link if present.
-  const tab = params.tab === "voice" ? "voice" : "bot";
-  const query = new URLSearchParams();
-  query.set("tab", tab);
-  if (params.link) query.set("link", params.link);
-  redirect(`/dashboard/voice?${query.toString()}`);
+async function MeetPageInner({ searchParams }: Props) {
+  const { tab } = await searchParams;
+  // Old links opened one page with two tabs. The voice tab now lives at Think.
+  if (tab === "voice") redirect("/dashboard/voice");
+  return (
+    <div className="space-y-5">
+      <PageHeader title="Meet" description="Send an assistant into a Google Meet, Microsoft Teams or Zoom call. It records and hands you a transcript." />
+      <CaptureForm />
+    </div>
+  );
+}
+
+export default function MeetPage(props: Props) {
+  return (
+    <Suspense fallback={<div className="space-y-6"><div className="h-20 jb-skel rounded-2xl bg-border" /></div>}>
+      <MeetPageInner {...props} />
+    </Suspense>
+  );
 }

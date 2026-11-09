@@ -3,7 +3,7 @@ import { RegistryView } from "@/components/admin/registry-view";
 
 export default function Page() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <AdminHeader title="Subscribers" />
       <RegistryView />
     </div>

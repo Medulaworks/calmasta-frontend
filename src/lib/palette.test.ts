@@ -30,7 +30,7 @@ describe("matchCommands", () => {
   });
 
   it("puts a label match ahead of a keyword match", () => {
-    // "record" is the start of the action "Record a thought" and only a keyword of "Capture a meeting".
+    // "record" is the start of the action "Record your voice" and only a keyword of "Capture a meeting".
     const found = matchCommands("record").map((c) => c.id);
     expect(found[0]).toBe("a-record");
     expect(found).toContain("a-capture");

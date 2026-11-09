@@ -7,10 +7,10 @@ import {insightSearch,listenInsightNavigation,readSummaryTemplate,updateInsightU
 import {getMeetingQuestions,requestMeetingInsight,saveInsightViewPreferences,type InsightViewPreferences,type MeetingQuestionsView,type SummaryTemplate} from "../lib/meeting-insights-client";
 
 import {useEffect,useState} from "react";
+import { Info, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "./ui/button";
-import { Card, CardHeader } from "./ui/card";
 import { Loading, Skeleton, SkeletonLines } from "./ui/skeleton";
 import { ApiError } from "../lib/upload-client";
 import { meetingInsightsQuery, meetingPreferencesQuery, qk } from "../lib/queries";
@@ -33,9 +33,9 @@ function SummaryList({title,items}:{title:string;items:string[]}) {
 function StructuredRecap({result,meeting}:{result:StructuredRecapResult;meeting?:MeetingMetadata}) {
   const owners=Array.from(new Set(result.actionItems.map(action=>action.owner)));
   const recorded=meeting?new Date(meeting.recordedAt):null;
-  return <article className="space-y-6">
+  return <article className="space-y-5">
     {meeting&&<header className="space-y-2 border-b border-border pb-4">
-      <h4 className="text-lg font-semibold">{meeting.title}{recorded&&Number.isFinite(recorded.getTime())&&<> — <time dateTime={meeting.recordedAt}>{recorded.toLocaleDateString("en",{month:"long",day:"numeric",year:"numeric",timeZone:"UTC"})}</time></>}</h4>
+      <h4 className="text-base font-semibold">{meeting.title}{recorded&&Number.isFinite(recorded.getTime())&&<> — <time dateTime={meeting.recordedAt}>{recorded.toLocaleDateString("en",{month:"long",day:"numeric",year:"numeric",timeZone:"UTC"})}</time></>}</h4>
       <Link href={meeting.recordingPath} className="text-accent underline underline-offset-4">View recording</Link>
     </header>}
     <section className="space-y-2"><h4 className="font-semibold">Meeting Purpose</h4><p className="whitespace-pre-wrap break-words">{result.meetingPurpose}</p></section>
@@ -87,7 +87,7 @@ function InsightSection({ id, kind, data, readFailed, audioAvailable, onSeek,tem
     ? artifact?.isStale ? "Generate current recap" : (artifact?.state === "blocked" || (artifact?.state === "failed" && artifact.failureReason === "insight_dispatch_blocked")) ? "Retry recap admission" : templateId!=="enhanced"?`Generate ${templateName??"summary"}`:"Generate recap"
     : artifact?.isStale ? "Extract questions from current transcript" : (artifact?.state === "blocked" || (artifact?.state === "failed" && artifact.failureReason === "insight_dispatch_blocked")) ? "Retry question admission" : "Extract meeting questions";
   return <section className="space-y-3" aria-label={kind === "recap" ? "Meeting recap" : "Meeting questions"}>
-    <h3 className="font-medium">{kind === "recap" ? "Meeting recap" : "Meeting questions"}</h3>
+    <h3 className="text-base font-semibold">{kind === "recap" ? "Meeting recap" : "Meeting questions"}</h3>
     {showToolbar&&<SummaryToolbar result={kind==="recap"?(artifact?.result as RecapResult|null)??null:null} meeting={data.meeting} questions={kind==="questions"?(artifact?.result as QuestionsResult|null)??null:data.templates?.find(t=>t.id===templateId)?.appendQuestionAnswers&&data.questions?.state==="ready"&&!data.questions.isStale?data.questions.result:null} templateId={kind==="questions"?"q-and-a":templateId} questionsOnly={kind==="questions"} disabled={readFailed||summaryLoading||artifact?.state!=="ready"||!!artifact?.isStale}/>}
     {(summaryLoading||artifact?.state==="queued"||artifact?.state==="running")&&<div role="status" aria-label={`Generating ${templateName??"insights"}`} className="space-y-3 rounded-lg bg-surface p-4"><p className="text-sm text-muted">Generating {templateName??"meeting insights"}…</p>{[100,85,92].map((width,i)=><div key={i} aria-hidden className="h-3 rounded bg-border motion-safe:animate-pulse" style={{width:`${width}%`}}/>)}</div>}
     {artifact?.isStale && <p className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm">Based on an older transcript or summary format. Review this content against the current transcript.</p>}
@@ -112,7 +112,7 @@ function EmailPreference() {
   const eligible = prefs?.emailVerified && prefs.canReceiveRecapEmail;
   return <section className="space-y-2 border-t border-border pt-4" aria-label="Recap email preference">
     <h3 className="font-medium">Recap completion email</h3>
-    {query.isPending && <p role="status" className="text-muted">Loading email preference…</p>}
+    {query.isPending && <Loading label="Loading email preference"><SkeletonLines lines={1} /></Loading>}
     <InsightError error={query.error ?? save.error} />
     {query.isError && <Button size="sm" onClick={() => void query.refetch()}>Retry email preference</Button>}
     {eligible && <label className="flex items-center gap-3">
@@ -157,23 +157,26 @@ export function MeetingInsights({id,transcriptVersion,audioAvailable,onSeek}:{id
    }
   }catch(error){setFailures(state=>({...state,[key]:insightErrorMessage(error)}));}finally{setBusy(state=>({...state,[key]:false}));}
  }
- return <Card><CardHeader title="Meeting insights" action={<Button size="sm" variant="ghost" disabled={query.isFetching} onClick={()=>{void query.refetch();if(data?.summaryTemplatesEnabled)void questionQuery.refetch();}}>Refresh insights</Button>}/>
- <div className="space-y-5 p-5 text-sm">
- {query.isPending&&<Loading label="Loading meeting insights" className="space-y-4"><div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]"><div className="space-y-4 rounded-xl border border-border p-5"><div className="flex items-center gap-2"><Skeleton className="h-5 w-5 rounded-md" /><Skeleton className="h-5 w-28" /></div><SkeletonLines lines={2} /><Skeleton className="h-24 w-full rounded-lg" /><SkeletonLines lines={3} /></div><div className="space-y-4 rounded-xl border border-border bg-surface/40 p-5"><Skeleton className="h-5 w-24" /><SkeletonLines lines={3} /><Skeleton className="h-20 w-full rounded-lg" /></div></div></Loading>}<InsightError error={query.error}/>
+ return <section aria-label="Meeting insights" className="space-y-5 text-sm">
+ <div className="flex flex-wrap items-start justify-between gap-3">
+ <p className="flex max-w-2xl items-start gap-2 text-xs leading-relaxed text-muted">{data&&<><Info aria-hidden className="mt-0.5 size-3.5 shrink-0"/>AI-generated insights may contain mistakes. Review them against the transcript before using them. Next steps are not added to your actions automatically.</>}</p>
+ <Button size="sm" variant="secondary" disabled={query.isFetching} onClick={()=>{void query.refetch();if(data?.summaryTemplatesEnabled)void questionQuery.refetch();}}><RefreshCw aria-hidden className={`size-4 ${query.isFetching?"animate-spin motion-reduce:animate-none":""}`}/>Refresh insights</Button>
+ </div>
+ {query.isPending&&<Loading label="Loading meeting insights" className="space-y-4"><div className="grid gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]"><div className="space-y-4 rounded-2xl border border-border p-5"><div className="flex items-center gap-2"><Skeleton className="h-5 w-5 rounded-md" /><Skeleton className="h-5 w-28" /></div><SkeletonLines lines={2} /><Skeleton className="h-24 w-full rounded-lg" /><SkeletonLines lines={3} /></div><div className="space-y-4 rounded-2xl border border-border bg-surface/40 p-5"><Skeleton className="h-5 w-24" /><SkeletonLines lines={3} /><Skeleton className="h-20 w-full rounded-lg" /></div></div></Loading>}<InsightError error={query.error}/>
  {data&&!data.enabled&&<p role="status" className="text-muted">Meeting insights are currently unavailable. Your recording and transcript remain usable.</p>}
  {data?.enabled&&!data.liveProcessingEnabled&&<p role="status" className="text-muted">Insight processing is paused. Queued work cannot run until the service owner enables processing.</p>}
  {data?.enabled&&!data.transcriptReady&&((data.transcriptVersion ?? transcriptVersion) !== null ? <p role="status" className="text-muted">No speech was detected in this recording.</p> : <p className="text-muted">Waiting for the current transcript before requesting insights.</p>)}
- {data&&<><p className="text-xs leading-relaxed text-muted">AI-generated insights may contain mistakes. Review them against the transcript before using them. Next steps are not added to your actions automatically.</p>
+ {data&&<>
  <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)] xl:items-start">
- <div className="min-w-0 space-y-5 rounded-xl border border-border bg-background p-4 shadow-sm sm:p-5">
- <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3"><SummaryTemplatePicker templates={catalogue} value={templateId} onSelect={next=>void selectTemplate(next)}/>{data.activeRecap&&data.activeRecap.templateId!==templateId&&<p role="status" className="text-xs text-muted">{catalogue.find(t=>t.id===data.activeRecap?.templateId)?.label??"Another summary"} is processing.</p>}</div>
+ <div className="min-w-0 space-y-5">
+ <div className="flex flex-wrap items-center justify-between gap-3"><SummaryTemplatePicker templates={catalogue} value={templateId} onSelect={next=>void selectTemplate(next)}/>{data.activeRecap&&data.activeRecap.templateId!==templateId&&<p role="status" className="text-xs text-muted">{catalogue.find(t=>t.id===data.activeRecap?.templateId)?.label??"Another summary"} is processing.</p>}</div>
  {failures[token]&&<p role="alert" className="rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">{failures[token]}</p>}
  {leftData&&<InsightSection key={`summary:${id}:${templateId}:${currentVersion}`} id={id} kind={questionsOnly?"questions":"recap"} data={leftData} readFailed={query.isError} audioAvailable={audioAvailable} onSeek={onSeek} templateId={templateId} templateName={chosen?.label} showToolbar summaryLoading={!!busy[token]}/>}
  </div>
- <aside className="min-w-0 space-y-4 rounded-xl border border-border bg-surface/40 p-4 shadow-sm sm:p-5 xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:overflow-y-auto" aria-label="Detected questions">
+ <aside className="min-w-0 space-y-4 border-t border-border pt-5 xl:border-l xl:border-t-0 xl:pl-6 xl:pt-0" aria-label="Detected questions">
  <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-base font-semibold">Questions</h3><SummaryToolbar result={null} meeting={data.meeting} questions={data.questions?.result??null} templateId="questions" questionsOnly disabled={questionQuery.isError||data.questions?.state!=="ready"||!!data.questions?.isStale}/></div>
- {data.viewPreferences?.enabled&&data.viewPreferences.speakerOptions.length>0&&<details className="rounded-md border border-border p-2.5"><summary className="cursor-pointer text-xs font-medium">Mark my speaker(s)</summary><p className="mt-2 text-xs text-muted">Choose your speaker labels to group your questions separately. This does not edit the transcript.</p><div className="mt-2 space-y-2">{data.viewPreferences.speakerOptions.map(s=><label key={s.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={data.viewPreferences!.selfSpeakerIds.includes(s.id)} disabled={saveView.isPending} onChange={e=>saveView.mutate({selfSpeakerIds:e.target.checked?[...data.viewPreferences!.selfSpeakerIds,s.id]:data.viewPreferences!.selfSpeakerIds.filter(id=>id!==s.id)})}/>{s.label}</label>)}</div></details>}
+ {data.viewPreferences?.enabled&&data.viewPreferences.speakerOptions.length>0&&<details className="rounded-md border border-border p-3"><summary className="cursor-pointer text-xs font-medium">Mark my speaker(s)</summary><p className="mt-2 text-xs text-muted">Choose your speaker labels to group your questions separately. This does not edit the transcript.</p><div className="mt-2 space-y-2">{data.viewPreferences.speakerOptions.map(s=><label key={s.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={data.viewPreferences!.selfSpeakerIds.includes(s.id)} disabled={saveView.isPending} onChange={e=>saveView.mutate({selfSpeakerIds:e.target.checked?[...data.viewPreferences!.selfSpeakerIds,s.id]:data.viewPreferences!.selfSpeakerIds.filter(id=>id!==s.id)})}/>{s.label}</label>)}</div></details>}
  <InsightError error={questionQuery.error??saveView.error}/><InsightSection key={`questions:${id}:${currentVersion}`} id={id} kind="questions" data={data} readFailed={questionQuery.isError||query.isError} audioAvailable={audioAvailable} onSeek={onSeek}/>
  </aside></div></>}
- <EmailPreference/></div></Card>;
+ <EmailPreference/></section>;
 }

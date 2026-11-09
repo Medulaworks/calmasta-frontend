@@ -104,10 +104,10 @@ export function FilterPopover({ filters, onChange, events, timeZone }: { filters
         aria-controls={open ? id : undefined}
         className={`inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${active > 0 || open ? "border-accent bg-accent/10 text-accent" : "border-border hover:bg-surface"}`}
       >
-        <Filter aria-hidden className="h-4 w-4" /> Filters{active > 0 && <span className="rounded-full bg-accent px-1.5 text-xs text-background">{active}</span>}
+        <Filter aria-hidden className="h-4 w-4" /> Filters{active > 0 && <span className="rounded-full bg-accent px-2 text-xs text-background">{active}</span>}
       </button>
       {open && (
-        <div ref={panel} id={id} role="dialog" aria-label="Filter meetings" className="absolute left-0 top-12 z-40 flex w-[40rem] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-xl border border-border bg-background shadow-xl sm:flex-row">
+        <div ref={panel} id={id} role="dialog" aria-label="Filter meetings" className="absolute left-0 top-12 z-40 flex w-[40rem] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-sm shadow-xl sm:flex-row">
           <div className="flex shrink-0 flex-row gap-1 overflow-x-auto border-b border-border p-2 sm:w-52 sm:flex-col sm:overflow-visible sm:border-b-0 sm:border-r">
             {CATEGORIES.map(({ id: c, label, Icon }) => {
               const n = countFor(filters, c);
@@ -115,7 +115,7 @@ export function FilterPopover({ filters, onChange, events, timeZone }: { filters
                 <button key={c} type="button" onClick={() => setCategory(c)} aria-pressed={category === c} className={`flex items-center gap-3 whitespace-nowrap rounded-lg px-3 py-2 text-left text-sm transition-colors ${category === c ? "bg-accent/10 font-medium text-accent" : "text-muted hover:bg-surface hover:text-foreground"}`}>
                   <Icon aria-hidden className="h-4 w-4 shrink-0" />
                   <span className="flex-1">{label}</span>
-                  {n > 0 && <span className="rounded-full bg-accent px-1.5 text-xs text-background">{n}</span>}
+                  {n > 0 && <span className="rounded-full bg-accent px-2 text-xs text-background">{n}</span>}
                 </button>
               );
             })}
@@ -136,7 +136,7 @@ export function FilterPopover({ filters, onChange, events, timeZone }: { filters
                   <button type="button" disabled={filters.participants.length === 0} onClick={() => set({ participants: [] })} className="text-sm text-muted hover:text-foreground disabled:opacity-50">Clear</button>
                 </div>
                 <ul className="max-h-72 flex-1 overflow-y-auto">
-                  {shownPeople.length === 0 && <li className="px-3 py-6 text-sm text-muted">{people.length === 0 ? "No one else was invited to the meetings shown." : "No one matches that."}</li>}
+                  {shownPeople.length === 0 && <li className="px-3 py-5 text-sm text-muted">{people.length === 0 ? "No one else was invited to the meetings shown." : "No one matches that."}</li>}
                   {shownPeople.map((p) => (
                     <li key={p.email}>
                       <CheckRow checked={filters.participants.includes(p.email)} onChange={() => set({ participants: toggle(filters.participants, p.email) })} count={p.meetings}>
@@ -163,8 +163,8 @@ export function FilterPopover({ filters, onChange, events, timeZone }: { filters
                   ))}
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="block text-sm"><span className="text-muted">From</span><input type="date" value={filters.from ?? ""} onChange={(e) => set({ from: e.target.value || null })} className="mt-1 block w-full rounded-lg border border-border bg-background px-3 py-2" /></label>
-                  <label className="block text-sm"><span className="text-muted">To</span><input type="date" value={filters.to ?? ""} onChange={(e) => set({ to: e.target.value || null })} className="mt-1 block w-full rounded-lg border border-border bg-background px-3 py-2" /></label>
+                  <label className="block text-sm"><span className="text-muted">From</span><input type="date" value={filters.from ?? ""} onChange={(e) => set({ from: e.target.value || null })} className="mt-1 block w-full min-h-10 rounded-xl border border-border bg-background px-4 py-2" /></label>
+                  <label className="block text-sm"><span className="text-muted">To</span><input type="date" value={filters.to ?? ""} onChange={(e) => set({ to: e.target.value || null })} className="mt-1 block w-full min-h-10 rounded-xl border border-border bg-background px-4 py-2" /></label>
                 </div>
                 <p className="text-xs text-muted">With a date range, the list shows everything in it, past and upcoming, up to 93 days at a time. Days are in {timeZone.replace(/_/g, " ")}.</p>
                 <button type="button" disabled={!filters.from && !filters.to} onClick={() => set({ from: null, to: null })} className="text-sm text-muted hover:text-foreground disabled:opacity-50">Clear dates</button>
@@ -182,7 +182,7 @@ export function FilterPopover({ filters, onChange, events, timeZone }: { filters
 
             {category === "calendar" && (
               <ul>
-                {calendars.length === 0 && <li className="px-3 py-6 text-sm text-muted">No calendars in the meetings shown.</li>}
+                {calendars.length === 0 && <li className="px-3 py-5 text-sm text-muted">No calendars in the meetings shown.</li>}
                 {calendars.map(([name, n]) => (
                   <li key={name}><CheckRow checked={filters.calendars.includes(name)} onChange={() => set({ calendars: toggle(filters.calendars, name) })} count={n}>{name}</CheckRow></li>
                 ))}
@@ -235,7 +235,7 @@ export function FilterChips({ filters, onChange, personName }: { filters: Meetin
   return (
     <ul className="flex flex-wrap items-center gap-2" aria-label="Active filters">
       {chips.map((c) => (
-        <li key={c.key} className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-border bg-surface py-1 pl-3 pr-1.5 text-xs">
+        <li key={c.key} className="inline-flex max-w-full items-center gap-2 rounded-full border border-border bg-surface py-1 pl-3 pr-2 text-xs">
           <span className="truncate">{c.label}</span>
           <button type="button" onClick={c.clear} aria-label={`Remove filter: ${c.label}`} className="grid h-5 w-5 place-items-center rounded-full text-muted hover:bg-border hover:text-foreground"><X aria-hidden className="h-3 w-3" /></button>
         </li>
