@@ -372,3 +372,9 @@ What was done: safe staged BFF logs/support references, duplicate response/UI su
 Proof:2983a09+diff full358/358,typecheck/build; backend93ae1e3+diff288/288,122paths; reviewed fixes verified.
 What is NOT done: deployment, original outage cause, live writes, scheduled probe/collector/notification delivery.
 Next action: FE-A04/FE-C02/OTEL-09 — backend HOSTED_AUTH_PLAYBACK_DUPLICATE_FIX_PROMPT.md and release patches.
+
+## 2026-11-09 — source release published
+What was done: frontend20bc27c/backend7b8b046published to both main/staging; server now pulls committed runtime fixes.
+Proof: matching remote heads after atomic pushes; source checks358/288passed,122paths,typecheck/build unchanged.
+What is NOT done: hosted deployment/outage/alert proof; no live data/provider changes; unrelated mirrors untouched.
+Next action: FE-A04/FE-C02/OTEL-09 — backend HOSTED_AUTH_PLAYBACK_DUPLICATE_FIX_PROMPT.md.

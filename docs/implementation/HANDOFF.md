@@ -1,5 +1,13 @@
 ## 2026-10-29 — meeting assistant display names
 
+## 2026-11-09 — runtime source published on main and staging
+
+- **What was done (files + behavior):** Published frontend runtime commit20bc27c and backend7b8b046 to main/staging in the Medulaworks repositories. Both source trees contain the tested auth/playback and active-meeting safeguards. Server handoff now directs pull/deploy of committed source; patch artifacts are historical references.
+- **Proof (command + result + revision):** Atomic non-force pushes succeeded; remote ls-remote confirmed both branches equal20bc27cfrontend/7b8b046backend before this documentation-only checkpoint. Source proof remains358/358frontend,typecheck/build and288/288backend,122OpenAPIpaths; no source changes since checks. Tracking refs refreshed and worktrees clean before this checkpoint.
+- **What is NOT done:** Hosted deployment/incident cause, playback fixture monitoring/collector receipt/alert delivery and unrelated mirror updates. No live data or provider mutations; saved earlier transcription stash preserved.
+- **Next action (task ID + files):** FE-A04/FE-C02/OTEL-09 — server pulls both repositories and follows backend docs/implementation/HOSTED_AUTH_PLAYBACK_DUPLICATE_FIX_PROMPT.md; deploy source without reapplying patches. WORK_PLAN.md criteria and hosted acceptance remain separate.
+
+
 ## 2026-11-09 — playback diagnostics and duplicate submission safeguards
 
 - **What was done (files + behavior):** On frontend2983a09, server/auth diagnostics.ts/service.ts/store.ts now emit safe per-request BFF failure stages, frontend/upstream references and trace context without private payloads. upload-client adds support references and reads duplicate responses; capture-form/capture-menu guard in-flight submits and explain existing captures. Browser telemetry ingress fails closed to prevent arbitrary private-message forwarding; stale admin stub test updated to real denial propagation. Backend93ae1e3 local follow-up adds atomic active-meeting guard and read-only probe. Existing empty-speech UI retained.
