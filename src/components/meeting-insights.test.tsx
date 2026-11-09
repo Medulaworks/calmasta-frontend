@@ -63,6 +63,18 @@ it("uses newer insights as authoritative when the completed capture cache is old
  const {html}=render({...base,transcriptVersion:2,recap:{...artifact(recap),transcriptVersion:2}});
  expect(html).not.toContain("older transcript");expect(html).not.toContain("Waiting for the current transcript");expect(html).toContain("Extract meeting questions");
 });
+it("shows finished empty state when transcript is completed with no speech",()=>{
+ const {html}=render({...base,transcriptVersion:1,transcriptReady:false});
+ expect(html).toContain("No speech was detected in this recording.");
+ expect(html).not.toContain("Waiting for the current transcript");
+ expect(html).not.toContain("Generate recap");
+});
+it("shows waiting message when transcript is pending and has no transcript version",()=>{
+ const qc=new QueryClient();clients.push(qc);qc.setQueryData(qk.meetingInsights("m"),{...base,transcriptVersion:null,transcriptReady:false});qc.setQueryData(qk.meetingPreferences(),{recapEmailEnabled:false,emailVerified:true,canReceiveRecapEmail:true});
+ const html=renderToStaticMarkup(createElement(QueryClientProvider,{client:qc},createElement(MeetingInsights,{id:"m",transcriptVersion:null,audioAvailable:true,onSeek:vi.fn()})));
+ expect(html).toContain("Waiting for the current transcript before requesting insights.");
+ expect(html).not.toContain("No speech was detected in this recording.");
+});
 
 it("renders structured meeting notes with trusted metadata, nested topics and owner-grouped actions",()=>{
  const summary={...recap,formatVersion:2 as const,meetingPurpose:"Review launch blockers.",topics:[{title:"Quota issue",points:[{text:"Demo blocked <script>",details:["Fix individual quotas."]}]}],technicalNotes:["Configure telemetry."],actionItems:[{owner:"Josiah",task:"Fix the quota.",due:"tomorrow"},{owner:"Josiah",task:"Review the fix.",due:null},{owner:null,task:"Investigate deployment.",due:null}]};

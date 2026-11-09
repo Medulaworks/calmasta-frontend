@@ -166,11 +166,14 @@ export function TranscriptEditor({ cap, statusLabel, active, onChanged, loadCapt
   }
 
   if (!hasLines) {
+    const isFinishedEmpty = (ready || cap.state === "completed" || cap.state === "ready_to_review") && cap.transcriptVersion !== null;
     return (
       <Card>
         <CardHeader title="Transcript" />
         {active ? (
           <EmptyState icon={<Mic className="h-5 w-5" />} title={`${statusLabel}…`} body="This page updates by itself." />
+        ) : isFinishedEmpty ? (
+          <EmptyState icon={<Mic className="h-5 w-5" />} title="No speech detected" body="No speech was detected in this recording." />
         ) : cap.source === "meeting_url" && cap.state !== "failed" ? (
           <EmptyState icon={<Video className="h-5 w-5" />} title="No transcript yet" body="A transcript will appear here after the recording has been processed." />
         ) : (
