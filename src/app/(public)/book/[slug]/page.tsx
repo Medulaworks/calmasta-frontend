@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { SkeletonGuest } from "@/components/ui/skeleton";
 import { PublicBooking } from "@/components/booking/public-booking";
 
 export const metadata = { title: "Book a time · Jooba" };
@@ -12,7 +13,7 @@ export default function BookPage(props: PageProps<"/book/[slug]">) {
   return (
     <Suspense
       fallback={
-        <p className="py-10 text-center text-sm text-muted">Loading…</p>
+        <SkeletonGuest label="Loading" />
       }>
       <Booking {...props} />
     </Suspense>

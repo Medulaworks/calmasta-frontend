@@ -3,7 +3,7 @@ import { AdminHeader } from "@/components/admin/section-tabs";
 
 export default function Page() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <AdminHeader title="Admins" />
       <AdminsView />
     </div>

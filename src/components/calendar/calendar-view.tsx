@@ -1,5 +1,6 @@
 "use client";
 
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Bot,
   CalendarDays,
@@ -246,7 +247,7 @@ export function CalendarView() {
               <span className="font-medium">
                 {conns
                   ? conns.connections.map((c: ConnectionView) => c.accountEmail).join(", ")
-                  : "Loading calendars…"}
+                  : <Skeleton className="inline-block h-4 w-40 align-middle" />}
               </span>
               {conns?.connections.some(
                 (c: ConnectionView) => c.status === "needs_reconnect",
@@ -270,7 +271,7 @@ export function CalendarView() {
               type="button"
               onClick={() => setManage((m) => !m)}
               aria-expanded={manage}
-              className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-muted hover:bg-surface hover:text-foreground">
+              className="inline-flex items-center gap-2 rounded-lg px-2 py-2 text-muted hover:bg-surface hover:text-foreground">
               <Settings2 aria-hidden className="h-4 w-4" /> Manage calendars{" "}
               <ChevronDown
                 aria-hidden
@@ -290,7 +291,7 @@ export function CalendarView() {
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-background p-3 shadow-sm">
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-background shadow-sm p-3 shadow-sm">
         <div
           role="group"
           aria-label="Show"
@@ -302,7 +303,7 @@ export function CalendarView() {
               aria-pressed={!win.ranged && tab === t}
               disabled={win.ranged}
               onClick={() => changeTab(t)}
-              className={`rounded-md px-4 py-1.5 font-medium capitalize transition-colors ${!win.ranged && tab === t ? "bg-background text-foreground shadow-sm" : "text-muted hover:text-foreground disabled:opacity-60"}`}>
+              className={`rounded-md px-4 py-2 font-medium capitalize transition-colors ${!win.ranged && tab === t ? "bg-background text-foreground shadow-sm" : "text-muted hover:text-foreground disabled:opacity-60"}`}>
               {t}
             </button>
           ))}
@@ -334,7 +335,7 @@ export function CalendarView() {
         </label>
         <p role="status" className="ml-auto text-sm text-muted">
           {loading
-            ? "Loading…"
+            ? <Skeleton className="inline-block h-4 w-20 align-middle" />
             : `${shown.length} ${shown.length === 1 ? "meeting" : "meetings"}`}
         </p>
       </div>
@@ -368,12 +369,12 @@ export function CalendarView() {
         </p>
       ))}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
-        <div className="min-w-0 space-y-6 rounded-xl border border-border bg-background/50 p-4 shadow-sm">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_24rem]">
+        <div className="min-w-0 space-y-6 rounded-2xl border border-border bg-background shadow-sm/50 p-4 shadow-sm">
           {agenda && agenda.key === winKey && agenda.error ? (
             <p
               role="alert"
-              className="rounded-xl border border-border px-5 py-6 text-sm text-danger">
+              className="rounded-xl border border-border px-5 py-5 text-sm text-danger">
               {agenda.error}
             </p>
           ) : loading ? (
@@ -420,7 +421,7 @@ export function CalendarView() {
             groups.map((g) => (
               <section key={g.key} aria-label={g.label}>
                 <h2 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted">
-                  <span className="inline-flex h-6 items-center rounded-md border border-border bg-surface px-2.5">{g.label}</span>
+                  <span className="inline-flex h-6 items-center rounded-md border border-border bg-surface px-3">{g.label}</span>
                   <span aria-hidden className="h-px flex-1 bg-border" />
                 </h2>
                 <ul className="space-y-2">
@@ -530,14 +531,14 @@ export function MeetingRow({
         />
         <span className="min-w-0 flex-1">
           <span className="block truncate font-medium">{e.title}</span>
-          <span className="mt-0.5 block truncate text-sm text-muted">
+          <span className="mt-1 block truncate text-sm text-muted">
             {e.allDay
               ? "All day"
               : `${formatTime(e.start, timeZone)} to ${formatTime(e.end, timeZone)}`}
             {!e.allDay && ` · ${minutesText(durationMin(e))}`}
             {e.calendarName && ` · ${e.calendarName}`}
           </span>
-          <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
+          <span className="mt-2 flex flex-wrap items-center gap-2">
             {e.source === "booking" && <Badge tone="info">Booking</Badge>}
             {st && rec !== "not_recorded" && (
               <Badge tone={st.tone} active={st.active} indicator={st.indicator}>
@@ -545,12 +546,12 @@ export function MeetingRow({
               </Badge>
             )}
             {platform !== "none" && (
-              <span className="rounded-full bg-surface px-2 py-0.5 text-xs text-muted ring-1 ring-inset ring-border">
+              <span className="rounded-full bg-surface px-2 py-1 text-xs text-muted ring-1 ring-inset ring-border">
                 {PLATFORM_LABEL[platform]}
               </span>
             )}
             {!e.organizerSelf && (
-              <span className="rounded-full bg-surface px-2 py-0.5 text-xs text-muted ring-1 ring-inset ring-border">
+              <span className="rounded-full bg-surface px-2 py-1 text-xs text-muted ring-1 ring-inset ring-border">
                 Invited
               </span>
             )}
@@ -602,7 +603,7 @@ export function MeetingRow({
             aria-label={sent ? `Bot sent to ${e.title}` : botError ? `Retry sending bot to ${e.title}: ${botError}` : `Send bot to ${e.title}`}
             title={botError ?? (sent ? "Bot sent" : policy?.meetingEnabled === false ? "Meeting capture not enabled" : "Send meeting bot")}
             className={`flex flex-1 items-center justify-center gap-1 px-3 text-xs font-medium transition-colors ${sent ? "bg-success/10 text-success" : botError ? "bg-danger/10 text-danger hover:bg-danger/15" : "text-muted hover:bg-surface hover:text-foreground disabled:opacity-50"} ${upcoming ? "border-t border-border" : ""}`}>
-            <Bot aria-hidden className="h-3.5 w-3.5" />
+            <Bot aria-hidden className="h-4 w-4" />
             {sendBot.isPending ? "Sending…" : sent ? "Sent" : botError ? "Retry" : "Bot"}
           </button>
         </div>
@@ -635,12 +636,12 @@ function MeetingDetail({
     <Card className="h-fit min-w-0 lg:sticky lg:top-20">
       <CardHeader title="Meeting details" />
       {!event ? (
-        <p className="px-5 py-8 text-sm text-muted">
+        <p className="px-5 py-6 text-sm text-muted">
           Choose a meeting to see who is invited, where it is and whether it is
           being recorded.
         </p>
       ) : (
-        <div className="space-y-5 px-5 py-4 text-sm">
+        <div className="space-y-5 px-5 py-3 text-sm">
           <div>
             <p className="text-lg font-semibold leading-snug">{event.title}</p>
             <p className="mt-1 text-muted">
@@ -649,7 +650,7 @@ function MeetingDetail({
                 : `${formatDay(event.start, timeZone)}, ${formatTime(event.start, timeZone)} to ${formatTime(event.end, timeZone)}`}
               {!event.allDay && ` (${minutesText(durationMin(event))})`}
             </p>
-            <div className="mt-2 flex flex-wrap gap-1.5">
+            <div className="mt-2 flex flex-wrap gap-2">
               {event.source === "booking" && <Badge tone="info">Booking</Badge>}
               <Badge tone={event.organizerSelf ? "neutral" : "info"}>
                 {event.organizerSelf ? "Hosted by you" : "Invited"}
@@ -697,7 +698,7 @@ function MeetingDetail({
                     {event.joinUrl}
                     <ExternalLink
                       aria-hidden
-                      className="mt-0.5 h-3 w-3 shrink-0"
+                      className="mt-1 h-3 w-3 shrink-0"
                     />
                   </a>
                 </dd>

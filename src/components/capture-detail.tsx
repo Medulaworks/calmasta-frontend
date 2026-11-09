@@ -1,10 +1,11 @@
 "use client";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { markResultSeen } from "@/lib/first-result";
 import { ToastStack, useToasts } from "@/components/ui/toast";
 import { useMeetingToasts } from "@/hooks/use-meeting-toasts";
 import { SkeletonDetail } from "@/components/ui/skeleton";
 
 import {
-  ArrowLeft,
   FileText,
   Mic,
   TriangleAlert,
@@ -72,6 +73,9 @@ export function CaptureDetail({
   id: string;
   devTools?: boolean;
 }) {
+  useEffect(() => {
+    markResultSeen();
+  }, []);
   const router = useRouter();
   const search = useSearchParams();
   const profile = useProfile();
@@ -179,9 +183,9 @@ export function CaptureDetail({
           title="Recording not found"
           body="It may have been deleted."
           action={
-            <button type="button" onClick={goBack} className="text-sm text-accent">
-              Go back
-            </button>
+            <Link href="/dashboard/library?tab=recordings" onClick={goBack} className="text-sm font-medium text-accent hover:underline">
+              Back to My Folder
+            </Link>
           }
         />
       </Card>
@@ -214,19 +218,15 @@ export function CaptureDetail({
       : "recording";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <ToastStack items={toasts.items} onDismiss={toasts.dismiss} />
-      <Link
-        href="/dashboard/library?tab=recordings"
-        className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground">
-        <ArrowLeft aria-hidden className="h-4 w-4" /> Library
-      </Link>
+      <Breadcrumb items={[{ label: "My Folder", href: "/dashboard/library" }, { label: "Recordings", href: "/dashboard/library?tab=recordings" }, { label: cap.title || "Recording" }]} />
 
       <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">
           <span
             aria-hidden
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-surface text-muted">
+            className="grid h-10 w-11 shrink-0 place-items-center rounded-xl bg-surface text-muted">
             <Icon className="h-5 w-5" />
           </span>
           <div className="min-w-0">
@@ -311,7 +311,7 @@ export function CaptureDetail({
         <div
           role="alertdialog"
           aria-label="Confirm delete"
-          className="rounded-xl border border-border bg-surface p-5 text-sm">
+          className="rounded-2xl border border-border bg-surface p-5 text-sm">
           <p className="font-medium">Delete this recording?</p>
           <p className="mt-1 text-muted">
             The audio and transcript are deleted. Documents you made from it are
@@ -396,8 +396,8 @@ export function CaptureDetail({
                 <CardHeader title="Audio" />
                 <div className="p-5 text-sm">
                   <div role="status" className="flex items-start gap-3 rounded-lg border border-border bg-surface px-4 py-3">
-                    <TriangleAlert aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
-                    <div><p className="font-medium">Audio no longer available</p><p className="mt-0.5 text-muted">It was removed as the privacy settings say. The transcript and documents are still here.</p></div>
+                    <TriangleAlert aria-hidden className="mt-1 h-4 w-4 shrink-0 text-warning" />
+                    <div><p className="font-medium">Audio no longer available</p><p className="mt-1 text-muted">It was removed as the privacy settings say. The transcript and documents are still here.</p></div>
                   </div>
                 </div>
               </Card>
@@ -474,11 +474,11 @@ export function CaptureDetail({
                   className="flex items-start gap-3 rounded-lg border border-border bg-surface px-4 py-3">
                   <TriangleAlert
                     aria-hidden
-                    className="mt-0.5 h-4 w-4 shrink-0 text-warning"
+                    className="mt-1 h-4 w-4 shrink-0 text-warning"
                   />
                   <div>
                     <p className="font-medium">Audio no longer available</p>
-                    <p className="mt-0.5 text-muted">
+                    <p className="mt-1 text-muted">
                       The recording has been removed. Its transcript and any
                       documents made from it are still here.
                     </p>
@@ -530,7 +530,7 @@ export function CaptureDetail({
           role="tabpanel"
           id={tabPanelId("documents")}
           aria-labelledby={tabId("documents")}
-          className="grid gap-6 lg:grid-cols-2">
+          className="grid gap-5 lg:grid-cols-2">
           <Card className="min-w-0">
             <CardHeader title="Make a document" />
             <div className="space-y-3 p-5">
@@ -540,7 +540,7 @@ export function CaptureDetail({
                   value={template}
                   disabled={!ready}
                   onChange={(e) => setTemplate(e.target.value)}
-                  className="mt-1 block w-full rounded-lg border border-border bg-background px-3 py-2 disabled:opacity-50">
+                  className="mt-1 block w-full min-h-10 rounded-xl border border-border bg-background px-4 py-2 disabled:opacity-50">
                   {TEMPLATE_CHOICES.map((t) => (
                     <option key={t.id} value={t.id}>
                       {t.label}
@@ -567,7 +567,7 @@ export function CaptureDetail({
           <Card className="min-w-0">
             <CardHeader title="Documents from this recording" />
             {cap.documents.length === 0 ? (
-              <p className="px-5 py-6 text-sm text-muted">None yet.</p>
+              <p className="px-5 py-5 text-sm text-muted">None yet.</p>
             ) : (
               <ul className="divide-y divide-border">
                 {cap.documents.map((d: { id: string; title: string; template: string; status: string; editedByUser: boolean }) => {

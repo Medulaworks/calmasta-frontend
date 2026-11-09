@@ -30,10 +30,10 @@ export default function AcceptInviteClient({ initialToken }: { initialToken: str
     }
   }
 
-  if (!initialToken) return <Card><div className="p-6 text-sm">No invitation token.</div></Card>;
+  if (!initialToken) return <Card><div className="p-5 text-sm">No invitation token.</div></Card>;
   return (
     <Card>
-      <div className="space-y-4 p-6 text-sm">
+      <div className="space-y-4 p-5 text-sm">
         <h1 className="text-lg font-semibold">Accept staff invitation</h1>
         <p className="text-muted">Sign in with the invited verified email, then accept.</p>
         {status === "success" ? <p className="text-success">{message}</p> : status === "error" ? <p role="alert" className="text-danger">{message}</p> : null}

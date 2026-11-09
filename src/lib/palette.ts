@@ -29,7 +29,7 @@ export interface Command {
 export const COMMANDS: readonly Command[] = [
   {
     id: "a-record",
-    label: "Record a thought",
+    label: "Record your voice",
     href: "/dashboard/voice",
     group: "action",
     icon: "mic",
@@ -60,20 +60,28 @@ export const COMMANDS: readonly Command[] = [
     keywords: ["dashboard", "overview"],
   },
   {
-    id: "p-capture",
-    label: "Capture",
+    id: "p-meet",
+    label: "Meet",
+    href: "/dashboard/capture",
+    group: "page",
+    icon: "video",
+    keywords: ["meeting bot", "capture", "call", "zoom", "teams"],
+  },
+  {
+    id: "p-think",
+    label: "Record",
     href: "/dashboard/voice",
     group: "page",
     icon: "mic",
-    keywords: ["voice inbox", "meeting bot"],
+    keywords: ["voice", "voice inbox", "record", "ideas", "notes"],
   },
   {
     id: "p-library",
-    label: "Library",
+    label: "My Folder",
     href: "/dashboard/library",
     group: "page",
     icon: "library",
-    keywords: ["documents", "recordings", "transcripts"],
+    keywords: ["library", "documents", "recordings", "transcripts"],
   },
   {
     id: "p-calendar",

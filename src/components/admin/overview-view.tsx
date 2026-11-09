@@ -82,7 +82,7 @@ export function OverviewView() {
         if (isNew) {
           const no = o as unknown as NewOverview;
           return (
-            <div className="space-y-6">
+            <div className="space-y-5">
               <HealthStrip />
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 <Metric label="Users" value={n(no.users)} />
@@ -127,7 +127,7 @@ export function OverviewView() {
           { label: "Try again…", onSelect: () => setRetrying(j), disabled: !j.retry.allowed, reason: j.retry.reason, divider: true },
         ];
         return (
-          <div className="space-y-6">
+          <div className="space-y-5">
             <HealthStrip />
             {o.banner && <Notice tone={o.banner.level}>{o.banner.text} {o.paused && <Link href="/admin/usage" className="font-medium underline">Open Usage and cost to resume</Link>}</Notice>}
 

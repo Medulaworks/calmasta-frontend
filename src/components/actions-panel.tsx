@@ -24,7 +24,7 @@ function Item({
   children: React.ReactNode;
 }) {
   return (
-    <li className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
+    <li className="flex flex-col gap-3 px-5 py-3 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0">
         <p
           className={`text-sm ${item.status === "dismissed" ? "text-muted line-through" : ""}`}>
@@ -117,7 +117,7 @@ export function ActionsPanel({
         <div
           role="alert"
           className="flex items-start gap-3 rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
-          <TriangleAlert aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
+          <TriangleAlert aria-hidden className="mt-1 h-4 w-4 shrink-0" />
           <p>
             {error ?? "Looking for action items failed."} Your existing items
             are unchanged. You can try again.
@@ -169,7 +169,7 @@ export function ActionsPanel({
               anyone.
             </p>
             {by("suggested").length === 0 ? (
-              <p className="px-5 py-6 text-sm text-muted">
+              <p className="px-5 py-5 text-sm text-muted">
                 Nothing waiting for your review.
               </p>
             ) : (

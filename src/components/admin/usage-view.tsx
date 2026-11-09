@@ -27,7 +27,7 @@ export function UsageView() {
         if (isNew) {
           const nu = r as unknown as NewUsage;
           return (
-            <div className="space-y-6">
+            <div className="space-y-5">
               <p className="text-sm text-muted">Period {nu.period} · {nu.timezone} · cost basis {nu.costBasis} — estimate versus settled preserved</p>
               <DataTable label="Usage by workspace">
                 <thead><tr><Th>Workspace</Th><Th>Plan</Th><Th>Used</Th><Th>Reserved</Th></tr></thead>
@@ -46,7 +46,7 @@ export function UsageView() {
         }
         const ro = r as Json<UsageReport>;
         return (
-          <div className="space-y-6">
+          <div className="space-y-5">
             {ro.paused.paused && (
               <Notice tone="danger">
                 New work is <strong>paused</strong> for everyone{ro.paused.by ? ` (by ${ro.paused.by}, ${fmtUtc(ro.paused.at)})` : ""}. {ro.paused.reason && <>Reason: {ro.paused.reason}.</>}

@@ -42,7 +42,7 @@ export function EditorToolbar({ editor, disabled }: { editor: Editor; disabled: 
   });
   const c = () => editor.chain().focus();
   return (
-    <div role="toolbar" aria-label="Formatting" className="flex flex-wrap items-center gap-0.5 border-b border-border bg-surface/60 px-2 py-1.5">
+    <div role="toolbar" aria-label="Formatting" className="flex flex-wrap items-center gap-1 border-b border-border bg-surface/60 px-2 py-2">
       <Btn label="Bold" active={s.bold} disabled={disabled} onClick={() => c().toggleBold().run()}><Bold className={icon} /></Btn>
       <Btn label="Italic" active={s.italic} disabled={disabled} onClick={() => c().toggleItalic().run()}><Italic className={icon} /></Btn>
       <Btn label="Strikethrough" active={s.strike} disabled={disabled} onClick={() => c().toggleStrike().run()}><Strikethrough className={icon} /></Btn>

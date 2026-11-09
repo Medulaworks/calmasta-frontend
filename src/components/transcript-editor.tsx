@@ -1,5 +1,6 @@
 "use client";
 
+import { DocumentIllustration } from "@/components/ui/illustrations";
 import { updateTranscriptDraft,pendingTranscriptDrafts } from "@/lib/transcript-drafts";
 
 import { Download, Mic, Pencil, TriangleAlert, Video } from "lucide-react";
@@ -175,7 +176,7 @@ export function TranscriptEditor({ cap, statusLabel, active, onChanged, loadCapt
         ) : isFinishedEmpty ? (
           <EmptyState icon={<Mic className="h-5 w-5" />} title="No speech detected" body="No speech was detected in this recording." />
         ) : cap.source === "meeting_url" && cap.state !== "failed" ? (
-          <EmptyState icon={<Video className="h-5 w-5" />} title="No transcript yet" body="A transcript will appear here after the recording has been processed." />
+          <EmptyState illustration={<DocumentIllustration />} title="No transcript yet" body="A transcript will appear here after the recording has been processed." />
         ) : (
           <EmptyState title="No transcript" body="There is nothing to show for this recording." />
         )}
@@ -217,7 +218,7 @@ export function TranscriptEditor({ cap, statusLabel, active, onChanged, loadCapt
                   value={nameDrafts[label] ?? cap.speakerNames[label] ?? ""}
                   placeholder={label}
                   onChange={(e) => setName(label, e.target.value)}
-                  className="mt-1 block w-full rounded-lg border border-border bg-background px-3 py-2"
+                  className="mt-1 block w-full min-h-10 rounded-xl border border-border bg-background px-4 py-2"
                 />
               </label>
             ))}
@@ -257,7 +258,7 @@ export function TranscriptEditor({ cap, statusLabel, active, onChanged, loadCapt
         <ol className="divide-y divide-border">
           {cap.transcript.map((seg) => (
             <li key={seg.id} id={`seg-${seg.id}`} className={`flex scroll-mt-24 gap-4 px-5 py-3 text-sm ${focusId === seg.id ? "bg-accent/10" : ""}`}>
-              <span className="w-12 shrink-0 pt-0.5 font-mono text-xs text-muted">{formatDuration(seg.startMs / 1000)}</span>
+              <span className="w-12 shrink-0 pt-1 font-mono text-xs text-muted">{formatDuration(seg.startMs / 1000)}</span>
               {editing ? (
                 <div className="min-w-0 flex-1">
                   {seg.speakerId && <span className="mb-1 block text-xs font-medium text-muted">{nameOf(seg.speakerId)}</span>}
@@ -276,7 +277,7 @@ export function TranscriptEditor({ cap, statusLabel, active, onChanged, loadCapt
                 <p className="min-w-0">
                   {seg.speakerId && <span className="mr-2 text-xs font-medium text-muted">{nameOf(seg.speakerId)}</span>}
                   {seg.text}
-                  {seg.editedByUser && <span className="ml-2 rounded bg-surface px-1.5 py-0.5 text-[11px] text-muted">Edited</span>}
+                  {seg.editedByUser && <span className="ml-2 rounded bg-surface px-2 py-1 text-xs text-muted">Edited</span>}
                 </p>
               )}
             </li>

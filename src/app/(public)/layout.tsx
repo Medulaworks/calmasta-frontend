@@ -6,9 +6,9 @@ export const metadata: Metadata = { robots: { index: false, follow: false }, ref
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-border">
-        <div className="mx-auto flex max-w-4xl items-center gap-2 px-4 py-3 text-sm font-semibold tracking-tight">
+    <div className="min-h-screen bg-surface/60">
+      <header className="border-b border-border bg-background">
+        <div className="mx-auto flex max-w-5xl items-center gap-2 px-4 py-3 text-sm font-semibold tracking-tight">
           <Brand size={26} /> <span className="font-normal text-muted">scheduling</span>
         </div>
       </header>

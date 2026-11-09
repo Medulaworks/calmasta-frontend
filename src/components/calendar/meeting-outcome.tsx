@@ -162,7 +162,7 @@ export function MeetingOutcome({
         href={open}
         className="inline-flex items-center gap-1 font-medium text-accent hover:underline">
         Open the full conversation{" "}
-        <ArrowRight aria-hidden className="h-3.5 w-3.5" />
+        <ArrowRight aria-hidden className="h-4 w-4" />
       </Link>
     </section>
   );
@@ -221,7 +221,7 @@ function Summary({ cap, text }: { cap: CaptureView; text: string | null }) {
         edit freely afterwards.
       </p>
       <Button size="sm" onClick={() => void write()} disabled={busy}>
-        <Sparkles aria-hidden className="h-3.5 w-3.5" />{" "}
+        <Sparkles aria-hidden className="h-4 w-4" />{" "}
         {busy ? "Starting…" : "Write a summary"}
       </Button>
       {error && (
@@ -241,7 +241,7 @@ function Transcript({ cap }: { cap: CaptureView }) {
   const shown = cap.transcript.slice(0, LINES);
   return (
     <div className="space-y-2">
-      <ol className="space-y-1.5">
+      <ol className="space-y-2">
         {shown.map((s) => (
           <li key={s.id} className="flex gap-2">
             <span className="w-9 shrink-0 text-xs tabular-nums leading-5 text-muted">
@@ -249,7 +249,7 @@ function Transcript({ cap }: { cap: CaptureView }) {
             </span>
             <span className="min-w-0">
               {name(s.speakerId) && (
-                <span className="mr-1.5 text-xs font-medium text-muted">
+                <span className="mr-2 text-xs font-medium text-muted">
                   {name(s.speakerId)}
                 </span>
               )}
@@ -266,7 +266,7 @@ function Transcript({ cap }: { cap: CaptureView }) {
       <Link
         href={`/dashboard/captures/${cap.id}?tab=transcript`}
         className="inline-flex items-center gap-1 font-medium text-accent hover:underline">
-        <ScrollText aria-hidden className="h-3.5 w-3.5" /> Read and edit the
+        <ScrollText aria-hidden className="h-4 w-4" /> Read and edit the
         transcript
       </Link>
     </div>
@@ -303,7 +303,7 @@ function Actions({
           <li key={a.id} className="flex items-start gap-2">
             <ListChecks
               aria-hidden
-              className="mt-0.5 h-4 w-4 shrink-0 text-muted"
+              className="mt-1 h-4 w-4 shrink-0 text-muted"
             />
             <span className="min-w-0 flex-1">{a.text}</span>
             <Badge
@@ -350,7 +350,7 @@ function Recording({ cap }: { cap: CaptureView }) {
   }
   return (
     <p className="flex gap-2 text-muted">
-      <Mic aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
+      <Mic aria-hidden className="mt-1 h-4 w-4 shrink-0" />
       {cap.audioStatus === "unavailable"
         ? "The audio file has been removed, as your privacy settings say. The transcript and documents stay."
         : "There is no audio to play for this meeting."}

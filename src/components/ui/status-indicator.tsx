@@ -33,5 +33,5 @@ export function StatusIndicator({ kind, className = "" }: { kind: Indicator; cla
       </svg>
     );
   }
-  return <span aria-hidden className={`size-1.5 shrink-0 animate-pulse rounded-full bg-current motion-reduce:animate-none ${className}`} />;
+  return <span aria-hidden className={`size-2 shrink-0 animate-pulse rounded-full bg-current motion-reduce:animate-none ${className}`} />;
 }

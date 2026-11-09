@@ -5,10 +5,10 @@ export const metadata = { title: "Your profile · Jooba" };
 
 export default function ProfilePage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader
         title="Your profile"
-        description="Who you are in Jooba: your photo, name, time zone, role and how you sign in."
+        description="Who you are in Jooba, your plan and what you have done this month."
       />
       <ProfileView />
     </div>

@@ -1,5 +1,7 @@
 "use client";
 
+import { brandText } from "@/lib/brand";
+import { Loading, Skeleton } from "@/components/ui/skeleton";
 import { dashboardPath } from "@/lib/app-routes";
 
 import {
@@ -7,7 +9,6 @@ import {
   CheckCircle2,
   PanelLeftClose,
   PanelLeftOpen,
-  ChevronDown,
   CircleAlert,
   Gauge,
   Info,
@@ -30,11 +31,11 @@ import { CaptureMenu } from "./capture-menu";
 import { HeaderSearch } from "./header-search";
 import { signOut } from "@/lib/auth-client";
 import { setSidebarCollapsed, useSidebarCollapsed } from "@/lib/sidebar";
-import { MODES, THEMES, useThemeChoice } from "@/lib/theme";
+import { useThemeChoice } from "@/lib/theme";
 import {
   MODE_ICON,
-  ModeOptions,
-  ThemeOptions,
+  ModeIcons,
+  ThemeSwatches,
 } from "@/components/theme/theme-picker";
 import { Avatar } from "@/components/ui/avatar";
 import { DUMMY_PLAN, type PlanSummary, formatDate } from "@/lib/plan-client";
@@ -119,12 +120,12 @@ function Notifications({ pathname }: { pathname: string }) {
         aria-label={
           unread > 0 ? `Notifications, ${unread} new` : "Notifications"
         }
-        className="relative grid h-9 w-9 place-items-center rounded-lg text-muted transition-colors hover:bg-surface hover:text-foreground">
-        <Bell aria-hidden className="h-[18px] w-[18px]" />
+        className="relative grid size-10 place-items-center rounded-lg text-muted transition-colors hover:bg-surface hover:text-foreground">
+        <Bell aria-hidden className="h-5 w-5" />
         {unread > 0 && (
           <span
             aria-hidden
-            className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-danger-solid px-1 text-[10px] font-medium leading-none text-white ring-2 ring-topbar">
+            className="absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-danger-solid px-1 text-xs font-medium leading-none text-white ring-2 ring-topbar">
             {unread > 9 ? "9+" : unread}
           </span>
         )}
@@ -134,22 +135,22 @@ function Notifications({ pathname }: { pathname: string }) {
           ref={panel}
           role="dialog"
           aria-label="Notifications"
-          className="absolute right-0 top-full z-40 mt-2 w-[22rem] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl border border-border bg-background shadow-xl">
+          className="absolute right-0 top-full z-40 mt-2 w-[22rem] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-border bg-background shadow-sm shadow-xl">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <h2 className="text-sm font-semibold">Notifications</h2>
             <span className="text-xs text-muted">Last 14 days</span>
           </div>
           {failed && !list ? (
-            <p role="alert" className="px-4 py-6 text-sm text-danger">
+            <p role="alert" className="px-4 py-5 text-sm text-danger">
               Couldn&rsquo;t load notifications. They&rsquo;ll try again in a
               minute.
             </p>
           ) : !list ? (
-            <p role="status" className="px-4 py-6 text-sm text-muted">
-              Loading…
-            </p>
+            <Loading label="Loading notifications" className="space-y-4 px-5 py-5">
+              {[0, 1, 2].map((i) => <div key={i} className="space-y-2"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-3 w-1/3" /></div>)}
+            </Loading>
           ) : list.items.length === 0 ? (
-            <div className="px-4 py-8 text-center">
+            <div className="px-4 py-6 text-center">
               <p className="text-sm font-medium">You&rsquo;re all caught up</p>
               <p className="mt-1 text-sm text-muted">
                 Updates about your recordings, documents and bookings show up
@@ -185,18 +186,18 @@ function NotificationRow({
         className={`flex gap-3 px-4 py-3 text-sm transition-colors hover:bg-surface ${n.unread ? "bg-accent/5" : ""}`}>
         <Icon
           aria-hidden
-          className={`mt-0.5 h-4 w-4 shrink-0 ${TONE_COLOR[n.tone]}`}
+          className={`mt-1 h-4 w-4 shrink-0 ${TONE_COLOR[n.tone]}`}
         />
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-2">
-            <span className="font-medium">{n.title}</span>
+            <span className="font-medium">{brandText(n.title)}</span>
             {n.unread && (
-              <span className="rounded-full bg-accent px-1.5 text-[10px] font-medium text-background">
+              <span className="rounded-full bg-accent px-2 text-xs font-medium text-background">
                 New
               </span>
             )}
           </span>
-          <span className="mt-0.5 block text-muted">{n.body}</span>
+          <span className="mt-1 block text-muted">{brandText(n.body)}</span>
           <span className="mt-1 block text-xs text-muted">{timeAgo(n.at)}</span>
         </span>
       </Link>
@@ -265,13 +266,13 @@ function PlanCard({
       <div className="rounded-xl border border-border bg-gradient-to-br from-accent-solid/15 via-transparent to-transparent p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="flex items-center gap-1.5 text-base font-semibold">
+            <p className="flex items-center gap-2 text-base font-semibold">
               {pro && <Sparkles aria-hidden className="h-4 w-4 text-accent" />}
               {PLAN_LABEL[displayPlan.plan.plan]}
             </p>
             <p className="text-xs text-muted">{status}</p>
           </div>
-          <span className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
+          <span className="rounded-full bg-accent/10 px-2 py-1 text-xs font-medium text-accent">
             Current plan
           </span>
         </div>
@@ -286,7 +287,7 @@ function PlanCard({
               of {formatMinutes(displayPlan.allowanceMinutes + displayPlan.purchasedMinutes)}
             </span>
           </p>
-          <p className="mt-0.5 text-xs text-muted">
+          <p className="mt-1 text-xs text-muted">
             Resets {formatDate(displayPlan.resetsAt, displayPlan.timezone)}
             {displayPlan.purchasedMinutes > 0
               ? ` · includes ${formatMinutes(displayPlan.purchasedMinutes)} bought`
@@ -334,14 +335,13 @@ function ProfileMenu({
   loading: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const [section, setSection] = useState<null | "mode" | "theme">(null);
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState("");
   const panel = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const close = useCallback(() => setOpen(false), []);
   useDismiss(open, close, panel, trigger);
-  const { theme, mode } = useThemeChoice();
+  const { mode } = useThemeChoice();
 
   async function handleSignOut() {
     if (signingOut) return;
@@ -389,7 +389,7 @@ function ProfileMenu({
     return (
       <span
         aria-hidden
-        className="h-9 w-9 jb-skel rounded-full bg-surface"
+        className="size-10 jb-skel rounded-full bg-surface"
       />
     );
   const name = profile?.name?.trim() || profile?.email || "Not signed in";
@@ -398,8 +398,6 @@ function ProfileMenu({
   )[0];
   const item =
     "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-surface focus-visible:bg-surface";
-  const themeLabel = THEMES.find((t) => t.id === theme)?.label ?? "";
-  const modeLabel = MODES.find((m) => m.id === mode)?.label ?? "";
   const ModeIcon = MODE_ICON[mode];
 
   return (
@@ -411,7 +409,7 @@ function ProfileMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={`Account menu for ${name}`}
-        className="grid h-9 w-9 place-items-center rounded-full ring-offset-2 ring-offset-topbar transition-shadow hover:ring-2 hover:ring-accent/30">
+        className="grid size-10 place-items-center rounded-full ring-offset-2 ring-offset-topbar transition-shadow hover:ring-2 hover:ring-accent/30">
         <Avatar name={name} src={profile?.avatarUrl} size={32} />
       </button>
       {open && (
@@ -420,7 +418,7 @@ function ProfileMenu({
           role="menu"
           aria-label="Account"
           onKeyDown={onKeyDown}
-          className="absolute right-0 top-full z-40 mt-2 max-h-[calc(100vh-5rem)] w-80 max-w-[calc(100vw-1.5rem)] overflow-y-auto rounded-xl border border-border bg-background text-foreground shadow-xl">
+          className="absolute right-0 top-full z-40 mt-2 max-h-[calc(100vh-5rem)] w-80 max-w-[calc(100vw-1.5rem)] overflow-y-auto overflow-x-hidden rounded-2xl border border-border bg-background shadow-sm text-foreground shadow-xl">
           <div className="flex items-center gap-3 px-4 pb-3 pt-4">
             <Avatar name={name} src={profile?.avatarUrl} size={44} />
             <div className="min-w-0">
@@ -474,38 +472,17 @@ function ProfileMenu({
                 area
               </Link>
             )}
-            <button
-              type="button"
-              role="menuitem"
-              aria-expanded={section === "mode"}
-              onClick={() => setSection((v) => (v === "mode" ? null : "mode"))}
-              className={item}>
-              <ModeIcon aria-hidden className="h-4 w-4 text-muted" />
-              <span className="flex-1">Mode</span>
-              <span className="truncate text-xs text-muted">{modeLabel}</span>
-              <ChevronDown
-                aria-hidden
-                className={`h-4 w-4 shrink-0 text-muted transition-transform ${section === "mode" ? "rotate-180" : ""}`}
-              />
-            </button>
-            {section === "mode" && <ModeOptions />}
-            <button
-              type="button"
-              role="menuitem"
-              aria-expanded={section === "theme"}
-              onClick={() =>
-                setSection((v) => (v === "theme" ? null : "theme"))
-              }
-              className={item}>
-              <Palette aria-hidden className="h-4 w-4 text-muted" />
-              <span className="flex-1">Theme</span>
-              <span className="truncate text-xs text-muted">{themeLabel}</span>
-              <ChevronDown
-                aria-hidden
-                className={`h-4 w-4 shrink-0 text-muted transition-transform ${section === "theme" ? "rotate-180" : ""}`}
-              />
-            </button>
-            {section === "theme" && <ThemeOptions />}
+          </div>
+          <div role="separator" className="border-t border-border" />
+          <div className="space-y-1 p-2">
+            <div className="flex items-center justify-between gap-3 px-3 py-1">
+              <span className="flex items-center gap-3 text-sm"><ModeIcon aria-hidden className="size-4 text-muted" /> Mode</span>
+              <ModeIcons />
+            </div>
+            <div className="flex items-center justify-between gap-3 px-3 py-2">
+              <span className="flex items-center gap-3 text-sm"><Palette aria-hidden className="size-4 text-muted" /> Theme</span>
+              <ThemeSwatches />
+            </div>
           </div>
           <div role="separator" className="border-t border-border" />
           <div className="p-2">
@@ -527,14 +504,6 @@ function ProfileMenu({
                 <LogOut aria-hidden className="h-4 w-4 text-muted" />
               )}
               {signingOut ? "Signing out…" : "Sign out"}
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              disabled
-              title="Temporarily unavailable"
-              className={`${item} text-muted disabled:pointer-events-none disabled:opacity-50`}>
-              <LogOut aria-hidden className="h-4 w-4" /> Sign out of all devices
             </button>
           </div>
         </div>
@@ -559,7 +528,7 @@ export function TopBar({
   const pathname = usePathname();
   const collapsed = useSidebarCollapsed();
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-topbar px-4 text-topbar-fg sm:px-6 md:px-8">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-topbar px-4 text-topbar-fg sm:px-5 md:px-6">
       <Link
         href="/dashboard"
         aria-label="Jooba home"
@@ -573,11 +542,11 @@ export function TopBar({
         aria-expanded={!collapsed}
         aria-controls="sidebar"
         title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        className="hidden h-9 w-9 shrink-0 place-items-center rounded-lg text-muted transition-colors hover:bg-surface hover:text-foreground md:grid">
+        className="hidden size-10 shrink-0 place-items-center rounded-lg text-muted transition-colors hover:bg-surface hover:text-foreground md:grid">
         {collapsed ? (
-          <PanelLeftOpen aria-hidden className="h-[18px] w-[18px]" />
+          <PanelLeftOpen aria-hidden className="h-5 w-5" />
         ) : (
-          <PanelLeftClose aria-hidden className="h-[18px] w-[18px]" />
+          <PanelLeftClose aria-hidden className="h-5 w-5" />
         )}
       </button>
       <div className="hidden min-w-0 flex-1 md:block">

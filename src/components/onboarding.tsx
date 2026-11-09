@@ -1,9 +1,13 @@
 "use client";
 
-import Link from "next/link";
+import { ArrowRight, CircleAlert, FileText, Mic, Upload, Video } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { ROLES } from "@/lib/roles";
+import { type CSSProperties, useEffect, useRef, useState } from "react";
+import { AuthLayout } from "@/components/auth-layout";
+import { AUTH_DESCRIPTION, AUTH_HEADING } from "@/components/auth-styles";
+import { buttonClass } from "@/components/ui/button";
+import { SpineIllustration } from "@/components/ui/illustrations";
+import { playSound } from "@/lib/sounds";
 import { setAppearance } from "@/lib/theme";
 import { DEFAULT_MODE, DEFAULT_THEME } from "@/lib/theme-boot";
 import {
@@ -12,108 +16,51 @@ import {
   getProfile,
   saveProfile,
 } from "@/lib/profile-client";
-import { TEMPLATES } from "@/server/domain/templates";
 
-const STEPS = 3;
+/** `--d` is the start delay of an entrance, so a screen's parts arrive one after another. */
+const delay = (d: number): CSSProperties => ({ ["--d" as string]: `${d}s` }) as CSSProperties;
 
-const PRINCIPLES = [
-  [
-    "You start every recording.",
-    "Nothing is captured unless you choose it. Connecting a calendar never starts recording.",
-  ],
-  [
-    "It's always visible.",
-    "Meeting assistants join as “CalMasta Notetaker” and may need the host to let them in.",
-  ],
-  [
-    "You confirm each meeting.",
-    "You tell us you have the right to record, and you should tell the participants.",
-  ],
-  [
-    "Your recordings are private.",
-    "Only you can see them. Audio files expire according to retention policy.",
-  ],
+/**
+ * The one question. Each answer takes the person straight into that flow, never to a generic dashboard. Voice is listed
+ * first and carries the weight: it needs no meeting and works at any hour.
+ */
+const CHOICES = [
+  { href: "/dashboard/voice", Icon: Mic, title: "Start recording", body: "Capture an idea, reminder or plan.", sound: "recordStart" as const, main: true },
+  { href: "/dashboard/capture?focus=link", Icon: Video, title: "Capture a meeting", body: "Start or connect a supported meeting.", sound: "sent" as const },
+  { href: "/dashboard/voice", Icon: Upload, title: "Upload audio", body: "Turn an existing recording into text.", sound: "sent" as const },
+  { href: "/dashboard/library", Icon: FileText, title: "Create a document", body: "Turn captured information into something useful.", sound: "notify" as const },
 ] as const;
 
-const FIRST_ACTIONS = [
-  {
-    href: "/dashboard/voice",
-    title: "Record a thought",
-    body: "Speak for a minute. Get a transcript you can edit.",
-    fast: true,
-  },
-  {
-    href: "/dashboard/voice",
-    title: "Upload audio",
-    body: "Turn an existing audio file into an editable transcript.",
-  },
-  {
-    href: "/dashboard/capture",
-    title: "Capture a meeting",
-    body: "Send a visible assistant to a Meet, Teams or Zoom call.",
-  },
-] as const;
-
-function Skeleton({ w }: { w: string }) {
-  return <div className={`h-2 rounded-full bg-border ${w}`} />;
-}
-
-/** A small, illustrative document: the product's whole promise in one picture. */
-function DocPreview({
-  title,
-  sections,
-}: {
-  title: string;
-  sections: string[];
-}) {
+/** The right-hand panel: the same soft backdrop as the sign-in screens, with Meet, Think, Act and a result taking shape. */
+function Aside() {
   return (
-    <div
-      className="w-full max-w-sm rounded-xl border border-border bg-background p-5 shadow-sm"
-      aria-hidden>
-      <p className="text-xs uppercase tracking-wide text-muted">Draft</p>
-      <p className="mt-1 text-lg font-semibold">{title}</p>
-      <div className="mt-4 space-y-4">
-        {sections.slice(0, 4).map((s) => (
-          <div key={s} className="space-y-1.5">
-            <p className="text-sm font-medium">{s}</p>
-            <Skeleton w="w-full" />
-            <Skeleton w="w-2/3" />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function Preview({ step, template }: { step: number; template: string }) {
-  const def = TEMPLATES.find((t) => t.id === template) ?? TEMPLATES[1];
-  if (step === 0) {
-    return (
-      <div className="w-full max-w-sm space-y-3" aria-hidden>
-        <div className="flex items-center gap-3 rounded-xl border border-border bg-background px-4 py-3 text-sm">
-          <span className="grid h-8 w-8 place-items-center rounded-full bg-accent/15 text-accent">
-            ●
-          </span>
-          <div className="flex-1">
-            <p className="font-medium">Voice note</p>
-            <p className="text-xs text-muted">4:12 · recorded by you</p>
+    <aside aria-hidden className="relative hidden overflow-hidden bg-surface lg:flex lg:h-dvh lg:items-center lg:justify-center lg:px-12">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,color-mix(in_srgb,var(--accent-solid)_20%,transparent),transparent_45%),radial-gradient(circle_at_85%_90%,color-mix(in_srgb,var(--accent)_14%,transparent),transparent_50%)]" />
+      <div className="pointer-events-none absolute inset-0 opacity-50 [background-image:radial-gradient(color-mix(in_srgb,var(--foreground)_14%,transparent)_1px,transparent_1px)] [background-size:24px_24px] [mask-image:radial-gradient(circle_at_50%_50%,black,transparent_72%)]" />
+      <div className="jb-orb pointer-events-none absolute -right-24 top-16 size-72 rounded-full bg-accent-solid/20 blur-3xl" />
+      <div className="jb-orb pointer-events-none absolute -left-20 bottom-12 size-64 rounded-full bg-accent/15 blur-3xl" style={{ animationDelay: "-6s" }} />
+      <div className="relative w-full max-w-md space-y-8">
+        <SpineIllustration />
+        <div className="jb-card rounded-3xl border border-border bg-background/90 p-6 shadow-[0_22px_48px_-22px_color-mix(in_srgb,var(--accent)_55%,transparent)] backdrop-blur" style={{ ...delay(0.5), ["--f" as string]: "8s" } as CSSProperties}>
+          <p className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted"><span className="jb-rec size-2 rounded-full bg-accent-solid" /> Draft</p>
+          <p className="mt-1 text-lg font-semibold tracking-tight">Summary and action items</p>
+          <div className="mt-6 space-y-4">
+            {["Summary", "Decisions", "Action items"].map((name, i) => (
+              <div key={name} className="space-y-2">
+                <p className="text-sm font-medium">{name}</p>
+                <div className="h-2 rounded-full bg-border"><div className="jb-line h-full w-full rounded-full bg-accent-solid/45" style={delay(0.2 + i * 0.35)} /></div>
+                <div className="h-2 w-2/3 rounded-full bg-border"><div className="jb-line h-full w-full rounded-full bg-accent-solid/30" style={delay(0.35 + i * 0.35)} /></div>
+              </div>
+            ))}
           </div>
         </div>
-        <p className="text-center text-muted">↓</p>
-        <DocPreview
-          title="Client brief"
-          sections={["Context", "Objective", "Recommendations"]}
-        />
       </div>
-    );
-  }
-  return <DocPreview title={def.label} sections={def.sections} />;
+    </aside>
+  );
 }
 
 export function Onboarding() {
   const router = useRouter();
-  const [step, setStep] = useState(0);
-  const [role, setRole] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -131,7 +78,6 @@ export function Onboarding() {
           router.replace("/dashboard");
           return;
         }
-        setRole(p.role);
         setLoaded(true);
       },
       (err) => {
@@ -155,13 +101,9 @@ export function Onboarding() {
     };
   }, [router, retryKey]);
 
-  // Move focus to the new step's heading so keyboard and screen-reader users follow along.
   useEffect(() => {
-    heading.current?.focus();
-  }, [step]);
-
-  const template =
-    ROLES.find((r) => r.id === role)?.template ?? "summary_and_actions";
+    if (loaded) heading.current?.focus();
+  }, [loaded]);
 
   async function run(fn: () => Promise<unknown>, then: () => void) {
     setBusy(true);
@@ -199,237 +141,56 @@ export function Onboarding() {
   };
 
   return (
-    <div className="grid min-h-screen md:grid-cols-2">
-      <main className="flex flex-col px-6 py-8 sm:px-12 md:px-16">
-        <header className="flex items-center gap-4">
-          <Link href="/" className="text-lg font-semibold tracking-tight">
-            Jooba
-          </Link>
-          <ol
-            className="flex items-center gap-1.5"
-            aria-label={`Step ${step + 1} of ${STEPS}`}>
-            {Array.from({ length: STEPS }, (_, i) => (
-              <li
-                key={i}
-                aria-current={i === step ? "step" : undefined}
-                className={`h-1 rounded-full transition-all ${i === step ? "w-6 bg-accent-solid" : i < step ? "w-3 bg-accent/50" : "w-3 bg-border"}`}
-              />
-            ))}
-          </ol>
-        </header>
-
-        <div className="mt-6 h-10">
-          {loaded && step > 0 && (
-            <button
-              type="button"
-              onClick={() => setStep(step - 1)}
-              aria-label="Back"
-              className="grid h-10 w-10 place-items-center rounded-full border border-border text-muted hover:text-foreground">
-              ←
-            </button>
-          )}
+    <AuthLayout aside={<Aside />}>
+      {bootstrapError ? (
+        <div role="alert" className="jb-rise space-y-4">
+          <span className="grid size-12 place-items-center rounded-xl bg-danger/10 text-danger"><CircleAlert aria-hidden className="size-6" /></span>
+          <h1 ref={heading} tabIndex={-1} className={`${AUTH_HEADING} outline-none`}>Couldn’t load your setup</h1>
+          <p className={AUTH_DESCRIPTION}>{bootstrapError}</p>
+          <div className="flex flex-wrap items-center gap-4 pt-2">
+            <button type="button" onClick={() => { setBootstrapError(null); setError(null); setLoaded(false); setRetryKey((k) => k + 1); }} className={buttonClass("primary", "", "lg")}>Try again</button>
+            <a href="/auth/login?returnTo=/dashboard/welcome" className={buttonClass("secondary", "", "lg")}>Sign in again</a>
+          </div>
         </div>
+      ) : !loaded ? (
+        <div role="status" aria-label="Loading profile" aria-busy="true" className="space-y-4">
+          <div className="h-10 w-4/5 jb-skel rounded-lg bg-border" />
+          <div className="h-4 w-3/5 jb-skel rounded bg-border" />
+          <div className="h-24 jb-skel rounded-2xl border border-border bg-surface" />
+          <div className="h-24 jb-skel rounded-2xl border border-border bg-surface" />
+          <span className="sr-only">Loading profile…</span>
+        </div>
+      ) : (
+        <div>
+          <h1 ref={heading} tabIndex={-1} className={`${AUTH_HEADING} jb-rise outline-none`}>What would you like to do?</h1>
+          <p className={`${AUTH_DESCRIPTION} jb-rise`} style={delay(0.06)}>Pick one and we’ll take you straight there.</p>
 
-        <div className="my-auto max-w-md py-10">
-          {bootstrapError ? (
-            <div
-              role="alert"
-              className="space-y-4 rounded-xl border border-danger/30 bg-danger/10 p-6 text-sm text-danger">
-              <h1
-                ref={heading}
-                tabIndex={-1}
-                className="text-xl font-semibold tracking-tight text-foreground outline-none">
-                Unable to load onboarding
-              </h1>
-              <p>{bootstrapError}</p>
-              <div className="flex flex-wrap items-center gap-3 pt-2">
+          <ul className="mt-8 space-y-4">
+            {CHOICES.map(({ Icon, ...c }, i) => (
+              <li key={c.title} className="jb-rise" style={delay(0.12 + i * 0.07)}>
                 <button
                   type="button"
-                  onClick={() => {
-                    setBootstrapError(null);
-                    setError(null);
-                    setLoaded(false);
-                    setRetryKey((k) => k + 1);
-                  }}
-                  className="inline-flex min-h-9 items-center justify-center rounded-lg bg-accent-solid px-4 text-xs font-medium text-on-accent transition-colors hover:brightness-95 active:brightness-90">
-                  Retry
+                  disabled={busy}
+                  onClick={() => { playSound(c.sound); void finish(c.href); }}
+                  className={`group flex w-full items-center gap-4 rounded-2xl border p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:pointer-events-none disabled:opacity-60 ${"main" in c ? "border-transparent bg-accent-solid text-on-accent shadow-md" : "border-border bg-background shadow-sm hover:border-accent/40"}`}>
+                  <span aria-hidden className={`grid size-12 shrink-0 place-items-center rounded-xl ${"main" in c ? "bg-on-accent/10" : "bg-accent-solid/15 text-accent"}`}><Icon className="size-6" /></span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-base font-semibold">{c.title}</span>
+                    <span className={`mt-1 block text-sm ${"main" in c ? "text-on-accent/80" : "text-muted"}`}>{c.body}</span>
+                  </span>
+                  <ArrowRight aria-hidden className="size-5 shrink-0 transition-transform group-hover:translate-x-1" />
                 </button>
-                <a
-                  href="/auth/login?returnTo=/dashboard/welcome"
-                  className="inline-flex min-h-9 items-center justify-center rounded-lg border border-border px-4 text-xs font-medium text-foreground hover:bg-surface">
-                  Sign in again
-                </a>
-              </div>
-            </div>
-          ) : !loaded ? (
-            <div
-              role="status"
-              aria-label="Loading profile"
-              aria-busy="true"
-              className="space-y-4 py-8">
-              <div className="h-8 w-48 jb-skel rounded bg-border" />
-              <div className="h-4 w-72 jb-skel rounded bg-border" />
-              <div className="h-24 jb-skel rounded-xl border border-border bg-surface" />
-              <span className="sr-only">Loading profile…</span>
-            </div>
-          ) : (
-            <>
-              {step === 0 && (
-                <>
-                  <h1
-                    ref={heading}
-                    tabIndex={-1}
-                    className="text-3xl font-semibold tracking-tight outline-none">
-                    Turn conversations into useful work
-                  </h1>
-                  <p className="mt-3 text-muted">
-                    Capture a meeting or a thought, get a transcript, and search
-                    or edit it freely. Here is how we handle recording.
-                  </p>
-                  <ul className="mt-6 space-y-4">
-                    {PRINCIPLES.map(([title, body]) => (
-                      <li key={title} className="flex gap-3 text-sm">
-                        <span aria-hidden className="mt-0.5 text-accent">
-                          ✓
-                        </span>
-                        <p>
-                          <span className="font-medium">{title}</span>{" "}
-                          <span className="text-muted">{body}</span>
-                        </p>
-                      </li>
-                    ))}
-                  </ul>
-                  <button
-                    type="button"
-                    onClick={() => setStep(1)}
-                    className="inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-accent-solid px-6 text-sm font-medium text-on-accent transition-colors hover:brightness-95 active:brightness-90 disabled:pointer-events-none disabled:opacity-50 mt-8">
-                    Continue →
-                  </button>
-                </>
-              )}
+              </li>
+            ))}
+          </ul>
 
-              {step === 1 && (
-                <>
-                  <h1
-                    ref={heading}
-                    tabIndex={-1}
-                    className="text-3xl font-semibold tracking-tight outline-none">
-                    What do you do?
-                  </h1>
-                  <p className="mt-3 text-muted">
-                    We&rsquo;ll start you with the document that fits best. You
-                    can always pick another.
-                  </p>
-                  <fieldset className="mt-6">
-                    <legend className="sr-only">Your role</legend>
-                    <div className="flex flex-wrap gap-2">
-                      {ROLES.map((r) => (
-                        <label
-                          key={r.id}
-                          className="group cursor-pointer rounded-lg border border-border px-4 py-2 text-sm transition-colors hover:bg-surface has-[:checked]:border-accent has-[:checked]:bg-accent/20 has-[:checked]:font-medium has-[:checked]:ring-1 has-[:checked]:ring-accent has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent">
-                          <input
-                            type="radio"
-                            name="role"
-                            value={r.id}
-                            checked={role === r.id}
-                            onChange={() => setRole(r.id)}
-                            className="sr-only"
-                          />
-                          <span
-                            aria-hidden
-                            className="mr-1.5 hidden group-has-[:checked]:inline">
-                            ✓
-                          </span>
-                          {r.label}
-                        </label>
-                      ))}
-                    </div>
-                  </fieldset>
-                  <div className="mt-8 flex items-center gap-4">
-                    <button
-                      type="button"
-                      disabled={busy || !role}
-                      onClick={() =>
-                        void run(
-                          () => saveProfile({ role }),
-                          () => setStep(2),
-                        )
-                      }
-                      className="inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-accent-solid px-6 text-sm font-medium text-on-accent transition-colors hover:brightness-95 active:brightness-90 disabled:pointer-events-none disabled:opacity-50">
-                      {busy ? "Saving…" : "Continue →"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setStep(2)}
-                      className="text-sm text-muted hover:text-foreground">
-                      Skip
-                    </button>
-                  </div>
-                </>
-              )}
+          <button type="button" disabled={busy} onClick={() => void finish("/dashboard")} className="jb-rise mx-auto mt-8 flex text-sm text-muted transition-colors hover:text-foreground" style={delay(0.5)}>
+            Explore first. No pressure
+          </button>
 
-              {step === 2 && (
-                <>
-                  <h1
-                    ref={heading}
-                    tabIndex={-1}
-                    className="text-3xl font-semibold tracking-tight outline-none">
-                    Start with your first conversation
-                  </h1>
-                  <p className="mt-3 text-muted">
-                    The quickest way to see Jooba work is to give it something
-                    to write about.
-                  </p>
-                  <ul className="mt-6 space-y-3">
-                    {FIRST_ACTIONS.map((a) => (
-                      <li key={a.title}>
-                        <button
-                          type="button"
-                          disabled={busy}
-                          onClick={() => void finish(a.href)}
-                          className="w-full rounded-xl border border-border p-4 text-left transition-colors hover:bg-surface disabled:opacity-60">
-                          <span className="flex items-center justify-between gap-3">
-                            <span className="font-medium">{a.title}</span>
-                            {"fast" in a && (
-                              <span className="rounded-full bg-accent/15 px-2 py-0.5 text-xs text-accent">
-                                Fastest
-                              </span>
-                            )}
-                          </span>
-                          <span className="mt-1 block text-sm text-muted">
-                            {a.body}
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => void finish("/dashboard")}
-                    className="mt-6 text-sm text-muted hover:text-foreground">
-                    I&rsquo;ll explore on my own
-                  </button>
-                </>
-              )}
-
-              {error && (
-                <p
-                  role="alert"
-                  className="mt-6 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
-                  {error}
-                </p>
-              )}
-            </>
-          )}
+          {error && <p role="alert" className="jb-rise mt-6 flex items-start gap-2 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger"><CircleAlert aria-hidden className="mt-0.5 size-4 shrink-0" />{error}</p>}
         </div>
-      </main>
-
-      <aside
-        aria-hidden
-        className="hidden items-center justify-center bg-surface p-12 md:flex">
-        <Preview step={step} template={template} />
-      </aside>
-    </div>
+      )}
+    </AuthLayout>
   );
 }

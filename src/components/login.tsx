@@ -1,12 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { dashboardPath } from "@/lib/app-routes";
 import { useEffect, useState } from "react";
 import { Eye, EyeOff, LoaderCircle } from "lucide-react";
 import { authErrorMessage } from "@/lib/auth-errors";
-import { AuthCodeForm } from "@/components/auth-code-form";
 import { codeSignupPayload } from "@/lib/auth-code-flow";
 import { AUTH_FIELD, AUTH_HEADING, AUTH_DESCRIPTION, AUTH_BUTTON } from "@/components/auth-styles";
 import { AuthLayout } from "@/components/auth-layout";
@@ -20,30 +20,33 @@ const safePath = (p: string | null, fallback = "/dashboard") =>
   !p.includes("\\") &&
   !p.startsWith("/login") &&
   !p.startsWith("/auth/login") &&
+  !p.startsWith("/auth/register") &&
+  !p.startsWith("/auth/forgot-password") &&
   !p.startsWith("/admin/auth/login") &&
   !p.startsWith("/dashboard/admin/auth/login") &&
   !p.startsWith("/api/")
     ? dashboardPath(p)
     : fallback;
 
+/** The sign-in and create-account screens. Each has its own address (/auth/login and /auth/register). Password recovery is /auth/forgot-password. */
 export function Login({
   defaultReturnTo = "/dashboard",
   admin = false,
+  mode = "signin",
 }: {
   defaultReturnTo?: string;
   admin?: boolean;
+  mode?: "signin" | "signup";
 } = {}) {
   const router = useRouter();
   const params = useSearchParams();
   const returnTo = safePath(params.get("returnTo"), defaultReturnTo);
 
-  const [mode, setMode] = useState<"signin" | "signup" | "forgot">(
-    admin ? "signin" : params.get("signup") === "1" ? "signup" : "signin",
-  );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [connectingGoogle, setConnectingGoogle] = useState(false);
   const [connectingMicrosoft, setConnectingMicrosoft] = useState(false);
@@ -74,6 +77,11 @@ export function Login({
     window.addEventListener("pageshow", resetMicrosoft);
     return () => window.removeEventListener("pageshow", resetMicrosoft);
   }, []);
+
+  // Old links used /auth/login?signup=1 for the create-account screen; it has its own address now.
+  useEffect(() => {
+    if (!admin && mode === "signin" && params.get("signup") === "1") router.replace(`/auth/register?returnTo=${encodeURIComponent(returnTo)}`);
+  }, [admin, mode, params, returnTo, router]);
 
   // Already signed in? Go straight to where they were headed, taking onboarding into account.
   useEffect(() => {
@@ -118,13 +126,6 @@ export function Login({
     };
   }, [returnTo, reloadKey, router, defaultReturnTo]);
 
-  function returnToSignIn() {
-    setMode("signin");
-    setShowPassword(false);
-    setFormError(null);
-    setPassword("");
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setFormError(null);
@@ -134,7 +135,7 @@ export function Login({
       const endpoint =
         mode === "signup" ? "/api/auth/register" : "/api/auth/login";
       const payload =
-        mode === "signup" ? codeSignupPayload(email, password, name) : { email, password };
+        mode === "signup" ? codeSignupPayload(email, password, `${firstName.trim()} ${lastName.trim()}`.trim()) : { email, password };
 
       const res = await fetch(endpoint, {
         method: "POST",
@@ -172,8 +173,6 @@ export function Login({
   }
 
   const q = `returnTo=${encodeURIComponent(returnTo)}`;
-
-  if (mode === "forgot") return <AuthLayout><AuthCodeForm purpose="recovery" initialEmail={email} onBack={returnToSignIn} /></AuthLayout>;
 
   return (
     <AuthLayout>
@@ -231,27 +230,21 @@ export function Login({
 
           <form onSubmit={handleSubmit} className="mt-[clamp(1rem,3.4vh,2rem)] space-y-[clamp(0.75rem,2vh,1.25rem)]">
             {mode === "signup" && (
-              <div>
-                <label
-                  className="mb-1.5 block text-sm font-medium text-foreground"
-                  htmlFor="name">
-                  Full Name
-                </label>
-                <input
-                  id="name"
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Jane Doe"
-                  className={AUTH_FIELD}
-                />
+              <div className="grid gap-[clamp(0.75rem,2vh,1.25rem)] sm:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-foreground" htmlFor="first-name">First name</label>
+                  <input id="first-name" type="text" required autoComplete="given-name" maxLength={80} value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Jane" className={AUTH_FIELD} />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-foreground" htmlFor="last-name">Last name</label>
+                  <input id="last-name" type="text" required autoComplete="family-name" maxLength={80} value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Doe" className={AUTH_FIELD} />
+                </div>
               </div>
             )}
 
             {<div>
               <label
-                className="mb-1.5 block text-sm font-medium text-foreground"
+                className="mb-2 block text-sm font-medium text-foreground"
                 htmlFor="email">
                 Email Address
               </label>
@@ -268,23 +261,16 @@ export function Login({
 
             {(
               <div>
-                <div className="mb-1.5 flex items-center justify-between">
+                <div className="mb-2 flex items-center justify-between">
                   <label
                     className="block text-sm font-medium text-foreground"
                     htmlFor="password">
                     Password
                   </label>
                   {mode === "signin" && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMode("forgot");
-                        setShowPassword(false);
-                        setFormError(null);
-                      }}
-                      className="text-xs text-muted hover:underline">
+                    <Link href={`/auth/forgot-password?${q}`} className="text-xs text-muted hover:underline">
                       Forgot password?
-                    </button>
+                    </Link>
                   )}
                 </div>
                 <div className="relative">
@@ -369,7 +355,7 @@ export function Login({
                     alt="Google"
                     width={18}
                     height={18}
-                    className="w-[18px]"
+                    className="w-5"
                   />
                 )}
                 {connectingGoogle
@@ -417,30 +403,12 @@ export function Login({
               {mode === "signin" ? (
                 <p>
                   Don&apos;t have an account?{" "}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMode("signup");
-                      setShowPassword(false);
-                      setFormError(null);
-                    }}
-                    className="font-medium text-foreground underline hover:no-underline">
-                    Sign up
-                  </button>
+                  <Link href={`/auth/register?${q}`} className="font-medium text-foreground underline hover:no-underline">Sign up</Link>
                 </p>
               ) : (
                 <p>
                   Already have an account?{" "}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMode("signin");
-                      setShowPassword(false);
-                      setFormError(null);
-                    }}
-                    className="font-medium text-foreground underline hover:no-underline">
-                    Sign in
-                  </button>
+                  <Link href={`/auth/login?${q}`} className="font-medium text-foreground underline hover:no-underline">Sign in</Link>
                 </p>
               )}
             </div>

@@ -1,11 +1,16 @@
 "use client";
 
+import { defaultBotName } from "@/lib/brand";
 import {
   CalendarPlus,
   CalendarDays,
+  Check,
   ChevronDown,
   Link2,
   Mail,
+  Mic,
+  ShieldCheck,
+  SlidersHorizontal,
   Upload,
   Video,
 } from "lucide-react";
@@ -13,7 +18,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { PLATFORM_NAME, PlatformLogo, platformKey } from "@/components/ui/platform-logo";
 import { useDismiss } from "@/components/ui/use-dismiss";
 import { capturePolicyQuery } from "@/lib/queries";
 import { requestMeetingCapture } from "@/lib/upload-client";
@@ -24,23 +31,25 @@ const GOOGLE_NEW_EVENT = "https://calendar.google.com/calendar/r/eventedit";
 const OUTLOOK_NEW_EVENT =
   "https://outlook.office.com/calendar/0/deeplink/compose?path=%2Fcalendar%2Faction%2Fcompose&rru=addevent";
 
-const PLATFORMS = ["Google Meet", "Zoom", "Microsoft Teams"];
-
-/** "Add to live meeting": paste a link, say you may record, and a visible assistant joins. — mirrors /dashboard/voice?tab=bot */
+/** "Join a meeting": paste a link, say you may record, and a visible assistant joins. Mirrors the Meet page. */
 function LiveMeetingDialog({ onClose }: { onClose: () => void }) {
   const router = useRouter();
   const qc = useQueryClient();
   const [url, setUrl] = useState("");
-  const [namedByMe, setNamedByMe] = useState(false);
   const [title, setTitle] = useState("");
   const [botName, setBotName] = useState("");
-  const [consent, setConsent] = useState(false);
   const [video, setVideo] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
+  const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const submitting = useRef(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<{ duplicate: boolean } | null>(null);
+  const [done, setDone] = useState<{ duplicate: boolean; name: string } | null>(null);
   const { data: policy } = useQuery(capturePolicyQuery);
+  const detected = platformKey(url.trim() || null, url);
+  const assistant = botName.trim() || defaultBotName(policy?.botName) || policy?.botName || "Recording assistant";
+  const blocker = !url.trim() ? "Add a meeting link to continue." : !consent ? "Confirm you have the right to record to continue." : null;
+  const field = "w-full rounded-xl border border-border bg-background px-4 text-sm shadow-sm placeholder:text-muted focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent-solid/20";
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -52,21 +61,17 @@ function LiveMeetingDialog({ onClose }: { onClose: () => void }) {
       const r = await requestMeetingCapture(
         url,
         consent,
-        namedByMe ? title : undefined,
+        title.trim() || undefined,
         video,
         {
-          botName: botName.trim() || undefined,
+          botName: botName.trim() || defaultBotName(policy?.botName) || undefined,
           maxDurationSeconds: Math.min(30 * 60, policy?.maxMeetingDurationSeconds ?? 1800),
         },
       );
       qc.invalidateQueries({ queryKey: ["captures"] });
-      setDone({ duplicate: r.duplicate });
+      setDone({ duplicate: r.duplicate, name: assistant });
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Something went wrong. Please try again.",
-      );
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       submitting.current=false;
       setBusy(false);
@@ -74,156 +79,99 @@ function LiveMeetingDialog({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <Dialog title="Add to live meeting" onClose={onClose}>
+    <Dialog title="Join a meeting" onClose={onClose}>
       {done ? (
-        <div className="space-y-4 text-sm" role="status">
-          <p className="text-base font-medium">
-            {done.duplicate
-              ? "An assistant is already set up for this meeting."
-              : "Request sent."}
-          </p>
-          <p className="text-muted">
-            {done.duplicate
-              ? "No second one was sent."
-              : "The assistant joins as a visible participant. The host may need to let it in, and nothing is recorded until they do."}
-          </p>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                router.push("/dashboard/capture");
-              }}
-              className="rounded-lg bg-accent-solid px-4 py-2 font-medium text-on-accent hover:opacity-90">
-              See it under Capture
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border border-border px-4 py-2 font-medium hover:bg-surface">
-              Done
-            </button>
+        <div className="space-y-5 text-center" role="status">
+          <span aria-hidden className="jb-popin mx-auto grid size-14 place-items-center rounded-full bg-success text-white"><Check className="size-7" strokeWidth={3} /></span>
+          <div>
+            <p className="text-lg font-semibold">{done.duplicate ? "An assistant is already set up" : "Assistant on its way"}</p>
+            <p className="mx-auto mt-2 max-w-sm text-sm text-muted">
+              {done.duplicate
+                ? "No second one was sent for this meeting."
+                : `${done.name} joins as a visible participant. The host may need to let it in, and nothing is recorded until they do.`}
+            </p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Button variant="primary" onClick={() => { onClose(); router.push("/dashboard/capture"); }}>See it under Meet</Button>
+            <Button variant="ghost" onClick={onClose}>Done</Button>
           </div>
         </div>
       ) : (
-        <form onSubmit={submit} className="space-y-5">
-          <label className="block text-sm">
-            <span className="font-medium">Meeting link</span>
-            <span className="relative mt-2 block">
-              <Link2
-                aria-hidden
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
-              />
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <label htmlFor="join-link" className="text-sm font-medium">Meeting link</label>
+            <div className="relative mt-2">
+              <span aria-hidden className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2">
+                {detected ? <PlatformLogo platform={detected} size={28} /> : <Link2 className="ml-1 size-4 text-muted" />}
+              </span>
               <input
+                id="join-link"
                 type="url"
                 required
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                placeholder="Paste a meeting URL to record"
+                placeholder="Paste your meeting link"
                 autoComplete="off"
                 spellCheck={false}
-                className="h-11 w-full rounded-lg border border-border bg-background pl-10 pr-3 text-base"
+                aria-describedby="join-link-help"
+                className={`${field} min-h-12 pl-14`}
               />
-            </span>
-          </label>
-
-          <div className="flex flex-wrap items-start gap-3">
-            <label className="text-sm">
-              <span className="sr-only">Title</span>
-              <select
-                value={namedByMe ? "mine" : "auto"}
-                onChange={(e) => setNamedByMe(e.target.value === "mine")}
-                className="rounded-lg border border-border bg-surface px-3 py-2 text-sm">
-                <option value="auto">Auto-generated title</option>
-                <option value="mine">Choose a title</option>
-              </select>
-            </label>
-            {namedByMe && (
-              <label className="min-w-[12rem] flex-1 text-sm">
-                <span className="sr-only">Meeting title</span>
-                <input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  maxLength={120}
-                  placeholder="Quarterly planning"
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2"
-                />
-              </label>
-            )}
+            </div>
+            <p id="join-link-help" className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted">
+              {detected ? (
+                <span className="font-medium text-success">{PLATFORM_NAME[detected]} link detected</span>
+              ) : url.trim().length > 8 ? (
+                <span>We could not tell which app this link is for. Use a Meet, Teams or Zoom link.</span>
+              ) : (
+                <>
+                  <span>Works with</span>
+                  {(["google_meet", "microsoft_teams", "zoom"] as const).map((p) => (
+                    <span key={p} className="inline-flex items-center gap-1.5"><PlatformLogo platform={p} size={20} />{PLATFORM_NAME[p]}</span>
+                  ))}
+                </>
+              )}
+            </p>
           </div>
 
-          <label className={`flex items-start gap-3 text-sm ${!policy?.videoEnabled ? "opacity-60" : ""}`}>
-            <input
-              type="checkbox"
-              checked={video}
-              onChange={(e) => setVideo(e.target.checked)}
-              disabled={!policy?.videoEnabled}
-              className="mt-1 h-4 w-4 accent-[var(--accent-solid)] disabled:cursor-not-allowed"
-            />
-            <span>
-              <span className="font-medium">Also record the video</span>
-              <span className="mt-0.5 block text-xs text-muted">
-                {policy?.videoEnabled ? "Off unless you choose it. Private to you, and removed on the same schedule as audio." : "Video recording is not enabled for this account yet."}
-              </span>
-            </span>
-          </label>
-          <label className="block text-sm">
-            Assistant name <span className="text-muted">(optional)</span>
-            <input
-              value={botName}
-              onChange={(e) => setBotName(e.target.value)}
-              maxLength={100}
-              placeholder={policy?.botName ?? "Recording assistant"}
-              className="mt-1 block w-full rounded-lg border border-border bg-background px-3 py-2"
-            />
-          </label>
-
-          <label className="flex items-start gap-3 text-sm">
-            <input
-              type="checkbox"
-              checked={consent}
-              onChange={(e) => setConsent(e.target.checked)}
-              className="mt-1 h-4 w-4 accent-[var(--accent-solid)]"
-            />
-            <span>
-              I have the right to record this meeting
-              {video ? ", including its video," : ""}, and I will tell its
-              participants. A visible recording assistant will
-              join and may need to be admitted by the host.
-            </span>
-          </label>
-
-          {error && (
-            <p
-              role="alert"
-              className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
-              {error}
-            </p>
+          {optionsOpen && (
+            <div id="join-options" className="jb-pop-soft grid gap-4 rounded-xl border border-border p-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="join-bot" className="text-sm font-medium">Assistant name</label>
+                <input id="join-bot" value={botName} onChange={(e) => setBotName(e.target.value)} maxLength={100} placeholder={defaultBotName(policy?.botName) ?? policy?.botName ?? "Jooba Notetaker"} autoComplete="off" className={`${field} mt-2 min-h-10`} />
+              </div>
+              <div>
+                <label htmlFor="join-title" className="text-sm font-medium">Meeting title</label>
+                <input id="join-title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} placeholder="Auto-generated" autoComplete="off" className={`${field} mt-2 min-h-10`} />
+              </div>
+              <label className={`flex items-start gap-3 text-sm sm:col-span-2 ${!policy?.videoEnabled ? "opacity-60" : ""}`}>
+                <input type="checkbox" checked={video} onChange={(e) => setVideo(e.target.checked)} disabled={!policy?.videoEnabled} className="mt-0.5 size-4 shrink-0 accent-[var(--accent-solid)] disabled:cursor-not-allowed" />
+                <span><span className="font-medium">Also record the video</span> <span className="text-muted">{policy?.videoEnabled ? "· private to you, removed on the same schedule as audio" : "· not enabled for this account yet"}</span></span>
+              </label>
+            </div>
           )}
 
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="text-sm">
-              <p className="flex flex-wrap items-center gap-1.5 text-muted">
-                Works with{" "}
-                {PLATFORMS.map((p) => (
-                  <span
-                    key={p}
-                    className="rounded-full bg-surface px-2 py-0.5 text-xs ring-1 ring-inset ring-border">
-                    {p}
-                  </span>
-                ))}
-              </p>
-              <p className="mt-1.5 text-xs text-muted">
-                It never bypasses waiting rooms or host controls.
-              </p>
+          <label className="flex items-start gap-3 rounded-xl bg-surface p-4 text-sm">
+            <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-1 size-4 shrink-0 accent-[var(--accent-solid)]" />
+            <span>I have the right to record this meetingand I will tell its participants. A visible assistant named “{assistant}” will join and may need to be admitted by the host.</span>
+          </label>
+
+          {error && <p role="alert" className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">{error}</p>}
+
+          <div className="space-y-3">
+            <div className="flex gap-3">
+              <Button type="button" variant="secondary" size="lg" aria-expanded={optionsOpen} aria-controls="join-options" onClick={() => setOptionsOpen((v) => !v)}>
+                <SlidersHorizontal aria-hidden className="size-4" /> Options
+              </Button>
+              <Button type="submit" variant="primary" size="lg" className="flex-1" disabled={busy || !consent || !url.trim()}>
+                <Video aria-hidden className="size-5" /> {busy ? "Sending…" : "Join meeting"}
+              </Button>
             </div>
-            <button
-              type="submit"
-              disabled={busy || !consent || !url.trim()}
-              className="inline-flex min-h-10 items-center justify-center rounded-lg bg-accent-solid px-6 text-sm font-medium text-on-accent transition-colors hover:brightness-95 disabled:pointer-events-none disabled:opacity-50">
-              {busy ? "Sending…" : "Start capture"}
-            </button>
+            <p aria-live="polite" className="min-h-4 text-center text-xs text-muted">{blocker}</p>
           </div>
+
+          <p className="flex items-center gap-2 text-xs text-muted">
+            <ShieldCheck aria-hidden className="size-4 shrink-0" /> Never bypasses waiting rooms or host controls.
+          </p>
         </form>
       )}
     </Dialog>
@@ -235,7 +183,7 @@ function ScheduleDialog({ onClose }: { onClose: () => void }) {
   const opt =
     "flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-surface/50 px-4 py-4 text-base font-medium transition-colors hover:bg-surface";
   return (
-    <Dialog title="Schedule meeting" onClose={onClose} width="max-w-xl">
+    <Dialog title="Schedule a meeting" onClose={onClose} width="max-w-xl">
       <div className="space-y-5 text-sm">
         <p className="text-muted">
           Schedule the meeting in your calendar as usual. When it appears under
@@ -270,7 +218,7 @@ function ScheduleDialog({ onClose }: { onClose: () => void }) {
           Google Calendar events show up under Calendar once you connect it.
           Outlook isn&rsquo;t connected to Jooba yet, so for an Outlook
           meeting paste its link into{" "}
-          <span className="font-medium">Add to live meeting</span> when it
+          <span className="font-medium">Join a meeting</span> when it
           starts.
         </p>
       </div>
@@ -307,7 +255,7 @@ export function CaptureMenu() {
     ].focus();
   }
   const item =
-    "flex min-h-9 w-full items-center gap-3 rounded-lg px-3 text-left text-sm transition-colors hover:bg-surface focus-visible:bg-surface";
+    "flex min-h-10 w-full items-center gap-3 rounded-lg px-4 text-left text-sm transition-colors hover:bg-surface focus-visible:bg-surface";
   const choose = (what: "live" | "schedule" | "upload") => {
     setOpen(false);
     if (what === "upload") router.push("/dashboard/voice");
@@ -320,10 +268,10 @@ export function CaptureMenu() {
         <button
           type="button"
           onClick={() => setDialog("live")}
-          className="flex h-9 items-center gap-2 rounded-l-lg bg-accent-solid px-3.5 text-sm font-medium text-on-accent transition-colors hover:brightness-95 sm:px-4">
-          <Video aria-hidden className="h-[18px] w-[18px]" />{" "}
-          <span className="hidden sm:inline">Capture</span>
-          <span className="sr-only sm:hidden">Capture a live meeting</span>
+          className="flex h-10 items-center gap-2 rounded-l-xl bg-accent-solid px-4 text-sm font-medium text-on-accent shadow-sm transition-all hover:brightness-95 active:brightness-90">
+          <Video aria-hidden className="h-5 w-5" />{" "}
+          <span className="hidden sm:inline">Join a meeting</span>
+          <span className="sr-only sm:hidden">Join a meeting</span>
         </button>
         <button
           ref={trigger}
@@ -331,8 +279,8 @@ export function CaptureMenu() {
           onClick={() => setOpen((o) => !o)}
           aria-haspopup="menu"
           aria-expanded={open}
-          aria-label="More ways to capture"
-          className="grid h-9 w-9 place-items-center rounded-r-lg border-l border-on-accent/20 bg-accent-solid text-on-accent transition-colors hover:brightness-95">
+          aria-label="More ways to start"
+          className="grid h-10 w-10 place-items-center rounded-r-xl border-l border-on-accent/20 bg-accent-solid text-on-accent shadow-sm transition-all hover:brightness-95">
           <ChevronDown
             aria-hidden
             className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`}
@@ -342,31 +290,32 @@ export function CaptureMenu() {
           <div
             ref={panel}
             role="menu"
-            aria-label="Capture"
+            aria-label="Start something"
             onKeyDown={onKeyDown}
-            className="absolute right-0 top-full z-40 mt-2 w-60 rounded-xl border border-border bg-background p-1 text-foreground shadow-xl">
+            className="absolute right-0 top-full z-40 mt-2 w-64 rounded-2xl border border-border bg-background p-2 text-foreground shadow-xl">
             <button
               type="button"
               role="menuitem"
               onClick={() => choose("live")}
               className={item}>
-              <Video aria-hidden className="h-4 w-4 text-muted" /> Add to live
-              meeting
+              <Video aria-hidden className="h-5 w-5 text-muted" /> Join a meeting
             </button>
             <button
               type="button"
               role="menuitem"
               onClick={() => choose("schedule")}
               className={item}>
-              <CalendarPlus aria-hidden className="h-4 w-4 text-muted" />{" "}
-              Schedule new meeting
+              <CalendarPlus aria-hidden className="h-5 w-5 text-muted" /> Schedule a meeting
             </button>
             <button
               type="button"
               role="menuitem"
               onClick={() => choose("upload")}
               className={item}>
-              <Upload aria-hidden className="h-4 w-4 text-muted" /> Upload audio
+              <Mic aria-hidden className="h-5 w-5 text-muted" /> Record your voice
+            </button>
+            <button type="button" role="menuitem" onClick={() => choose("upload")} className={item}>
+              <Upload aria-hidden className="h-5 w-5 text-muted" /> Upload audio
             </button>
             <div role="separator" className="my-1 border-t border-border" />
             <Link
@@ -374,7 +323,7 @@ export function CaptureMenu() {
               role="menuitem"
               onClick={close}
               className={`${item} text-muted`}>
-              See your captures
+              See your meetings
             </Link>
           </div>
         )}

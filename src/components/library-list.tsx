@@ -1,10 +1,12 @@
 "use client";
+import { CaptureTile } from "@/components/ui/platform-logo";
+import { DocumentIllustration, InboxIllustration } from "@/components/ui/illustrations";
 import { SkeletonRows } from "@/components/ui/skeleton";
 
 import { dashboardPath } from "@/lib/app-routes";
 
 import { useQuery } from "@tanstack/react-query";
-import { FileText, Mic, Search, Video, X } from "lucide-react";
+import { FileText, Search, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -45,11 +47,10 @@ const KIND_LABEL = { document: "Document", recording: "Recording", meeting: "Mee
 
 function ResultRow({ r, q }: { r: LibraryResult; q: string }) {
   const st = r.kind === "document" ? documentStatus({ status: r.status, failureReason: r.failureReason, editedByUser: r.editedByUser }) : captureStatus({ source: r.source ?? "", state: r.state ?? "", status: r.status });
-  const Icon = r.kind === "document" ? FileText : r.kind === "meeting" ? Video : Mic;
   return (
     <li>
       <Link href={dashboardPath(r.href)} className="flex items-start gap-3 px-5 py-3 transition-colors hover:bg-surface">
-        <span aria-hidden className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-surface text-muted"><Icon className="h-4 w-4" /></span>
+        <CaptureTile kind={r.kind} hint={r.title} />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-medium"><Highlight text={r.title} query={q} /></span>
           <span className="block truncate text-xs text-muted">{KIND_LABEL[r.kind]} · {timeAgo(r.at)}</span>
@@ -201,7 +202,7 @@ export function LibraryList() {
           docs === null ? (
             <SkeletonRows count={5} label="Loading your library" />
           ) : docs.length === 0 ? (
-            <EmptyState icon={<FileText className="h-5 w-5" />} title="No documents yet" body="Open a recording and choose a template to write your first document." action={<ButtonLink href="/dashboard/voice" variant="primary">Record a thought</ButtonLink>} />
+            <EmptyState illustration={<DocumentIllustration />} title="No documents yet" body="Open a recording and choose a template to write your first document." action={<ButtonLink href="/dashboard/voice" variant="primary">Record a thought</ButtonLink>} />
           ) : (
             <ul className="divide-y divide-border" role="tabpanel" id={tabPanelId("documents")} aria-labelledby={tabId("documents")}>
               {docs.map((d: import("@/lib/documents-client").DocumentListItem) => {
@@ -209,7 +210,7 @@ export function LibraryList() {
                 return (
                   <li key={d.id}>
                     <Link href={`/dashboard/library/${d.id}`} className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-surface">
-                      <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-surface text-muted"><FileText className="h-4 w-4" /></span>
+                      <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-lg bg-surface text-muted"><FileText className="h-4 w-4" /></span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium">{d.title}</span>
                         <span className="block truncate text-xs text-muted">{templateLabel(d.template)} · {timeAgo(d.updatedAt)}</span>
@@ -224,16 +225,15 @@ export function LibraryList() {
         ) : caps === null ? (
           <SkeletonRows count={5} label="Loading your library" />
         ) : caps.length === 0 ? (
-          <EmptyState icon={<Mic className="h-5 w-5" />} title="No recordings yet" body="Record a thought, upload audio or capture a meeting." action={<ButtonLink href="/dashboard/voice" variant="primary">Record a thought</ButtonLink>} />
+          <EmptyState illustration={<InboxIllustration />} title="Your folder is empty" body="Record your voice, upload audio or send Jooba to a meeting. Everything you make will be kept here." action={<ButtonLink href="/dashboard/voice" variant="primary">Record a thought</ButtonLink>} />
         ) : (
           <ul className="divide-y divide-border" role="tabpanel" id={tabPanelId("recordings")} aria-labelledby={tabId("recordings")}>
             {caps.map((c: import("@/lib/upload-client").CaptureListItem) => {
               const st = captureStatus({ source: c.source, state: c.state, status: c.status });
-              const Icon = c.source === "meeting_url" ? Video : Mic;
               return (
                 <li key={c.id}>
                   <Link href={`/dashboard/captures/${c.id}`} className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-surface">
-                    <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-surface text-muted"><Icon className="h-4 w-4" /></span>
+                    <CaptureTile kind={c.source === "meeting_url" ? "meeting" : "recording"} platform={c.platform} hint={c.title} />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium">{c.title}</span>
                       <span className="block truncate text-xs text-muted">{c.source === "meeting_url" ? "Meeting" : c.source === "voice_recording" ? "Recorded in browser" : "Upload"} · {timeAgo(c.createdAt)}</span>

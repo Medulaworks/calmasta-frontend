@@ -4,18 +4,18 @@ import { dashboardPath } from "@/lib/app-routes";
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 type Size = "sm" | "md" | "lg";
 
-// Heights sit on the 4px grid: 32 / 36 / 40.
-const BASE = "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition-colors disabled:pointer-events-none disabled:opacity-50";
+// Heights sit on the 4px grid: 32 / 36 / 44. Buttons press in slightly and lift on hover so they feel alive.
+const BASE = "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl font-medium transition-all duration-150 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 motion-reduce:transition-none motion-reduce:active:scale-100";
 const SIZES: Record<Size, string> = {
-  sm: "min-h-8 px-3 text-xs",
+  sm: "min-h-8 px-3 text-sm",
   md: "min-h-9 px-4 text-sm",
-  lg: "min-h-10 px-5 text-sm",
+  lg: "min-h-11 px-5 text-base",
 };
 const VARIANTS: Record<Variant, string> = {
-  primary: "bg-accent-solid text-on-accent hover:brightness-95 active:brightness-90",
-  secondary: "border border-border bg-background hover:bg-surface active:bg-surface",
+  primary: "bg-accent-solid text-on-accent shadow-sm hover:-translate-y-px hover:shadow-md hover:brightness-95 active:brightness-90",
+  secondary: "border border-border bg-background shadow-sm hover:-translate-y-px hover:bg-surface hover:shadow-md active:bg-surface",
   ghost: "text-muted hover:bg-surface hover:text-foreground",
-  danger: "bg-danger-solid text-white hover:brightness-95 active:brightness-90",
+  danger: "bg-danger-solid text-white shadow-sm hover:-translate-y-px hover:shadow-md hover:brightness-95 active:brightness-90",
 };
 
 export const buttonClass = (variant: Variant = "secondary", extra = "", size: Size = "md") => `${BASE} ${SIZES[size]} ${VARIANTS[variant]} ${extra}`;

@@ -1,6 +1,7 @@
 "use client";
 
-import { Clock, Loader2 } from "lucide-react";
+import { SkeletonGuest } from "@/components/ui/skeleton";
+import { ArrowLeft, CalendarDays, Clock, Globe, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { BookingSummary } from "@/components/booking/booking-summary";
@@ -11,7 +12,7 @@ import { ApiError } from "@/lib/upload-client";
 
 type Step = "time" | "details" | "done";
 
-const input = "mt-1 block w-full rounded-lg border border-border bg-background px-3 py-2 text-sm";
+const input = "mt-2 block w-full min-h-10 rounded-xl border border-border bg-background px-4 py-2 text-sm shadow-sm placeholder:text-muted focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent-solid/20";
 
 /**
  * What a guest sees: pick a time, give a name and email, done. No account. The chosen meeting, duration, day, time
@@ -88,102 +89,139 @@ export function PublicBooking({ slug }: { slug: string }) {
 
   if (loadError) {
     return (
-      <div role="alert" className="mx-auto max-w-md py-16 text-center">
+      <div role="alert" className="mx-auto max-w-md py-20 text-center">
         <h1 className="text-2xl font-semibold tracking-tight">{loadError.title}</h1>
         <p className="mt-2 text-muted">{loadError.text}</p>
       </div>
     );
   }
-  if (!page) return <div aria-hidden className="mx-auto max-w-3xl animate-pulse space-y-4 py-10"><div className="h-8 w-64 rounded bg-border" /><div className="h-64 rounded-xl bg-border/50" /></div>;
+  if (!page) return <SkeletonGuest label="Loading booking page" />;
 
   if (step === "done" && result) {
     return (
       <div className="mx-auto max-w-xl py-10">
-        <BookingSummary booking={result.booking} token={result.token} timeZone={timeZone} />
-        <p className="mt-6 text-sm"><Link href={`/manage/${result.token}`} className="font-medium text-accent hover:underline">Change or cancel this booking</Link></p>
+        <div className="jb-rise rounded-2xl border border-border bg-background p-5 shadow-lg sm:p-6">
+          <BookingSummary booking={result.booking} token={result.token} timeZone={timeZone} />
+          <p className="mt-6 border-t border-border pt-4 text-sm"><Link href={`/manage/${result.token}`} className="font-medium text-accent hover:underline">Change or cancel this booking</Link></p>
+        </div>
       </div>
     );
   }
 
+  const steps = ["Choose a time", "Your details"] as const;
+  const current = step === "details" ? 1 : 0;
   return (
-    <div className="mx-auto grid max-w-4xl gap-8 py-10 md:grid-cols-[18rem_1fr]">
-      <aside className="space-y-4">
-        {page.hostName && <p className="text-sm text-muted">{page.hostName}</p>}
-        <h1 className="text-2xl font-semibold tracking-tight">{page.title}</h1>
-        {page.description && <p className="whitespace-pre-line text-sm text-muted">{page.description}</p>}
+    <div className="mx-auto max-w-5xl py-10">
+      <div className="jb-rise grid overflow-hidden rounded-2xl border border-border bg-background shadow-lg md:grid-cols-[19rem_1fr]">
+        {/* Left: who and what, and the choices made so far. */}
+        <aside className="space-y-5 border-b border-border bg-surface/50 p-5 sm:p-6 md:border-b-0 md:border-r">
+          <div className="flex items-center gap-3">
+            <span aria-hidden className="grid size-10 place-items-center rounded-full bg-accent-solid text-base font-semibold text-on-accent">{(page.hostName || page.title).trim().charAt(0).toUpperCase()}</span>
+            {page.hostName && <p className="text-sm font-medium text-muted">{page.hostName}</p>}
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-2xl font-semibold tracking-tight">{page.title}</h1>
+            {page.description && <p className="whitespace-pre-line text-sm text-muted">{page.description}</p>}
+          </div>
 
-        {type && (
-          <dl className="space-y-2 rounded-xl border border-border bg-surface p-4 text-sm" aria-label="Your selection">
-            <div><dt className="text-muted">Meeting</dt><dd className="font-medium">{type.name}</dd></div>
-            <div className="flex items-center gap-2"><Clock aria-hidden className="h-4 w-4 text-muted" /><dd>{type.durationMin} minutes</dd></div>
-            {slot && (
-              <div>
-                <dt className="text-muted">When</dt>
-                <dd className="font-medium">{formatDay(slot.start, timeZone)}, {formatTime(slot.start, timeZone)} to {formatTime(slot.end, timeZone)}</dd>
+          <dl className="space-y-3 text-sm" aria-label="Your selection">
+            {type && (
+              <div className="flex items-start gap-3">
+                <Clock aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" />
+                <dd><span className="font-medium">{type.name}</span><span className="block text-muted">{type.durationMin} minutes</span></dd>
               </div>
             )}
-            <div><dt className="text-muted">Your time zone</dt><dd>{timeZone.replace(/_/g, " ")} ({zoneLabel(timeZone)})</dd></div>
+            {slot && (
+              <div className="flex items-start gap-3">
+                <CalendarDays aria-hidden className="mt-0.5 size-4 shrink-0 text-accent" />
+                <dd className="font-medium">{formatDay(slot.start, timeZone)}<span className="block font-normal text-muted tabular-nums">{formatTime(slot.start, timeZone)} to {formatTime(slot.end, timeZone)}</span></dd>
+              </div>
+            )}
+            <div className="flex items-start gap-3">
+              <Globe aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" />
+              <dd className="min-w-0 flex-1">
+                <label className="block">
+                  <span className="sr-only">Show times in</span>
+                  <select value={timeZone} onChange={(e) => { setTimeZone(e.target.value); setSlot(null); setStep("time"); }} className="w-full rounded-lg border border-transparent bg-transparent py-1 pr-2 text-sm font-medium hover:border-border focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent-solid/20">
+                    {zones.map((z) => <option key={z} value={z}>{z.replace(/_/g, " ")}</option>)}
+                  </select>
+                </label>
+                <span className="block text-xs text-muted">Times shown in {zoneLabel(timeZone)}</span>
+              </dd>
+            </div>
           </dl>
-        )}
-      </aside>
+        </aside>
 
-      <div className="min-w-0 space-y-5">
-        {notice && <p role="status" className="rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">{notice}</p>}
-
-        {!type ? (
-          <section aria-labelledby="pick-type">
-            <h2 id="pick-type" className="text-sm font-medium">What would you like to book?</h2>
-            <ul className="mt-3 space-y-2">
-              {page.meetingTypes.map((t) => (
-                <li key={t.id}>
-                  <button type="button" onClick={() => setTypeId(t.id)} className="w-full rounded-xl border border-border p-4 text-left hover:bg-surface">
-                    <span className="block font-medium">{t.name}</span>
-                    <span className="block text-sm text-muted">{t.durationMin} minutes{t.description ? ` · ${t.description}` : ""}</span>
-                  </button>
+        {/* Right: the step. */}
+        <div className="min-w-0 space-y-5 p-5 sm:p-6">
+          {type && (
+            <ol aria-label="Progress" className="flex items-center gap-3 text-sm">
+              {steps.map((label, i) => (
+                <li key={label} aria-current={i === current ? "step" : undefined} className="flex items-center gap-3">
+                  <span className={`grid size-6 place-items-center rounded-full text-xs font-semibold ${i < current ? "bg-success text-white" : i === current ? "bg-accent-solid text-on-accent" : "border border-border text-muted"}`}>{i + 1}</span>
+                  <span className={i === current ? "font-medium" : "text-muted"}>{label}</span>
+                  {i < steps.length - 1 && <span aria-hidden className="h-px w-8 bg-border" />}
                 </li>
               ))}
-            </ul>
-          </section>
-        ) : step === "time" ? (
-          <section aria-label="Choose a time" className="space-y-4">
-            <label className="block text-sm">
-              <span className="text-muted">Show times in</span>
-              <select value={timeZone} onChange={(e) => { setTimeZone(e.target.value); setSlot(null); }} className={input}>
-                {zones.map((z) => <option key={z} value={z}>{z.replace(/_/g, " ")}</option>)}
-              </select>
-            </label>
-            <SlotPicker load={load} timeZone={timeZone} selected={slot?.start ?? null} onPick={chooseSlot} />
-            {page.meetingTypes.length > 1 && <button type="button" onClick={() => { setTypeId(null); setSlot(null); }} className="text-sm text-muted hover:text-foreground">&larr; Choose a different meeting</button>}
-          </section>
-        ) : (
-          <form onSubmit={submit} noValidate aria-label="Your details" className="space-y-4">
-            <h2 className="text-lg font-semibold">Your details</h2>
-            <label className="block text-sm">
-              <span className="font-medium">Name</span>
-              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} autoComplete="name" maxLength={100} aria-invalid={!!fieldError.name} aria-describedby={fieldError.name ? "err-name" : undefined} className={input} />
-              {fieldError.name && <span id="err-name" className="mt-1 block text-danger">{fieldError.name}</span>}
-            </label>
-            <label className="block text-sm">
-              <span className="font-medium">Email</span>
-              <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} autoComplete="email" maxLength={254} aria-invalid={!!fieldError.email} aria-describedby={fieldError.email ? "err-email" : undefined} className={input} />
-              {fieldError.email && <span id="err-email" className="mt-1 block text-danger">{fieldError.email}</span>}
-            </label>
-            <label className="block text-sm">
-              <span className="font-medium">Anything to share? <span className="font-normal text-muted">(optional)</span></span>
-              <textarea value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} maxLength={500} rows={3} className={input} />
-            </label>
-            {formError && <p role="alert" className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">{formError}</p>}
-            <div className="flex flex-wrap items-center gap-3">
-              <button type="submit" disabled={submitting} className="inline-flex min-h-9 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-accent-solid px-4 text-sm font-medium text-on-accent transition-colors hover:brightness-95 active:brightness-90 disabled:pointer-events-none disabled:opacity-50">
-                {submitting && <Loader2 aria-hidden className="h-4 w-4 animate-spin" />}
-                {submitting ? "Checking availability…" : "Confirm booking"}
-              </button>
-              <button type="button" disabled={submitting} onClick={() => setStep("time")} className="text-sm text-muted hover:text-foreground">&larr; Choose another time</button>
-            </div>
-            <p className="text-xs text-muted">We only use your details to make this booking.</p>
-          </form>
-        )}
+            </ol>
+          )}
+
+          {notice && <p role="status" className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">{notice}</p>}
+
+          {!type ? (
+            <section aria-labelledby="pick-type">
+              <h2 id="pick-type" className="text-lg font-semibold">What would you like to book?</h2>
+              <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+                {page.meetingTypes.map((t) => (
+                  <li key={t.id}>
+                    <button type="button" onClick={() => setTypeId(t.id)} className="group h-full w-full rounded-xl border border-border p-4 text-left transition-all hover:-translate-y-px hover:border-accent-solid/50 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+                      <span className="block font-medium">{t.name}</span>
+                      <span className="mt-1 flex items-center gap-1.5 text-sm text-muted"><Clock aria-hidden className="size-3.5" />{t.durationMin} minutes</span>
+                      {t.description && <span className="mt-2 block text-sm text-muted">{t.description}</span>}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : step === "time" ? (
+            <section aria-label="Choose a time" className="space-y-4">
+              <h2 className="text-lg font-semibold">Select a date and time</h2>
+              <SlotPicker load={load} timeZone={timeZone} selected={slot?.start ?? null} onPick={chooseSlot} split />
+              {page.meetingTypes.length > 1 && (
+                <button type="button" onClick={() => { setTypeId(null); setSlot(null); }} className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground"><ArrowLeft aria-hidden className="size-4" /> Choose a different meeting</button>
+              )}
+            </section>
+          ) : (
+            <form onSubmit={submit} noValidate aria-label="Your details" className="space-y-5">
+              <h2 className="text-lg font-semibold">Your details</h2>
+              <label className="block text-sm">
+                <span className="font-medium">Name</span>
+                <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} autoComplete="name" maxLength={100} aria-invalid={!!fieldError.name} aria-describedby={fieldError.name ? "err-name" : undefined} className={input} />
+                {fieldError.name && <span id="err-name" className="mt-2 block text-danger">{fieldError.name}</span>}
+              </label>
+              <label className="block text-sm">
+                <span className="font-medium">Email</span>
+                <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} autoComplete="email" maxLength={254} aria-invalid={!!fieldError.email} aria-describedby={fieldError.email ? "err-email" : undefined} className={input} />
+                {fieldError.email && <span id="err-email" className="mt-2 block text-danger">{fieldError.email}</span>}
+              </label>
+              <label className="block text-sm">
+                <span className="font-medium">Anything to share? <span className="font-normal text-muted">(optional)</span></span>
+                <textarea value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} maxLength={500} rows={3} className={input} />
+              </label>
+              {formError && <p role="alert" className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">{formError}</p>}
+              <div className="flex flex-wrap items-center gap-3">
+                <button type="submit" disabled={submitting} className="inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-accent-solid px-5 text-base font-medium text-on-accent shadow-sm transition-all hover:-translate-y-px hover:shadow-md hover:brightness-95 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50">
+                  {submitting && <Loader2 aria-hidden className="size-4 animate-spin" />}
+                  {submitting ? "Checking availability…" : "Confirm booking"}
+                </button>
+                <button type="button" disabled={submitting} onClick={() => setStep("time")} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-muted hover:text-foreground"><ArrowLeft aria-hidden className="size-4" /> Choose another time</button>
+              </div>
+              <p className="text-xs text-muted">We only use your details to make this booking.</p>
+            </form>
+          )}
+        </div>
       </div>
+      <p className="mt-6 text-center text-xs text-muted">Scheduling by Jooba</p>
     </div>
   );
 }

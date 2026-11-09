@@ -3,12 +3,13 @@
 import {
   CalendarCheck,
   CalendarDays,
+  FolderOpen,
   Gauge,
   House,
-  Library,
   Mic,
   Settings,
   ShieldCheck,
+  Video,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -28,31 +29,26 @@ import { profileQuery } from "@/lib/queries";
 import { AccountBanners, SidebarPlanCard } from "./account-banners";
 import { Brand } from "@/components/ui/brand";
 import { ProfileProvider } from "./profile-context";
+import { LiveStatus } from "./live-status";
 import { TopBar } from "./top-bar";
 import { AppearanceProvider } from "@/components/theme/appearance-provider";
 
-// Capture has two tabs (Voice Inbox, Meeting Bot) that live at /voice and /capture; the nav item covers both.
-const NAV: readonly {
+interface NavItem {
   href: string;
   label: string;
   Icon: typeof Mic;
   also?: readonly string[];
-}[] = [
+}
+// One flat list, in the order people use it: the ways in (a call, your voice), what they made, then the account pages.
+const NAV: readonly NavItem[] = [
   { href: "/dashboard", label: "Home", Icon: House },
-  {
-    href: "/dashboard/voice",
-    label: "Capture",
-    Icon: Mic,
-    also: ["/dashboard/capture"],
-  },
-  {
-    href: "/dashboard/library",
-    label: "Library",
-    Icon: Library,
-    also: ["/dashboard/captures"],
-  },
+  { href: "/dashboard/capture", label: "Meet", Icon: Video },
+  { href: "/dashboard/voice", label: "Record", Icon: Mic },
+  { href: "/dashboard/library", label: "My Folder", Icon: FolderOpen, also: ["/dashboard/captures"] },
   { href: "/dashboard/calendar", label: "Calendar", Icon: CalendarDays },
   { href: "/dashboard/booking", label: "Booking", Icon: CalendarCheck },
+  { href: "/dashboard/plan", label: "Plan and usage", Icon: Gauge },
+  { href: "/dashboard/settings", label: "Settings", Icon: Settings },
 ];
 
 function NavLink({
@@ -79,7 +75,7 @@ function NavLink({
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
-      className={`group relative flex h-9 items-center gap-3 whitespace-nowrap rounded-lg px-3 text-sm transition-colors ${tone === "sidebar" ? "sc:md:justify-center sc:md:px-0" : ""} ${
+      className={`group relative flex h-9 items-center gap-3 whitespace-nowrap rounded-lg px-3 text-sm transition-all duration-150 ${tone === "sidebar" ? "sc:md:justify-center sc:md:px-0" : ""} ${
         tone === "sidebar"
           ? active
             ? "bg-sidebar-active font-medium text-sidebar-active-fg"
@@ -88,7 +84,7 @@ function NavLink({
             ? "bg-accent/10 font-medium text-accent"
             : "text-muted hover:bg-surface hover:text-foreground"
       }`}>
-      <Icon aria-hidden className="h-[18px] w-[18px] shrink-0" />
+      <Icon aria-hidden className="h-5 w-5 shrink-0 transition-transform duration-150 group-hover:scale-110" />
       <span className={tone === "sidebar" ? "sc:md:sr-only" : ""}>{label}</span>
       {tone === "sidebar" && (
         // Names for the icon-only rail, shown on hover or keyboard focus.
@@ -109,22 +105,22 @@ function PageSkeleton() {
       role="status"
       aria-label="Loading"
       aria-busy="true"
-      className="space-y-6">
+      className="space-y-5">
       <div className="space-y-2" aria-hidden>
         <div className="h-6 w-48 jb-skel rounded bg-border" />
-        <div className="h-3.5 w-80 max-w-full jb-skel rounded bg-border" />
+        <div className="h-4 w-80 max-w-full jb-skel rounded bg-border" />
       </div>
       <div aria-hidden className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[0, 1, 2, 3].map((i) => (
           <div
             key={i}
-            className="h-28 jb-skel rounded-xl border border-border bg-surface"
+            className="h-28 jb-skel rounded-2xl border border-border bg-surface"
           />
         ))}
       </div>
       <div
         aria-hidden
-        className="h-64 jb-skel rounded-xl border border-border bg-surface"
+        className="h-64 jb-skel rounded-2xl border border-border bg-surface"
       />
     </div>
   );
@@ -227,46 +223,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {/* Desktop sidebar */}
           <aside
             id="sidebar"
-            className="hidden w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-fg transition-[width] duration-200 sc:md:w-[4.5rem] md:sticky md:top-0 md:flex md:h-screen">
+            className="hidden w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-fg transition-[width] duration-200 sc:md:w-20 md:sticky md:top-0 md:flex md:h-screen md:overflow-y-auto">
             {/* Same height as the top bar, so the two line up. */}
-            <div className="flex h-14 shrink-0 items-center border-b border-sidebar-border px-5 sc:md:justify-center sc:md:px-0">
+            <div className="flex h-16 shrink-0 items-center border-b border-sidebar-border px-5 sc:md:justify-center sc:md:px-0">
               <HomeLink />
             </div>
-            <nav aria-label="Primary" className="flex flex-col gap-0.5 p-3">
+            <nav aria-label="Primary" className="flex flex-col gap-1 p-4">
               {NAV.map((n) => (
-                <NavLink
-                  key={n.href}
-                  {...n}
-                  pathname={pathname}
-                  tone="sidebar"
-                />
+                <NavLink key={n.href} {...n} pathname={pathname} tone="sidebar" />
               ))}
+              {profile?.isStaff && <NavLink href="/admin" label="Staff area" Icon={ShieldCheck} pathname={pathname} tone="sidebar" />}
             </nav>
-            <div className="mt-auto space-y-0.5 border-t border-sidebar-border p-3">
+            <div className="mt-auto border-t border-sidebar-border p-4">
               <SidebarPlanCard plan={account.plan} />
-              <NavLink
-                href="/dashboard/plan"
-                label="Plan and usage"
-                Icon={Gauge}
-                pathname={pathname}
-                tone="sidebar"
-              />
-              <NavLink
-                href="/dashboard/settings"
-                label="Settings"
-                Icon={Settings}
-                pathname={pathname}
-                tone="sidebar"
-              />
-              {profile?.isStaff && (
-                <NavLink
-                  href="/admin"
-                  label="Staff area"
-                  Icon={ShieldCheck}
-                  pathname={pathname}
-                  tone="sidebar"
-                />
-              )}
             </div>
           </aside>
 
@@ -274,23 +243,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <TopBar profile={profile} plan={account.plan} loading={!ready} />
             <nav
               aria-label="Primary"
-              className="flex gap-1 overflow-x-auto border-b border-border px-3 py-2 md:hidden">
+              className="flex gap-2 overflow-x-auto border-b border-border px-4 py-3 md:hidden">
               {NAV.map((n) => (
                 <NavLink key={n.href} {...n} pathname={pathname} />
               ))}
-              <NavLink
-                href="/dashboard/plan"
-                label="Plan"
-                Icon={Gauge}
-                pathname={pathname}
-              />
             </nav>
+
+            {ready && <LiveStatus />}
 
             <main
               id="main"
               tabIndex={-1}
               className="min-w-0 flex-1 outline-none">
-              <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 md:px-8 md:py-8">
+              <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-5 md:px-6 md:py-6">
                 {/* The page is always rendered (Next validates every segment for instant navigation) but stays hidden until
                 the profile is known, so nobody sees a page flash before the first-time redirect to /welcome. */}
                 {!ready && <PageSkeleton />}

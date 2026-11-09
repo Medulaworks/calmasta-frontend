@@ -1,15 +1,18 @@
 import { Suspense } from "react";
+import { SkeletonDetail } from "@/components/ui/skeleton";
 import { LibraryRecording } from "@/components/library-recording";
-export const metadata = { title: "Transcript · CalMasta" };
-export default async function RecordingPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
+
+export const metadata = { title: "Transcript · Jooba" };
+
+async function Detail(props: PageProps<"/dashboard/library/recordings/[id]">) {
+  const { id } = await props.params;
+  return <LibraryRecording key={id} id={id} />;
+}
+
+export default function RecordingPage(props: PageProps<"/dashboard/library/recordings/[id]">) {
   return (
-    <Suspense fallback={<p>Loading recording…</p>}>
-      <LibraryRecording key={id} id={id} />
+    <Suspense fallback={<SkeletonDetail label="Loading this recording" />}>
+      <Detail {...props} />
     </Suspense>
   );
 }

@@ -72,7 +72,7 @@ export function BookingSummary({
         </div>
       </div>
 
-      <dl className="space-y-3 rounded-xl border border-border p-5 text-sm">
+      <dl className="space-y-3 rounded-2xl border border-border p-5 text-sm">
         <div>
           <dt className="text-muted">What</dt>
           <dd className="font-medium">
@@ -81,7 +81,7 @@ export function BookingSummary({
           </dd>
         </div>
         <div className="flex items-start gap-2">
-          <Clock aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-muted" />
+          <Clock aria-hidden className="mt-1 h-4 w-4 shrink-0 text-muted" />
           <div>
             <dd className={`font-medium ${cancelled ? "line-through" : ""}`}>
               {formatDay(booking.startAt, timeZone)},{" "}
@@ -99,7 +99,7 @@ export function BookingSummary({
           <div className="flex items-start gap-2">
             <MapPin
               aria-hidden
-              className="mt-0.5 h-4 w-4 shrink-0 text-muted"
+              className="mt-1 h-4 w-4 shrink-0 text-muted"
             />
             <dd>
               {isUrl(booking.locationText) ? (

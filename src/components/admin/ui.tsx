@@ -73,7 +73,7 @@ export function usePaged<I, P extends { nextCursor: string | null }>(url: string
 export function AdminUnavailable({ title = "Not available yet", children }: { title?: string; children?: React.ReactNode }) {
   return (
     <Card>
-      <div role="status" className="space-y-3 p-6 text-sm">
+      <div role="status" className="space-y-3 p-5 text-sm">
         <p className="font-medium">{title}</p>
         <p className="text-muted">
           Not connected yet. There is nothing to show.
@@ -92,7 +92,7 @@ export function ResourceBoundary<T>({ resource, children }: { resource: Resource
     const forbidden = error instanceof ApiError && error.status === 403;
     return (
       <Card>
-        <div role="alert" className="space-y-3 p-6 text-sm">
+        <div role="alert" className="space-y-3 p-5 text-sm">
           <p className="font-medium">{forbidden ? "You don't have access to this." : "Couldn't load this."}</p>
           <p className="text-muted">{forbidden ? "Ask an admin for access." : error.message}</p>
           {!forbidden && <Button onClick={reload}>Try again</Button>}
@@ -125,8 +125,8 @@ export function Metric({ label, value, hint, tone, trend }: { label: string; val
     <div className="rounded-xl border border-border bg-background p-4">
       <p className="text-xs text-muted">{label}</p>
       <p className={`mt-1 text-2xl font-medium tabular-nums ${tone === "danger" ? "text-danger" : tone === "warning" ? "text-warning" : ""}`}>{value}</p>
-      {trend && <p className={`mt-0.5 text-xs font-medium ${trend.good === null ? "text-muted" : trend.good ? "text-success" : "text-danger"}`}>{trend.text}</p>}
-      {hint && <p className="mt-0.5 text-xs text-muted">{hint}</p>}
+      {trend && <p className={`mt-1 text-xs font-medium ${trend.good === null ? "text-muted" : trend.good ? "text-success" : "text-danger"}`}>{trend.text}</p>}
+      {hint && <p className="mt-1 text-xs text-muted">{hint}</p>}
     </div>
   );
 }
@@ -212,7 +212,7 @@ export function ActionDialog({
       >
         <div>
           <h2 id={`${id}-t`} className="text-base font-semibold">{title}</h2>
-          <div className="mt-1.5 text-sm text-muted">{description}</div>
+          <div className="mt-2 text-sm text-muted">{description}</div>
         </div>
         {fields.map((f, i) => (
           <label key={f.name} className="block text-sm">
@@ -222,7 +222,7 @@ export function ActionDialog({
                 required={f.required !== false}
                 value={values[f.name]}
                 onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))}
-                className="mt-1.5 block w-full rounded-lg border border-border bg-background px-3 py-2"
+                className="mt-2 block w-full rounded-lg border border-border bg-background px-3 py-2"
               >
                 {f.options.map((o) => <option key={o}>{o}</option>)}
               </select>
@@ -237,7 +237,7 @@ export function ActionDialog({
                 required={f.required !== false}
                 value={values[f.name]}
                 onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))}
-                className="mt-1.5 block w-full rounded-lg border border-border bg-background px-3 py-2"
+                className="mt-2 block w-full rounded-lg border border-border bg-background px-3 py-2"
               />
             )}
             {f.hint && <span className="mt-1 block text-xs text-muted">{f.hint}</span>}
@@ -253,7 +253,7 @@ export function ActionDialog({
             rows={3}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            className="mt-1.5 block w-full rounded-lg border border-border bg-background px-3 py-2"
+            className="mt-2 block w-full rounded-lg border border-border bg-background px-3 py-2"
           />
           <span className="mt-1 block text-xs text-muted">At least 8 characters. Saved in Activity.</span>
         </label>
@@ -319,7 +319,7 @@ export function SimpleDialog({
       >
         <div>
           <h2 id={`${id}-t`} className="text-base font-semibold">{title}</h2>
-          {description && <div className="mt-1.5 text-sm text-muted">{description}</div>}
+          {description && <div className="mt-2 text-sm text-muted">{description}</div>}
         </div>
         {children}
         {error && <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
