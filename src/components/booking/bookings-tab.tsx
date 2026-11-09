@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarClock, Video } from "lucide-react";
+import { CalendarClock, CalendarDays, Check, Video } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -8,7 +8,7 @@ import { Confirm, ErrorBox } from "@/components/booking/form-bits";
 import { SlotPicker } from "@/components/booking/slot-picker";
 import { useProfile } from "@/components/shell/profile-context";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { type HostBooking, type Slot, hostSlots } from "@/lib/booking-client";
@@ -63,19 +63,26 @@ export function BookingsTab() {
     [moving],
   );
 
+  const dayOf = (iso: string) => new Intl.DateTimeFormat(undefined, { timeZone, day: "numeric" }).format(new Date(iso));
+  const monthOf = (iso: string) => new Intl.DateTimeFormat(undefined, { timeZone, month: "short" }).format(new Date(iso));
   return (
     <div className="space-y-4">
-      <div className="flex gap-1" role="group" aria-label="Show">
-        {(["upcoming", "past"] as const).map((s) => (
-          <button
-            key={s}
-            type="button"
-            aria-pressed={scope === s}
-            onClick={() => setScope(s)}
-            className={`rounded-lg px-3 py-1.5 text-sm ${scope === s ? "bg-surface font-medium" : "text-muted hover:text-foreground"}`}>
-            {s === "upcoming" ? "Upcoming" : "Past and cancelled"}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div role="group" aria-label="Show" className="inline-flex rounded-xl bg-surface p-1 ring-1 ring-border">
+          {(["upcoming", "past"] as const).map((s) => (
+            <button
+              key={s}
+              type="button"
+              aria-pressed={scope === s}
+              onClick={() => setScope(s)}
+              className={`h-9 rounded-lg px-4 text-sm font-medium transition-colors ${scope === s ? "bg-background text-foreground shadow-sm ring-1 ring-border" : "text-muted hover:text-foreground"}`}>
+              {s === "upcoming" ? "Upcoming" : "Past and cancelled"}
+            </button>
+          ))}
+        </div>
+        <p className="flex items-center gap-2 text-xs text-muted">
+          <CalendarDays aria-hidden className="size-4" /> Bookings here also appear in your Calendar.
+        </p>
       </div>
       <ErrorBox message={error} />
       {confirm && (
@@ -92,48 +99,25 @@ export function BookingsTab() {
       {moving && (
         <Card>
           <div className="space-y-4 p-5">
-            <p className="font-medium">
-              Move {moving.guestName}&apos;s booking
-            </p>
-            <p className="text-sm text-muted">
-              Now: {formatDateTime(moving.startAt, timeZone)}. Times are shown
-              in your time zone ({timeZone.replace(/_/g, " ")}).
-            </p>
-            <SlotPicker
-              load={loadSlots}
-              timeZone={timeZone}
-              selected={slot?.start ?? null}
-              onPick={setSlot}
-            />
+            <div>
+              <p className="text-base font-semibold">Move {moving.guestName}&apos;s booking</p>
+              <p className="mt-1 text-sm text-muted">
+                Now: {formatDateTime(moving.startAt, timeZone)}. Times are shown in your time zone ({timeZone.replace(/_/g, " ")}).
+              </p>
+            </div>
+            <SlotPicker load={loadSlots} timeZone={timeZone} selected={slot?.start ?? null} onPick={setSlot} />
             {slot && (
-              <p className="text-sm">
-                New time:{" "}
-                <span className="font-medium">
-                  {formatDateTime(slot.start, timeZone)}
-                </span>
+              <p className="rounded-xl bg-surface px-4 py-3 text-sm">
+                New time: <span className="font-medium">{formatDateTime(slot.start, timeZone)}</span>
               </p>
             )}
-            <div className="flex gap-2">
-              <Button
-                variant="primary"
-                disabled={!slot || busy}
-                onClick={() => void move()}>
+            <div className="flex flex-wrap gap-3">
+              <Button variant="primary" disabled={!slot || busy} onClick={() => void move()}>
                 {busy ? "Checking availability…" : "Move booking"}
               </Button>
-              <Button
-                variant="ghost"
-                disabled={busy}
-                onClick={() => {
-                  setMoving(null);
-                  setSlot(null);
-                }}>
-                Back
-              </Button>
+              <Button variant="ghost" disabled={busy} onClick={() => { setMoving(null); setSlot(null); }}>Back</Button>
             </div>
-            <p className="text-xs text-muted">
-              The guest is not emailed (email isn&apos;t set up). Their link
-              shows the new time.
-            </p>
+            <p className="text-xs text-muted">The guest is not emailed (email isn&apos;t set up). Their link shows the new time.</p>
           </div>
         </Card>
       )}
@@ -142,116 +126,65 @@ export function BookingsTab() {
         {items === null ? (
           <ul aria-hidden className="divide-y divide-border">
             {[0, 1, 2].map((i) => (
-              <li key={i} className="px-5 py-4">
-                <div className="h-4 w-1/2 jb-skel rounded bg-border" />
+              <li key={i} className="flex items-center gap-4 px-5 py-3">
+                <span className="size-14 jb-skel rounded-xl bg-border" />
+                <span className="flex-1 space-y-2">
+                  <span className="block h-3 w-1/2 jb-skel rounded bg-border" />
+                  <span className="block h-3 w-1/3 jb-skel rounded bg-border" />
+                </span>
               </li>
             ))}
           </ul>
         ) : items.length === 0 ? (
           <EmptyState
-            icon={<CalendarClock className="h-5 w-5" />}
-            title={
-              scope === "upcoming" ? "No upcoming bookings" : "Nothing here yet"
-            }
-            body={
-              scope === "upcoming"
-                ? "When someone books through one of your pages, it appears here. Set up a page, meeting type and your hours in the other tabs."
-                : "Past and cancelled bookings are kept here."
-            }
+            icon={<CalendarClock />}
+            title={scope === "upcoming" ? "No upcoming bookings" : "Nothing here yet"}
+            body={scope === "upcoming" ? "When someone books through one of your pages, it appears here. To start, set up a page, a meeting type and your hours." : "Past and cancelled bookings are kept here."}
+            action={scope === "upcoming" ? <ButtonLink href="/dashboard/booking?tab=pages" variant="primary">Set up a booking page</ButtonLink> : undefined}
           />
         ) : (
           <ul className="divide-y divide-border">
-            {items.map((b: import("@/lib/booking-client").HostBooking) => (
-              <li key={b.id} className="space-y-2 px-5 py-4 text-sm">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p
-                      className={`font-medium ${b.status === "cancelled" ? "line-through" : ""}`}>
-                      {b.meetingName} with {b.guestName}
-                    </p>
-                    <p className="text-muted">
-                      {formatDateTime(b.startAt, timeZone)} to{" "}
-                      {formatTime(b.endAt, timeZone)} · {b.durationMin} min
-                    </p>
-                    <p className="text-xs text-muted">
-                      {b.guestEmail} · guest&apos;s time zone{" "}
-                      {b.guestTimezone.replace(/_/g, " ")}
-                    </p>
+            {items.map((b: import("@/lib/booking-client").HostBooking) => {
+              const cancelled = b.status === "cancelled";
+              const upcoming = b.status === "confirmed" && new Date(b.startAt) > new Date();
+              return (
+                <li key={b.id} className="flex flex-col gap-4 px-5 py-3 sm:flex-row sm:items-start">
+                  <span aria-hidden className={`grid size-14 shrink-0 place-items-center rounded-xl text-center leading-none ${cancelled ? "bg-surface text-muted" : "bg-accent-solid/15 text-accent"}`}>
+                    <span>
+                      <span className="block text-xl font-semibold tabular-nums">{dayOf(b.startAt)}</span>
+                      <span className="mt-1 block text-xs font-medium uppercase tracking-wider">{monthOf(b.startAt)}</span>
+                    </span>
+                  </span>
+                  <div className="min-w-0 flex-1 space-y-2 text-sm">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                      <p className={`font-medium ${cancelled ? "text-muted line-through" : ""}`}>{b.meetingName} with {b.guestName}</p>
+                      <Badge tone={cancelled ? "neutral" : "success"}>{cancelled ? `Cancelled${b.cancelledBy ? ` by ${b.cancelledBy}` : ""}` : "Confirmed"}</Badge>
+                      {b.rescheduled && !cancelled && <Badge tone="info">Rescheduled</Badge>}
+                    </div>
+                    <p className="text-muted tabular-nums">{formatDateTime(b.startAt, timeZone)} to {formatTime(b.endAt, timeZone)} · {b.durationMin} min</p>
+                    <p className="text-xs text-muted">{b.guestEmail} · guest&apos;s time zone {b.guestTimezone.replace(/_/g, " ")}</p>
+                    {b.guestNote && <p className="rounded-xl bg-surface px-4 py-3 text-muted">&ldquo;{b.guestNote}&rdquo;</p>}
+                    <ul className="space-y-1 text-xs text-muted">
+                      {!cancelled && b.emailStatus === "not_configured" && <li>The guest was not emailed (email isn&apos;t set up). They have a link to manage the booking.</li>}
+                      {!cancelled && b.calendarStatus === "failed" && <li className="text-warning">Could not be added to your calendar. The booking itself is confirmed.</li>}
+                      {!cancelled && b.calendarStatus === "created" && <li className="flex items-center gap-1.5"><Check aria-hidden className="size-3.5 text-success" strokeWidth={3} /> Added to your calendar.</li>}
+                      {b.captureId && (
+                        <li className="flex items-center gap-2">
+                          <Video aria-hidden className="size-4" /> The Jooba Assistant is scheduled to join.{" "}
+                          <Link href={`/dashboard/captures/${b.captureId}`} className="font-medium text-accent hover:underline">View</Link>
+                        </li>
+                      )}
+                    </ul>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge
-                      tone={b.status === "confirmed" ? "success" : "neutral"}>
-                      {b.status === "confirmed"
-                        ? "Confirmed"
-                        : `Cancelled${b.cancelledBy ? ` by ${b.cancelledBy}` : ""}`}
-                    </Badge>
-                    {b.rescheduled && b.status === "confirmed" && (
-                      <Badge tone="info">Rescheduled</Badge>
-                    )}
-                  </div>
-                </div>
-                {b.guestNote && (
-                  <p className="rounded-lg bg-surface px-3 py-2 text-muted">
-                    &ldquo;{b.guestNote}&rdquo;
-                  </p>
-                )}
-                <ul className="space-y-1 text-xs text-muted">
-                  {b.status === "confirmed" &&
-                    b.emailStatus === "not_configured" && (
-                      <li>
-                        The guest was not emailed (email isn&apos;t set up).
-                        They have a link to manage the booking.
-                      </li>
-                    )}
-                  {b.status === "confirmed" &&
-                    b.calendarStatus === "failed" && (
-                      <li className="text-warning">
-                        Could not be added to your calendar. The booking itself
-                        is confirmed.
-                      </li>
-                    )}
-                  {b.status === "confirmed" &&
-                    b.calendarStatus === "created" && (
-                      <li>Added to your calendar.</li>
-                    )}
-                  {b.captureId && (
-                    <li className="flex items-center gap-1.5">
-                      <Video aria-hidden className="h-3.5 w-3.5" /> The Jooba
-                      Assistant is scheduled to join.{" "}
-                      <Link
-                        href={`/dashboard/captures/${b.captureId}`}
-                        className="font-medium text-accent hover:underline">
-                        View
-                      </Link>
-                    </li>
-                  )}
-                </ul>
-                {b.status === "confirmed" &&
-                  new Date(b.startAt) > new Date() && (
-                    <div className="flex gap-2 pt-1">
-                      <Button
-                        variant="secondary"
-                        onClick={() => {
-                          setMoving(b);
-                          setSlot(null);
-                          setConfirm(null);
-                          setLocalError(null);
-                        }}>
-                        Reschedule
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        onClick={() => {
-                          setConfirm(b);
-                          setMoving(null);
-                          setLocalError(null);
-                        }}>
-                        Cancel
-                      </Button>
+                  {upcoming && (
+                    <div className="flex shrink-0 gap-2 sm:flex-col">
+                      <Button size="sm" variant="secondary" onClick={() => { setMoving(b); setSlot(null); setConfirm(null); setLocalError(null); }}>Reschedule</Button>
+                      <Button size="sm" variant="ghost" onClick={() => { setConfirm(b); setMoving(null); setLocalError(null); }}>Cancel</Button>
                     </div>
                   )}
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         )}
       </Card>

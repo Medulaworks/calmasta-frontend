@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { Suspense } from "react";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { CustomerDetail } from "@/components/admin/customers-view";
 import { SkeletonDetail } from "@/components/ui/skeleton";
 
@@ -10,8 +10,8 @@ async function Detail({ params }: { params: PageProps<"/admin/customers/[id]">["
 
 export default function CustomerPage({ params }: PageProps<"/admin/customers/[id]">) {
   return (
-    <div className="space-y-6">
-      <Link href="/admin/customers" className="inline-flex text-sm text-muted hover:text-foreground">&larr; All users</Link>
+    <div className="space-y-5">
+      <Breadcrumb items={[{ label: "Users", href: "/admin/customers" }, { label: "Account" }]} />
       <Suspense fallback={<SkeletonDetail label="Loading user" />}>
         <Detail params={params} />
       </Suspense>

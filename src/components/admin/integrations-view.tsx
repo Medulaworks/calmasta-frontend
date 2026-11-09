@@ -29,7 +29,7 @@ export function IntegrationsView() {
         if (isNew) {
           const nd = data as unknown as NewResp;
           return (
-            <div className="space-y-6">
+            <div className="space-y-5">
               {!nd.secretReplacementEnabled && <Notice tone="warning">Secret replacement disabled — ADMIN_SECRET_ENCRYPTION_KEY not configured. Requires operator restart for adoption.</Notice>}
               {!replace.allowed && <Notice>{replace.reason}</Notice>}
               <p className="text-xs text-muted">IDs: openrouter / recall / assemblyai — never display credential values. Effective adoption requires restart.</p>
@@ -59,7 +59,7 @@ export function IntegrationsView() {
             </div>
           );
         }
-        return <div className="space-y-6"><p className="text-sm text-muted">No integrations.</p></div>;
+        return <div className="space-y-5"><p className="text-sm text-muted">No integrations.</p></div>;
       }}
     </ResourceBoundary>
   );

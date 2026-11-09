@@ -16,7 +16,7 @@ import { DataTable, ResourceBoundary, SimpleDialog, Td, Th, useResource } from "
 type Member = Json<AdminMember>;
 type Invite = Json<AdminInvite>;
 
-const field = "mt-1.5 block h-10 w-full rounded-lg border border-border bg-background px-3 text-sm";
+const field = "mt-2 block h-10 w-full rounded-lg border border-border bg-background px-3 text-sm";
 const EMAIL = /^\S+@\S+\.\S+$/;
 const daysLeft = (iso: string) => Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
 const key = () => crypto.randomUUID().replace(/-/g, "").slice(0, 16).padEnd(8, "0");
@@ -57,7 +57,7 @@ export function AdminsView() {
           { label: "Cancel invite…", onSelect: () => setCancelling(i), danger: true, divider: true, disabled: !can.allowed, reason: can.reason },
         ];
         return (
-          <div className="space-y-8">
+          <div className="space-y-6">
             <section aria-labelledby="adm" className="space-y-4">
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>

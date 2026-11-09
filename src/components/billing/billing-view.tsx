@@ -1,4 +1,5 @@
 "use client";
+import { Loading, SkeletonPanel } from "@/components/ui/skeleton";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -18,8 +19,8 @@ export function BillingView() {
   async function portal() {
     try { const r = await getPortal(); if (r.url) window.location.href = r.url; else setErr("Portal not configured"); } catch (e) { setErr(e instanceof Error ? e.message : "Portal failed"); }
   }
-  if (catalog.isLoading) return <Card><div className="p-6 text-sm text-muted">Loading plans…</div></Card>;
-  if (catalog.isError) return <Card><div className="p-6 text-sm text-danger">Failed to load catalog</div></Card>;
+  if (catalog.isLoading) return <Loading label="Loading plans" className="grid gap-5 md:grid-cols-3">{[0, 1, 2].map((i) => <SkeletonPanel key={i} className="h-72" />)}</Loading>;
+  if (catalog.isError) return <Card><div className="p-5 text-sm text-danger">Failed to load catalog</div></Card>;
   return (
     <div className="space-y-4">
       {err && <div role="alert" className="rounded-lg bg-danger/10 p-3 text-sm text-danger">{err}</div>}

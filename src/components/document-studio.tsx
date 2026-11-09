@@ -1,16 +1,15 @@
 "use client";
 
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import {
   Check,
   ChevronDown,
-  ChevronRight,
   CircleAlert,
   History,
   Loader2,
   Sparkles,
   Trash2,
 } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import StarterKit from "@tiptap/starter-kit";
@@ -131,7 +130,7 @@ export function DocumentStudio({ id }: { id: string }) {
     immediatelyRender: false, // Next renders on the server first
     editorProps: {
       attributes: {
-        class: "prose-doc min-h-[28rem] px-6 py-5 focus:outline-none",
+        class: "prose-doc min-h-[28rem] px-5 py-5 focus:outline-none",
         "aria-label": "Document",
       },
     },
@@ -374,15 +373,7 @@ export function DocumentStudio({ id }: { id: string }) {
           className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
           {loadError}
         </p>
-        <button
-          type="button"
-          onClick={() => {
-            if (typeof window !== "undefined" && window.history.length > 1) router.back();
-            else router.push("/dashboard/library");
-          }}
-          className="text-sm text-accent">
-          Go back
-        </button>
+        <Breadcrumb items={[{ label: "My Folder", href: "/dashboard/library" }, { label: "Document" }]} />
       </div>
     );
   }
@@ -415,30 +406,20 @@ export function DocumentStudio({ id }: { id: string }) {
   return (
     <div className="max-w-4xl space-y-5">
       <div className="flex items-center justify-between gap-3">
-        <nav
-          aria-label="Breadcrumb"
-          className="flex min-w-0 items-center gap-1 text-sm text-muted">
-          <Link href="/dashboard/library" className="hover:text-foreground">
-            Library
-          </Link>
-          <ChevronRight aria-hidden className="h-3.5 w-3.5 shrink-0" />
-          {doc.captureId ? (
-            <Link
-              href={`/dashboard/captures/${doc.captureId}?tab=documents`}
-              className="truncate hover:text-foreground">
-              {doc.sourceTitle ?? "Conversation"}
-            </Link>
-          ) : (
-            <span className="truncate">Source recording deleted</span>
-          )}
-        </nav>
+        <Breadcrumb
+          items={[
+            { label: "My Folder", href: "/dashboard/library" },
+            doc.captureId ? { label: doc.sourceTitle ?? "Conversation", href: `/dashboard/captures/${doc.captureId}?tab=documents` } : { label: "Source recording deleted" },
+            { label: title || "Document" },
+          ]}
+        />
         <p
           role="status"
           aria-live="polite"
-          className={`flex shrink-0 items-center gap-1.5 text-xs ${saveTone}`}>
+          className={`flex shrink-0 items-center gap-2 text-xs ${saveTone}`}>
           <SaveIcon
             aria-hidden
-            className={`h-3.5 w-3.5 ${SaveIcon === Loader2 ? "animate-spin" : ""}`}
+            className={`h-4 w-4 ${SaveIcon === Loader2 ? "animate-spin" : ""}`}
           />
           {generating
             ? doc.rewritingSection
@@ -496,7 +477,7 @@ export function DocumentStudio({ id }: { id: string }) {
             size="sm"
             disabled={readOnly}
             onClick={() => void rewrite(false)}>
-            <Sparkles aria-hidden className="h-3.5 w-3.5" /> Rewrite with AI
+            <Sparkles aria-hidden className="h-4 w-4" /> Rewrite with AI
           </Button>
           {outline.sections.length > 0 && (
             <label className="inline-flex items-center">
@@ -531,7 +512,7 @@ export function DocumentStudio({ id }: { id: string }) {
               variant="ghost"
               onClick={() => void toggleVersions()}
               aria-expanded={!!versions}>
-              <History aria-hidden className="h-3.5 w-3.5" />{" "}
+              <History aria-hidden className="h-4 w-4" />{" "}
               {versions ? "Hide history" : "History"}
             </Button>
             <ExportMenu
@@ -553,7 +534,7 @@ export function DocumentStudio({ id }: { id: string }) {
       )}
 
       {failedEmpty ? (
-        <div className="rounded-xl border border-border p-6 text-sm">
+        <div className="rounded-2xl border border-border p-5 text-sm">
           <p>This document couldn&rsquo;t be written.</p>
           <Button
             variant="primary"
@@ -563,7 +544,7 @@ export function DocumentStudio({ id }: { id: string }) {
           </Button>
         </div>
       ) : (
-        <div className="relative overflow-hidden rounded-xl border border-border bg-background">
+        <div className="relative overflow-hidden rounded-2xl border border-border bg-background shadow-sm">
           {editor && <EditorToolbar editor={editor} disabled={readOnly} />}
           <EditorContent editor={editor} />
           {generating && (
@@ -593,7 +574,7 @@ export function DocumentStudio({ id }: { id: string }) {
         <div
           role="alertdialog"
           aria-label="Confirm rewrite"
-          className="rounded-xl border border-border bg-surface p-5 text-sm">
+          className="rounded-2xl border border-border bg-surface p-5 text-sm">
           <p className="font-medium">Replace your edits with a new AI draft?</p>
           <p className="mt-1 text-muted">
             Your current version is kept in History, so you can restore it.
@@ -612,7 +593,7 @@ export function DocumentStudio({ id }: { id: string }) {
         <div
           role="alertdialog"
           aria-label="Confirm section rewrite"
-          className="rounded-xl border border-border bg-surface p-5 text-sm">
+          className="rounded-2xl border border-border bg-surface p-5 text-sm">
           <p className="font-medium">
             Replace your edits to “{confirm.section}”?
           </p>
@@ -637,7 +618,7 @@ export function DocumentStudio({ id }: { id: string }) {
         <div
           role="alertdialog"
           aria-label="Confirm delete"
-          className="rounded-xl border border-border bg-surface p-5 text-sm">
+          className="rounded-2xl border border-border bg-surface p-5 text-sm">
           <p className="font-medium">Delete this document?</p>
           <p className="mt-1 text-muted">
             This also deletes its history. The recording and transcript are not
@@ -662,7 +643,7 @@ export function DocumentStudio({ id }: { id: string }) {
             History
           </h2>
           {versions.length === 0 ? (
-            <p className="px-5 py-4 text-muted">
+            <p className="px-5 py-3 text-muted">
               Nothing here yet. A version is saved whenever your content is
               about to be replaced.
             </p>
@@ -726,7 +707,7 @@ function ExportMenu({
         Export{" "}
         <ChevronDown
           aria-hidden
-          className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`}
         />
       </Button>
       {open && (
@@ -734,7 +715,7 @@ function ExportMenu({
           ref={panel}
           role="menu"
           aria-label="Export"
-          className="absolute right-0 top-full z-20 mt-2 w-60 rounded-xl border border-border bg-background p-1 shadow-lg">
+          className="absolute right-0 top-full z-20 mt-2 w-60 rounded-2xl border border-border bg-background shadow-sm p-1 shadow-lg">
           <button
             type="button"
             role="menuitem"

@@ -2,6 +2,7 @@
 
 import { X } from "lucide-react";
 import { useEffect, useId, useRef } from "react";
+import { createPortal } from "react-dom";
 
 /**
  * A modal dialog: dims the page, keeps focus inside, closes on Escape or a click outside, and gives focus back to
@@ -33,17 +34,21 @@ export function Dialog({ title, onClose, children, width = "max-w-lg" }: { title
     };
   }, [onClose]);
 
-  return (
+  // Rendered on the page body, outside whatever opened it. A dialog opened from the top bar (which has a blur effect) would
+  // otherwise be positioned relative to the bar and not the screen.
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/55 p-4" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div ref={box} role="dialog" aria-modal="true" aria-labelledby={titleId} className={`max-h-[90vh] w-full ${width} overflow-y-auto rounded-2xl border border-border bg-background text-foreground shadow-2xl`}>
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+      <div ref={box} role="dialog" aria-modal="true" aria-labelledby={titleId} className={`flex max-h-[90vh] w-full ${width} flex-col overflow-hidden rounded-3xl border border-border bg-background text-foreground shadow-2xl`}>
+        <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-3">
           <h2 id={titleId} className="text-lg font-semibold">{title}</h2>
-          <button type="button" onClick={onClose} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-full text-muted hover:bg-surface hover:text-foreground">
+          <button type="button" onClick={onClose} aria-label="Close" className="grid size-10 place-items-center rounded-full text-muted hover:bg-surface hover:text-foreground">
             <X aria-hidden className="h-5 w-5" />
           </button>
         </div>
-        <div className="px-6 py-5">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

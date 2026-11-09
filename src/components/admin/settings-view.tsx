@@ -50,7 +50,7 @@ function Editor({ data, reload }: { data: Data; reload: () => void }) {
   if (isNew) {
     const ns = data as unknown as NewSettings;
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         <p className="text-sm text-muted">Version {ns.version} · scope {ns.scope} · adoption {ns.adoption} {ns.updatedAt ? `· updated ${fmtUtc(ns.updatedAt)}` : ""}</p>
         {!can.allowed && <Notice>{can.reason}</Notice>}
         {conflict && <Notice tone="warning"><span className="flex flex-wrap items-center justify-between gap-3">Version conflict — refetch before another deliberate edit.<Button onClick={() => { setConflict(false); reload(); }}>Reload settings</Button></span></Notice>}
@@ -106,7 +106,7 @@ function Editor({ data, reload }: { data: Data; reload: () => void }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {data.updatedAt && <p className="text-sm text-muted">Last changed {fmtUtc(data.updatedAt)}{data.updatedBy ? ` by ${data.updatedBy}` : ""}.</p>}
       {!can.allowed && <Notice>{can.reason}</Notice>}
       {conflict && (
@@ -126,8 +126,8 @@ function Editor({ data, reload }: { data: Data; reload: () => void }) {
               const text = draft[s.key] ?? (s.kind === "boolean" ? String(s.value) : typeof s.value === "number" ? String(toDisplay(s.unit, s.value)) : String(s.value));
               const apply = APPLY[s.applyMode];
               return (
-                <li key={s.key} className="grid gap-3 px-5 py-4 md:grid-cols-[1fr_16rem] md:gap-6">
-                  <div className="min-w-0 space-y-1.5">
+                <li key={s.key} className="grid gap-3 px-5 py-4 md:grid-cols-[1fr_16rem] md:gap-5">
+                  <div className="min-w-0 space-y-2">
                     <label htmlFor={id} className="text-sm font-medium">{s.label}</label>
                     {s.help && <p className="text-xs text-muted">{s.help}</p>}
                     <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">

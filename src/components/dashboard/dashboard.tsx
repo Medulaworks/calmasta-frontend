@@ -3,76 +3,41 @@
 import { dashboardPath } from "@/lib/app-routes";
 
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, CheckCircle2, Circle, Clock, Gauge, ListChecks, Mic, Video } from "lucide-react";
+import { AlertTriangle, ArrowRight, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useProfile } from "@/components/shell/profile-context";
-import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
+import { InboxIllustration, VoiceIllustration } from "@/components/ui/illustrations";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { type Dashboard } from "@/lib/dashboard-client";
-import { type PlanSummary, formatDate } from "@/lib/plan-client";
-import { PLAN_LABEL } from "@/lib/plan-types";
+import { type DashboardState, resolveDashboardState } from "@/lib/dashboard-state";
+import { markResultSeen, resultSeen } from "@/lib/first-result";
 import { dashboardQuery } from "@/lib/queries";
-import { formatMinutes, greeting, timeAgo } from "@/lib/status";
-import { browserTimeZone, formatDay } from "@/lib/tz";
-import { ItemRow, ItemRowSkeleton } from "./item-row";
-import { QuotaCard } from "./quota-card";
+import { greeting } from "@/lib/status";
+import { browserTimeZone } from "@/lib/tz";
+import { ItemRow, ItemRowSkeleton, statusFor } from "./item-row";
+import { ActionCards, WelcomeBar } from "./home";
+import { ActionDock, CalendarPrompt, Checklist, DropAnywhere, FirstResultCard, FollowUps, SampleResult } from "./parts";
+import { refetchWhileRunning } from "./running";
 import { UpcomingMeetings } from "./upcoming-meetings";
 
 const noSubscribe = () => () => {};
 // -1 on the server so the first paint never disagrees with the browser's clock.
 const useHour = () => useSyncExternalStore(noSubscribe, () => new Date().getHours(), () => -1);
 
-/** "2 more than last month", "Same as last month": which way a figure is going, in words as well as an arrow. */
-function Delta({ now, before, format = String }: { now: number; before: number; format?: (n: number) => string }) {
-  if (now === 0 && before === 0) return <span className="text-xs text-muted">Nothing yet</span>;
-  const diff = now - before;
-  if (diff === 0) return <span className="text-xs text-muted">Same as last month</span>;
-  const up = diff > 0;
-  return (
-    <span className={`inline-flex items-center gap-1 text-xs ${up ? "text-success" : "text-muted"}`}>
-      {up ? <ArrowUp aria-hidden className="h-3 w-3" /> : <ArrowDown aria-hidden className="h-3 w-3" />}
-      {format(Math.abs(diff))} {up ? "more" : "fewer"} than last month
-    </span>
-  );
-}
-
-function Metric({ label, value, icon, href, children, tone }: { label: string; value: React.ReactNode; icon: React.ReactNode; href: string; children: React.ReactNode; tone?: "warning" }) {
-  return (
-    <Link href={dashboardPath(href)} className="group block rounded-xl border border-border bg-background p-5 transition-colors hover:bg-surface focus-visible:bg-surface">
-      <span className="flex items-center justify-between text-muted">
-        <span className="text-sm">{label}</span>
-        <span aria-hidden className="group-hover:text-foreground">{icon}</span>
-      </span>
-      <span className={`mt-3 block text-3xl font-medium tracking-tight tabular-nums ${tone === "warning" ? "text-warning" : ""}`}>{value}</span>
-      <span className="mt-1.5 block">{children}</span>
-    </Link>
-  );
-}
-
-function MetricSkeleton() {
-  return (
-    <div aria-hidden className="rounded-xl border border-border bg-background p-5">
-      <div className="h-3 w-24 jb-skel rounded bg-border" />
-      <div className="mt-4 h-8 w-16 jb-skel rounded bg-border" />
-      <div className="mt-3 h-2.5 w-32 jb-skel rounded bg-border" />
-    </div>
-  );
-}
-
 function ListCard({ title, id, items, empty, action, showReason }: { title: string; id: string; items: Dashboard["recentRecordings"] | null; empty: React.ReactNode; action?: React.ReactNode; showReason?: boolean }) {
   return (
-    <Card>
+    <Card className="flex min-h-72 flex-1 flex-col">
       <CardHeader title={title} id={id} action={action} />
       {items === null ? (
-        <ul aria-labelledby={id} className="divide-y divide-border">{[0, 1, 2].map((i) => <ItemRowSkeleton key={i} />)}</ul>
+        <ul aria-labelledby={id} className="flex-1 divide-y divide-border">{[0, 1, 2].map((i) => <ItemRowSkeleton key={i} />)}</ul>
       ) : items.length === 0 ? (
         empty
       ) : (
-        <ul aria-labelledby={id} className="divide-y divide-border">
+        <ul aria-labelledby={id} className="flex-1 divide-y divide-border">
           {items.map((it) => <ItemRow key={`${it.kind}-${it.id}`} item={it} showReason={showReason} />)}
         </ul>
       )}
@@ -81,66 +46,10 @@ function ListCard({ title, id, items, empty, action, showReason }: { title: stri
 }
 
 const viewAll = (href: string) => (
-  <Link href={dashboardPath(href)} className="inline-flex items-center gap-1 text-xs text-muted hover:text-foreground">
-    View all <ArrowRight aria-hidden className="h-3 w-3" />
-  </Link>
+  <ButtonLink href={href} variant="secondary" size="sm">
+    View all <ArrowRight aria-hidden className="size-4" />
+  </ButtonLink>
 );
-
-/** Only rendered when there is something to decide on; the first few, with the full count in the header. */
-function ActionItems({ d }: { d: Dashboard }) {
-  const m = d.metrics.actionItems;
-  if (!m) return null;
-  return (
-    <Card>
-      <CardHeader title="Action items" id="actions" action={<span className="text-xs text-muted">{m.toReview} to review · {m.open} open</span>} />
-      <ul aria-labelledby="actions" className="divide-y divide-border">
-        {d.actionItems.slice(0, 3).map((a) => (
-          <li key={a.id}>
-            <Link href={dashboardPath(a.href)} className="block px-5 py-3 transition-colors hover:bg-surface">
-              <span className="flex items-start justify-between gap-3">
-                <span className="line-clamp-2 text-sm">{a.text}</span>
-                <Badge tone={a.status === "suggested" ? "warning" : "info"}>{a.status === "suggested" ? "To review" : "Open"}</Badge>
-              </span>
-              <span className="mt-1 block truncate text-xs text-muted">From {a.captureTitle} · {timeAgo(a.at)}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </Card>
-  );
-}
-
-function GettingStarted({ d }: { d: Dashboard }) {
-  const latest = d.recentRecordings.find((r) => r.kind === "recording");
-  const steps = [
-    { done: d.progress.hasRecording, title: "Record or upload audio", body: "Speak for a minute or upload a file.", href: "/dashboard/voice" },
-    ...(d.progress.hasDocument !== null
-      ? [{ done: d.progress.hasDocument, title: "Turn it into a document", body: "Pick a template and edit the result.", href: latest?.href ?? "/dashboard/voice" }]
-      : []),
-    { done: d.progress.hasMeetingCapture, title: "Capture a meeting", body: "Send a visible assistant to a call.", href: "/dashboard/capture" },
-  ];
-  if (steps.every((s) => s.done)) return null;
-  const done = steps.filter((s) => s.done).length;
-  return (
-    <Card>
-      <CardHeader title="Get started" action={<span className="text-xs text-muted">{done} of {steps.length}</span>} />
-      <ol className="divide-y divide-border">
-        {steps.map((s) => (
-          <li key={s.title}>
-            <Link href={dashboardPath(s.href)} className="flex items-start gap-3 px-5 py-3 transition-colors hover:bg-surface">
-              {s.done ? <CheckCircle2 aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-success" /> : <Circle aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-muted" />}
-              <span className="min-w-0">
-                <span className={`block text-sm font-medium ${s.done ? "text-muted line-through" : ""}`}>{s.title}</span>
-                <span className="block text-xs text-muted">{s.body}</span>
-              </span>
-              <span className="sr-only">{s.done ? "(done)" : "(to do)"}</span>
-            </Link>
-          </li>
-        ))}
-      </ol>
-    </Card>
-  );
-}
 
 export function Dashboard() {
   const hour = useHour();
@@ -152,120 +61,133 @@ export function Dashboard() {
     refetch,
   } = useQuery({
     ...dashboardQuery,
-    refetchInterval: (q) => ((q.state.data as Dashboard | undefined)?.stats.inProgress ?? 0) > 0 ? 4000 : false,
+    refetchInterval: refetchWhileRunning,
   });
   const data = dataRaw ?? null;
-  const plan: PlanSummary | null = null;
   const error = queryError ? (queryError instanceof Error ? queryError.message : "Could not load your dashboard.") : null;
   const refresh = () => void refetch();
+  const [seen, setSeen] = useState(() => (typeof window === "undefined" ? true : resultSeen()));
+  const first = (profile?.name?.trim() || "").split(/\s+/)[0];
 
-  const m = data?.metrics;
   // One list for everything recent: what is running now first, then meetings and recordings together, newest first.
   const conversations = data
-    ? [...data.inProgress, ...[...data.recentMeetings, ...data.recentRecordings].filter((r: Dashboard["recentRecordings"][number]) => !data.inProgress.some((i: Dashboard["inProgress"][number]) => i.id === r.id)).sort((a: Dashboard["recentRecordings"][number], b: Dashboard["recentRecordings"][number]) => b.at.localeCompare(a.at))]
+    ? [...data.inProgress, ...[...data.recentMeetings, ...data.recentRecordings].filter((r: Dashboard["recentRecordings"][number]) => !data.inProgress.some((i: Dashboard["inProgress"][number]) => i.id === r.id && i.kind === r.kind))]
         .filter((r: Dashboard["recentRecordings"][number], i: number, all: Dashboard["recentRecordings"]) => all.findIndex((x: Dashboard["recentRecordings"][number]) => x.id === r.id && x.kind === r.kind) === i)
-        .slice(0, 5)
+        .sort((a, b) => (b.at > a.at ? 1 : -1))
+        .slice(0, 8)
     : null;
-  const side = true;
-  const first = (profile?.name?.trim() || "").split(/\s+/)[0];
-  const today = hour >= 0 ? formatDay(new Date(), timeZone) : "";
+
+  // Finished captures, for the state. The server only sends the latest few, so "this month" fills in the count when it is larger.
+  const finished = data ? conversations!.filter((c) => c.kind !== "document" && statusFor(c).tone === "success") : [];
+  const captureCount = data ? Math.max(finished.length, data.stats.recordingsThisMonth + data.metrics.meetingsCaptured.thisMonth) : 0;
+  const state: DashboardState | null = data
+    ? resolveDashboardState({ captureCount, captureDates: finished.map((c) => c.at), firstResultSeen: seen, now: new Date(), timeZone })
+    : null;
+
+  const greetingTitle = hour < 0 ? "Welcome back" : state === "cold" ? `${greeting(hour)}.` : state === "lapsed" ? "Welcome back." : `Welcome back${first ? `, ${first}` : ""}.`;
+  const waiting = data?.metrics.actionItems ? data.metrics.actionItems.open + data.metrics.actionItems.toReview : 0;
+  const subtitle =
+    state === "cold" ? "Your ideas deserve somewhere useful to go."
+    : state === "lapsed" ? "Here is where you left off."
+    : waiting > 0 ? `${waiting} ${waiting === 1 ? "thing is" : "things are"} waiting on you.`
+    : "Here is what has been happening.";
+
+  const recent = (limit = 8) => (
+    <ListCard
+      title="History"
+      id="recent-conversations"
+      items={conversations ? conversations.slice(0, limit) : null}
+      action={viewAll("/dashboard/library?tab=recordings")}
+      empty={<EmptyState illustration={<InboxIllustration />} title="Your next good idea starts here" body="Capture a conversation, record a thought or upload an audio file. Your transcripts, summaries and action points will appear here." />}
+    />
+  );
 
   return (
-    <div className="space-y-8">
-      <PageHeader
-        title={hour >= 0 ? `${greeting(hour)}${first ? `, ${first}` : ""}` : "Welcome back"}
-        description={today ? `${today}. Here's what's coming up and what needs you.` : "Here's what's coming up and what needs you."}
-        actions={
-          <>
-            <ButtonLink href="/dashboard/capture" variant="secondary">
-              <Video aria-hidden className="h-4 w-4" /> Capture a meeting
-            </ButtonLink>
-            <ButtonLink href="/dashboard/voice" variant="primary">
-              <Mic aria-hidden className="h-4 w-4" /> Record a thought
-            </ButtonLink>
-          </>
-        }
-      />
+    <div className="flex flex-col gap-4">
+      <DropAnywhere />
+      {state === "cold" && <PageHeader title={greetingTitle} description={subtitle} />}
 
       {error && (
-        <div role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+        <div role="alert" className="flex items-center justify-between gap-4 rounded-2xl border border-danger/30 bg-danger/10 px-5 py-3 text-sm text-danger">
           <span>{error}</span>
-          <Button variant="secondary" onClick={refresh}>Retry</Button>
+          <Button variant="secondary" onClick={refresh}>Try again</Button>
         </div>
       )}
 
-      <section aria-label="This month" className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        {m && data ? (
-          <>
-            <Metric label="Meetings captured" value={m.meetingsCaptured.thisMonth} icon={<Video className="h-4 w-4" />} href="/dashboard/library?tab=recordings">
-              <Delta now={m.meetingsCaptured.thisMonth} before={m.meetingsCaptured.lastMonth} />
-            </Metric>
-            <Metric label="Time transcribed" value={formatMinutes(m.minutesTranscribed.thisMonth)} icon={<Clock className="h-4 w-4" />} href="/dashboard/plan">
-              <Delta now={m.minutesTranscribed.thisMonth} before={m.minutesTranscribed.lastMonth} format={formatMinutes} />
-            </Metric>
-            {m.actionItems !== null ? (
-              <Metric label="Action items to review" value={m.actionItems.toReview} icon={<ListChecks className="h-4 w-4" />} href={data.actionItems[0]?.href ?? "/dashboard/library"} tone={m.actionItems.toReview > 0 ? "warning" : undefined}>
-                <span className="text-xs text-muted">{m.actionItems.open} open · accepted, not done</span>
-              </Metric>
-            ) : (
-              <Metric label="Recordings this month" value={data.stats.recordingsThisMonth} icon={<Mic className="h-4 w-4" />} href="/dashboard/library?tab=recordings">
-                <span className="text-xs text-muted">Uploads and meetings created</span>
-              </Metric>
-            )}
-            {plan ? (
-              <Metric label="Allowance left" value={formatMinutes((plan as PlanSummary).remainingMinutes)} icon={<Gauge className="h-4 w-4" />} href="/dashboard/plan" tone={(plan as PlanSummary).exhausted ? "warning" : undefined}>
-                <span className="block h-1.5 overflow-hidden rounded-full bg-border" aria-hidden>
-                  <span className={`block h-full rounded-full ${(plan as PlanSummary).exhausted ? "bg-danger-solid" : "bg-accent-solid"}`} style={{ width: `${Math.min(100, Math.round(((plan as PlanSummary).usedMinutes / Math.max(1, (plan as PlanSummary).allowanceMinutes)) * 100))}%` }} />
-                </span>
-                <span className="mt-1.5 block text-xs text-muted">{PLAN_LABEL[(plan as PlanSummary).plan.plan]} · resets {formatDate((plan as PlanSummary).resetsAt, (plan as PlanSummary).timezone)}</span>
-              </Metric>
-            ) : (
-              <Metric label="In progress" value={data.stats.inProgress} icon={<Gauge className="h-4 w-4" />} href="/dashboard/library?tab=recordings">
-                <span className="text-xs text-muted">{data.stats.inProgress === 0 ? "Nothing running right now" : "Currently recording or transcribing"}</span>
-              </Metric>
-            )}
-          </>
-        ) : (
-          [0, 1, 2, 3].map((i) => <MetricSkeleton key={i} />)
-        )}
-      </section>
-
       {data && data.needsAttention.length > 0 && (
-        <section aria-label="Needs attention" className="rounded-xl border border-danger/30 bg-danger/5">
+        <section aria-label="Needs attention" className="rounded-2xl border border-danger/30 bg-danger/5">
           <ul className="divide-y divide-danger/15">
             {data.needsAttention.slice(0, 2).map((it: Dashboard["needsAttention"][number]) => (
               <li key={`${it.kind}-${it.id}`}>
-                <Link href={dashboardPath(it.href)} className="flex items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-danger/5">
-                  <AlertTriangle aria-hidden className="h-4 w-4 shrink-0 text-danger" />
+                <Link href={dashboardPath(it.href)} className="flex items-center gap-4 px-5 py-3 text-sm transition-colors hover:bg-danger/5">
+                  <AlertTriangle aria-hidden className="h-5 w-5 shrink-0 text-danger" />
                   <span className="min-w-0 flex-1 truncate"><span className="font-medium">{it.title}</span> <span className="text-muted">· {it.failureReason ?? "needs a look"}</span></span>
-                  <ArrowRight aria-hidden className="h-4 w-4 shrink-0 text-muted" />
+                  <ArrowRight aria-hidden className="h-5 w-5 shrink-0 text-muted" />
                 </Link>
               </li>
             ))}
           </ul>
-          {data.needsAttention.length > 2 && <p className="px-4 pb-3 text-xs text-muted">and {data.needsAttention.length - 2} more in your library</p>}
+          {data.needsAttention.length > 2 && <p className="px-5 pb-4 text-xs text-muted">and {data.needsAttention.length - 2} more in your folder</p>}
         </section>
       )}
 
-      <div className={`grid gap-6 ${side ? "xl:grid-cols-3" : ""}`}>
-        <div className="min-w-0 space-y-6 xl:col-span-2">
-          {data?.capabilities?.calendar !== false && <UpcomingMeetings timeZone={timeZone} />}
-
-          <ListCard
-            title="Recent conversations"
-            id="recent-conversations"
-            items={conversations}
-            action={viewAll("/dashboard/library?tab=recordings")}
-            empty={<EmptyState icon={<Mic className="h-5 w-5" />} title="No conversations yet" body="Record a thought, upload audio or send an assistant to a meeting. The transcript lands here." action={<ButtonLink href="/dashboard/voice" variant="primary">Record a thought</ButtonLink>} />}
-          />
+      {state === null && (
+        <div role="status" aria-label="Loading" aria-busy="true" className="space-y-5">
+          <div className="h-48 jb-skel rounded-3xl border border-border bg-surface" />
+          <div className="grid gap-5 lg:grid-cols-2">{[0, 1].map((i) => <div key={i} className="h-64 jb-skel rounded-2xl border border-border bg-surface" />)}</div>
         </div>
+      )}
 
-        <div className="min-w-0 space-y-6">
-          <QuotaCard />
-          {data && data.actionItems.length > 0 && <ActionItems d={data} />}
-          {data && <GettingStarted d={data} />}
-        </div>
-      </div>
+      {data && state === "cold" && (
+        <>
+          <section className="jb-rise relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-accent-solid/15 via-background to-background p-6 md:p-12">
+            <div aria-hidden className="jb-orb pointer-events-none absolute -right-20 -top-20 size-72 rounded-full bg-accent-solid/20 blur-3xl" />
+            <div className="relative grid items-center gap-6 md:grid-cols-[1fr_16rem]">
+              <div>
+                <p className="inline-flex items-center gap-2 rounded-full border border-border bg-background/80 px-4 py-1 text-xs font-medium text-muted backdrop-blur"><Sparkles aria-hidden className="size-4 text-accent" /> Meet · Think · Act</p>
+                <h2 className="mt-4 text-3xl font-semibold tracking-tight md:text-4xl">Capture it. Make sense of it. Put it to work.</h2>
+                <p className="mt-4 max-w-2xl text-base text-muted">Meetings, ideas, conversations and voice notes deserve more than a recording. Jooba helps you turn what you say and hear into organised information, useful insights and actionable next steps.</p>
+              </div>
+              <div className="mx-auto hidden w-full max-w-64 md:block"><VoiceIllustration /></div>
+            </div>
+          </section>
+
+          <div className="jb-rise" style={{ ["--d" as string]: "0.1s" } as React.CSSProperties}>
+            <h2 className="mb-4 text-lg font-semibold">What would you like to do?</h2>
+            <ActionDock />
+          </div>
+
+          <div className="grid gap-5 xl:grid-cols-3">
+            <div className="min-w-0 xl:col-span-2"><SampleResult /></div>
+            <div className="min-w-0 space-y-5">
+              {data.capabilities?.calendar !== false && <CalendarPrompt />}
+              <Checklist d={data} seen={seen} />
+            </div>
+          </div>
+
+          <p className="mx-auto max-w-2xl pb-4 text-center text-base text-muted">Your thoughts should not get lost. Your conversations should not go to waste. Jooba helps you remember more, organise better and follow through.</p>
+        </>
+      )}
+
+      {data && state !== null && state !== "cold" && (
+        <>
+          <WelcomeBar title={greetingTitle} subtitle={subtitle} timeZone={timeZone} />
+          <ActionCards />
+          {state === "first_result" && <FirstResultCard d={data} onOpen={() => { markResultSeen(); setSeen(true); }} />}
+          {(() => {
+            const side = [
+              data.capabilities?.calendar !== false ? <UpcomingMeetings key="up" timeZone={timeZone} /> : <CalendarPrompt key="cal" />,
+              state !== "lapsed" && (state === "active" || waiting > 0) && <FollowUps key="fu" d={data} />,
+            ].filter(Boolean);
+            return (
+              <div className={`flex flex-col gap-4 ${side.length ? "xl:grid xl:grid-cols-3 xl:items-start" : ""}`}>
+                <div className="flex min-w-0 flex-col xl:col-span-2 xl:[&:only-child]:col-span-3">{recent(state === "lapsed" ? 5 : 8)}</div>
+                {side.length > 0 && <div className="min-w-0 space-y-4">{side}</div>}
+              </div>
+            );
+          })()}
+        </>
+      )}
     </div>
   );
 }

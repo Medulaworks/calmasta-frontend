@@ -1,5 +1,6 @@
 "use client";
 
+import { Loading, Skeleton, SkeletonPanel } from "@/components/ui/skeleton";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { BookingSummary } from "@/components/booking/booking-summary";
@@ -104,7 +105,7 @@ export function ManageBooking({ token }: { token: string }) {
 
   if (problem) {
     return (
-      <div role="alert" className="mx-auto max-w-md py-16 text-center">
+      <div role="alert" className="mx-auto max-w-md py-12 text-center">
         <h1 className="text-2xl font-semibold tracking-tight">
           {problem.title}
         </h1>
@@ -114,16 +115,14 @@ export function ManageBooking({ token }: { token: string }) {
   }
   if (!booking)
     return (
-      <div
-        aria-hidden
-        className="mx-auto max-w-xl animate-pulse space-y-4 py-10">
-        <div className="h-8 w-56 rounded bg-border" />
-        <div className="h-48 rounded-xl bg-border/50" />
-      </div>
+      <Loading label="Loading your booking" className="mx-auto max-w-xl space-y-4 py-10">
+        <Skeleton className="h-8 w-56" />
+        <SkeletonPanel className="h-48" />
+      </Loading>
     );
 
   return (
-    <div className="mx-auto max-w-xl space-y-6 py-10">
+    <div className="mx-auto max-w-xl space-y-5 py-10">
       {saved && (
         <p
           role="status"
@@ -181,7 +180,7 @@ export function ManageBooking({ token }: { token: string }) {
         <div
           role="alertdialog"
           aria-label="Confirm cancel"
-          className="rounded-xl border border-border bg-surface p-5 text-sm">
+          className="rounded-2xl border border-border bg-surface p-5 text-sm">
           <p className="font-medium">Cancel this booking?</p>
           <p className="mt-1 text-muted">
             The time will be given back. You can book again whenever you like.
@@ -208,7 +207,7 @@ export function ManageBooking({ token }: { token: string }) {
       {mode === "reschedule" && (
         <section
           aria-label="Choose a new time"
-          className="space-y-4 rounded-xl border border-border p-5">
+          className="space-y-4 rounded-2xl border border-border p-5">
           <h2 className="font-semibold">Choose a new time</h2>
           <label className="block text-sm">
             <span className="text-muted">Show times in</span>
@@ -218,7 +217,7 @@ export function ManageBooking({ token }: { token: string }) {
                 setTimeZone(e.target.value);
                 setSlot(null);
               }}
-              className="mt-1 block w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
+              className="mt-1 block w-full min-h-10 rounded-xl border border-border bg-background px-4 py-2 text-sm">
               {zones.map((z) => (
                 <option key={z} value={z}>
                   {z.replace(/_/g, " ")}

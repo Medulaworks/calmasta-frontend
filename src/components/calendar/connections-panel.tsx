@@ -128,7 +128,7 @@ export function ConnectionsPanel({
                     onClick={() => void connectGoogle()}
                     disabled={busy}
                     className="inline-flex items-center gap-2">
-                    <Image src="/icons/icons8-google-96.png" alt="" width={18} height={18} className="h-[18px] w-[18px] shrink-0" />
+                    <Image src="/icons/icons8-google-96.png" alt="" width={18} height={18} className="h-5 w-5 shrink-0" />
                     {busy ? "Connecting…" : "Connect Google Calendar"}
                   </Button>
                   <Button
@@ -136,7 +136,7 @@ export function ConnectionsPanel({
                     onClick={() => void connectMicrosoft()}
                     disabled={busy}
                     className="inline-flex items-center gap-2">
-                    <Image src="/icons/icons8-microsoft-96.png" alt="" width={18} height={18} className="h-[18px] w-[18px] shrink-0" />
+                    <Image src="/icons/icons8-microsoft-96.png" alt="" width={18} height={18} className="h-5 w-5 shrink-0" />
                     {busy ? "Connecting…" : "Connect Microsoft Calendar"}
                   </Button>
                 </div>
@@ -147,7 +147,7 @@ export function ConnectionsPanel({
           <>
             <ul className="divide-y divide-border">
               {conns.connections.map((c) => (
-              <li key={c.id} className="space-y-3 px-5 py-4 text-sm">
+              <li key={c.id} className="space-y-3 px-5 py-3 text-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <p className="font-medium">{c.accountEmail}</p>
@@ -186,7 +186,7 @@ export function ConnectionsPanel({
                     className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-warning">
                     <TriangleAlert
                       aria-hidden
-                      className="mt-0.5 h-4 w-4 shrink-0"
+                      className="mt-1 h-4 w-4 shrink-0"
                     />{" "}
                     Jooba lost access to this calendar. Its events aren&apos;t
                     shown, and booking pages that check it are paused so nobody
@@ -220,7 +220,7 @@ export function ConnectionsPanel({
                   onClick={() => void connectGoogle()}
                   disabled={busy}
                   className="inline-flex items-center gap-2">
-                  <Image src="/icons/icons8-google-96.png" alt="" width={18} height={18} className="h-[18px] w-[18px] shrink-0" />
+                  <Image src="/icons/icons8-google-96.png" alt="" width={18} height={18} className="h-5 w-5 shrink-0" />
                   Connect Google Calendar
                 </Button>
                 <Button
@@ -228,7 +228,7 @@ export function ConnectionsPanel({
                   onClick={() => void connectMicrosoft()}
                   disabled={busy}
                   className="inline-flex items-center gap-2">
-                  <Image src="/icons/icons8-microsoft-96.png" alt="" width={18} height={18} className="h-[18px] w-[18px] shrink-0" />
+                  <Image src="/icons/icons8-microsoft-96.png" alt="" width={18} height={18} className="h-5 w-5 shrink-0" />
                   Connect Microsoft Calendar
                 </Button>
               </div>
@@ -241,7 +241,7 @@ export function ConnectionsPanel({
         <div
           role="alertdialog"
           aria-label="Confirm disconnect"
-          className="rounded-xl border border-border bg-surface p-5 text-sm">
+          className="rounded-2xl border border-border bg-surface p-5 text-sm">
           <p className="font-medium">
             Disconnect {disconnecting.accountEmail}?
           </p>

@@ -99,7 +99,7 @@ function Ring({ pct, health }: { pct: number; health: Health }) {
 export function SidebarPlanCard({ plan }: { plan: PlanSummary | null }) {
   const displayPlan = plan ?? DUMMY_PLAN;
   if (!displayPlan) {
-    return <div aria-hidden className="mb-1 h-[7.5rem] animate-pulse rounded-xl bg-black/15 sc:md:h-12 sc:md:w-12 sc:md:self-center" />;
+    return <div aria-hidden className="mb-1 h-[7.5rem] jb-skel rounded-xl bg-black/15 sc:md:h-12 sc:md:w-12 sc:md:self-center" />;
   }
   const pro = isPaidPlan(displayPlan.plan.plan);
   const planName = PLAN_LABEL[displayPlan.plan.plan];
@@ -122,11 +122,11 @@ export function SidebarPlanCard({ plan }: { plan: PlanSummary | null }) {
       <div className="relative mb-1 overflow-hidden rounded-xl border border-sidebar-border bg-gradient-to-br from-sidebar-active-fg/25 via-black/10 to-black/25 p-3 sc:md:hidden">
         <span aria-hidden className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-sidebar-active-fg/15 blur-2xl" />
         <div className="relative flex items-center justify-between gap-2">
-          <p className="flex items-center gap-1.5 text-sm font-semibold text-sidebar-fg">
+          <p className="flex items-center gap-2 text-sm font-semibold text-sidebar-fg">
             {pro ? <Sparkles aria-hidden className="h-4 w-4 text-sidebar-active-fg" /> : <Zap aria-hidden className="h-4 w-4 text-sidebar-active-fg" />}
             {planName} plan
           </p>
-          <span className="rounded-full bg-sidebar-fg/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-sidebar-fg">{health === "out" ? "Used up" : health === "low" ? "Running low" : health === "grace" ? "Action needed" : health === "pending" ? "Pending" : "Active"}</span>
+          <span className="rounded-full bg-sidebar-fg/15 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-sidebar-fg">{health === "out" ? "Used up" : health === "low" ? "Running low" : health === "grace" ? "Action needed" : health === "pending" ? "Pending" : "Active"}</span>
         </div>
         <p className="relative mt-3 text-xl font-semibold leading-none tracking-tight text-sidebar-fg tabular-nums">{headline}</p>
         {!displayPlan.exhausted && health !== "grace" && health !== "pending" && <p className="relative mt-1 text-xs text-sidebar-muted">of {formatMinutes(total)} this month</p>}
@@ -134,8 +134,8 @@ export function SidebarPlanCard({ plan }: { plan: PlanSummary | null }) {
           <div className={`h-full rounded-full transition-[width] ${FILL[health]}`} style={{ width: `${Math.max(usedPct, displayPlan.exhausted ? 100 : 3)}%` }} />
         </div>
         <p className="relative mt-2 text-xs text-sidebar-muted">Resets {formatDate(displayPlan.resetsAt, displayPlan.timezone)}</p>
-        <Link href={dashboardPath(href)} className="relative mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg bg-sidebar-fg px-3 py-2 text-sm font-semibold text-sidebar transition-opacity hover:opacity-90">
-          {pro && health === "ok" ? null : <Zap aria-hidden className="h-3.5 w-3.5" />} {cta}
+        <Link href={dashboardPath(href)} className="relative mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-sidebar-fg px-3 py-2 text-sm font-semibold text-sidebar transition-opacity hover:opacity-90">
+          {pro && health === "ok" ? null : <Zap aria-hidden className="h-4 w-4" />} {cta}
         </Link>
       </div>
 
@@ -143,7 +143,7 @@ export function SidebarPlanCard({ plan }: { plan: PlanSummary | null }) {
       <Link href={dashboardPath(href)} aria-label={label} className="group relative mb-1 hidden h-12 w-12 items-center justify-center self-center rounded-xl transition-colors hover:bg-sidebar-active/60 sc:md:flex">
         <Ring pct={leftPct} health={health} />
         <span className="absolute inset-0 grid place-items-center text-sidebar-fg">{pro ? <Sparkles aria-hidden className="h-4 w-4" /> : <Zap aria-hidden className="h-4 w-4" />}</span>
-        <span aria-hidden className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -translate-y-1/2 whitespace-nowrap rounded-md bg-foreground px-2 py-1.5 text-xs font-medium text-background shadow-lg group-hover:block group-focus-visible:block">
+        <span aria-hidden className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -translate-y-1/2 whitespace-nowrap rounded-md bg-foreground px-2 py-2 text-xs font-medium text-background shadow-lg group-hover:block group-focus-visible:block">
           {planName} plan · {headline}
         </span>
       </Link>

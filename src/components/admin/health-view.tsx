@@ -46,7 +46,7 @@ function ServiceCard({ s }: { s: Json<ServiceHealth> }) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium">{s.name}</p>
-          <p className="mt-0.5 text-xs text-muted">{s.latencyMs === null ? "No speed reading" : `${s.latencyMs} ms`}{s.lastCheckedAt ? ` · checked ${fmtUtc(s.lastCheckedAt)}` : " · never checked"}</p>
+          <p className="mt-1 text-xs text-muted">{s.latencyMs === null ? "No speed reading" : `${s.latencyMs} ms`}{s.lastCheckedAt ? ` · checked ${fmtUtc(s.lastCheckedAt)}` : " · never checked"}</p>
         </div>
         <StatusBadge status={s.status} />
       </div>
@@ -71,7 +71,7 @@ export function HealthView() {
         if (isNew) {
           const nh = h as unknown as NewHealth;
           return (
-            <div className="space-y-6">
+            <div className="space-y-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm"><Badge tone={nh.worker === "healthy" ? "success" : "neutral"}>{nh.worker}</Badge> <span className="ml-2 text-muted">API {nh.api} · {nh.environment} {nh.telemetry.enabled ? (nh.telemetry.deliveryVerified ? "· telemetry verified" : "· telemetry not verified — no collector receipt") : "· telemetry off"} </span></p>
                 <Button onClick={res.reload}><RefreshCw aria-hidden className="size-4" /> Refresh</Button>
@@ -100,7 +100,7 @@ export function HealthView() {
         const groups = ["Core", "Providers", "Integrations"] as const;
         const GROUP_NAME = { Core: "Jooba itself", Providers: "Outside services we pay for", Integrations: "Connected apps" } as const;
         return (
-          <div className="space-y-6">
+          <div className="space-y-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="flex items-center gap-2 text-sm">
                 <StatusBadge status={(h as Data).overall} />
@@ -120,7 +120,7 @@ export function HealthView() {
               </section>
             ))}
 
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-5 md:grid-cols-2">
               <Card>
                 <CardHeader title="Processing" />
                 <ul className="divide-y divide-border text-sm">

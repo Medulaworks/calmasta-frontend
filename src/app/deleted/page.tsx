@@ -8,7 +8,7 @@ export const metadata = {
 
 export default function DeletedPage() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-12">
+    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 py-10">
       <div className="mb-6 text-lg">
         <Brand size={40} />
       </div>

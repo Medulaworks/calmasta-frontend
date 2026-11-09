@@ -1,46 +1,30 @@
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { CaptureForm } from "@/components/capture-form";
-import { CaptureTabs } from "@/components/capture/capture-tabs";
 import { VoiceRecorder } from "@/components/voice-recorder";
 import { PageHeader } from "@/components/ui/page-header";
 
-export const metadata = { title: "Capture · Jooba" };
+export const metadata = { title: "Record · Jooba" };
 
 type Props = {
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; link?: string }>;
 };
 
-function resolveTab(raw: string | undefined): "voice" | "bot" {
-  if (raw === "voice") return "voice";
-  if (raw === "bot" || raw === "meeting") return "bot";
-  // Default to bot (first tab) when missing/unknown
-  return "bot";
-}
-
-async function VoicePageInner({ searchParams }: Props) {
-  const { tab } = await searchParams;
-  const active = resolveTab(tab);
-  const isVoice = active === "voice";
+async function ThinkPageInner({ searchParams }: Props) {
+  const { tab, link } = await searchParams;
+  // Old links opened one page with two tabs. The meeting tab now lives at Meet.
+  if (tab === "bot" || tab === "meeting") redirect(`/dashboard/capture${link ? `?link=${encodeURIComponent(link)}` : ""}`);
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Capture"
-        description={
-          isVoice
-            ? "Record a thought or upload audio, then turn it into a brief, minutes or follow-up."
-            : "Add a meeting bot: paste a Google Meet, Teams or Zoom link and a visible meeting assistant will join, record and hand you a transcript."
-        }
-      />
-      <CaptureTabs active={active} />
-      {isVoice ? <VoiceRecorder /> : <CaptureForm />}
+      <PageHeader title="Record" description="Say it out loud, or upload a recording. Jooba turns it into a transcript, then into notes, a plan or reminders." />
+      <VoiceRecorder />
     </div>
   );
 }
 
-export default function VoicePage(props: Props) {
+export default function ThinkPage(props: Props) {
   return (
-    <Suspense fallback={<div className="space-y-6"><div className="h-20 animate-pulse rounded-xl bg-border" /></div>}>
-      <VoicePageInner {...props} />
+    <Suspense fallback={<div className="space-y-6"><div className="h-20 jb-skel rounded-2xl bg-border" /></div>}>
+      <ThinkPageInner {...props} />
     </Suspense>
   );
 }

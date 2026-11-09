@@ -218,7 +218,7 @@ export function AvailabilityTab() {
                   <div
                     key={d.id}
                     className="flex flex-wrap items-start gap-3 border-b border-border pb-2 text-sm last:border-0">
-                    <label className="flex w-32 items-center gap-2 pt-1.5">
+                    <label className="flex w-32 items-center gap-2 pt-2">
                       <input
                         type="checkbox"
                         checked={on}
@@ -252,7 +252,7 @@ export function AvailabilityTab() {
                                   ),
                                 )
                               }
-                              className="rounded-lg border border-border bg-background px-2 py-1.5"
+                              className="rounded-lg border border-border bg-background px-2 py-2"
                             />
                             <span className="text-muted">to</span>
                             <input
@@ -267,7 +267,7 @@ export function AvailabilityTab() {
                                   ),
                                 )
                               }
-                              className="rounded-lg border border-border bg-background px-2 py-1.5"
+                              className="rounded-lg border border-border bg-background px-2 py-2"
                             />
                             <button
                               type="button"
@@ -298,7 +298,7 @@ export function AvailabilityTab() {
                         )}
                       </div>
                     ) : (
-                      <span className="pt-1.5 text-muted">Unavailable</span>
+                      <span className="pt-2 text-muted">Unavailable</span>
                     )}
                   </div>
                 );
@@ -405,7 +405,7 @@ export function AvailabilityTab() {
                       can&apos;t be read, booking pauses rather than risk a
                       double booking.
                     </p>
-                    <ul className="mt-2 space-y-1.5">
+                    <ul className="mt-2 space-y-2">
                       {calendars.map((c: { id: string; name: string; account: string }) => (
                         <li key={c.id}>
                           <label className="flex items-center gap-2 text-sm">
@@ -495,7 +495,7 @@ export function AvailabilityTab() {
             {items.map((a: AvailabilityView) => (
               <li
                 key={a.id}
-                className="flex flex-wrap items-start justify-between gap-3 px-5 py-4 text-sm">
+                className="flex flex-wrap items-start justify-between gap-3 px-5 py-3 text-sm">
                 <div className="min-w-0 flex-1">
                   <p className="font-medium">
                     {a.name}{" "}

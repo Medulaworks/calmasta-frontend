@@ -1,13 +1,15 @@
 "use client";
 
-import { CalendarDays, Trash2 } from "lucide-react";
+import { Loading, SkeletonLines } from "@/components/ui/skeleton";
+import { CalendarDays, Clock, FileLock, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useProfile, useSetProfile } from "@/components/shell/profile-context";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardHeader } from "@/components/ui/card";
 import { type ConnectionView, getConnections } from "@/lib/calendar-client";
 import { type DeletionView, cancelDeletion, fetchDeletion, formatDate, requestDeletion } from "@/lib/plan-client";
@@ -54,34 +56,41 @@ export function ConnectionsCard() {
   return (
     <Card>
       <CardHeader title="Connections" />
-      <div className="space-y-3 p-5 text-sm">
+      <div className="space-y-4 p-5 text-sm">
         {calendarOutcome && (
-          <p role={calendarOutcome.ok ? "status" : "alert"} className={`rounded-lg border px-4 py-3 text-sm ${calendarOutcome.ok ? "border-success/30 bg-success/10" : "border-border bg-surface"}`}>
+          <p role={calendarOutcome.ok ? "status" : "alert"} className={`rounded-xl border px-4 py-3 text-sm ${calendarOutcome.ok ? "border-success/30 bg-success/10" : "border-border bg-surface"}`}>
             {calendarOutcome.text}
           </p>
         )}
         {failed ? (
           <p className="text-muted">Couldn&rsquo;t load your connections right now.</p>
         ) : !conns ? (
-          <p className="text-muted">Loading…</p>
+          <Loading label="Loading your calendars"><SkeletonLines lines={2} /></Loading>
         ) : conns.length === 0 ? (
-          <p className="text-muted">No calendar connected. Connect one to see your agenda, avoid double-booking and have meetings captured.</p>
+          <div className="flex flex-wrap items-center gap-4">
+            <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-xl bg-surface text-muted"><CalendarDays className="size-5" /></span>
+            <div className="min-w-0 flex-1">
+              <p className="font-medium">No calendar connected</p>
+              <p className="mt-1 text-muted">Connect one to see your agenda, avoid double-booking and have meetings captured.</p>
+            </div>
+            <ButtonLink href="/dashboard/calendar" variant="secondary">Connect a calendar</ButtonLink>
+          </div>
         ) : (
-          <ul className="divide-y divide-border rounded-lg border border-border">
-            {conns.map((c) => (
-              <li key={c.id} className="flex items-center justify-between gap-3 px-4 py-3">
-                <span className="flex min-w-0 items-center gap-2">
-                  <CalendarDays aria-hidden className="h-4 w-4 shrink-0 text-muted" />
-                  <span className="truncate">{c.accountEmail}</span>
-                </span>
-                <Badge tone={c.status === "connected" ? "success" : "warning"}>{c.status === "connected" ? "Connected" : "Needs reconnecting"}</Badge>
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul className="divide-y divide-border rounded-xl border border-border">
+              {conns.map((c) => (
+                <li key={c.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-lg bg-surface text-muted"><CalendarDays className="size-4" /></span>
+                    <span className="truncate font-medium">{c.accountEmail}</span>
+                  </span>
+                  <Badge tone={c.status === "connected" ? "success" : "warning"}>{c.status === "connected" ? "Connected" : "Needs reconnecting"}</Badge>
+                </li>
+              ))}
+            </ul>
+            <Link href="/dashboard/calendar" className="inline-block font-medium text-accent underline underline-offset-2">Manage on the Calendar page</Link>
+          </>
         )}
-        <Link href="/dashboard/calendar" className="inline-block font-medium text-accent underline underline-offset-2">
-          {conns && conns.length > 0 ? "Manage on the Calendar page" : "Go to Calendar"}
-        </Link>
       </div>
     </Card>
   );
@@ -111,19 +120,24 @@ export function DataPrivacyCard() {
   return (
     <Card>
       <CardHeader title="Data and privacy" />
-      <div className="space-y-4 p-5 text-sm">
-        <p>
-          Your original recordings (audio, and video of meetings you chose to record) are kept for <strong>{days} {days === 1 ? "day" : "days"}</strong> after it has been processed, then removed. Transcripts and documents stay until you delete them.
-        </p>
-        <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-4 has-[:checked]:border-accent has-[:checked]:bg-accent/5">
-          <input type="checkbox" checked={profile.outputsOnly} disabled={busy} onChange={(e) => void toggle(e.target.checked)} className="mt-1 h-4 w-4 accent-[var(--accent-solid,#2563eb)]" />
-          <span>
-            <span className="font-medium">Outputs only</span>
-            <span className="mt-0.5 block text-muted">Remove the original recording as soon as it has been transcribed. You keep the transcript and any documents, but you won&rsquo;t be able to play the recording back, and meeting video can&rsquo;t be recorded. This applies to recordings from now on.</span>
-          </span>
-        </label>
-        {error && <p role="alert" className="text-danger">{error}</p>}
-        <p className="text-xs text-muted">Removing recordings can&rsquo;t be undone. Deleting your account removes everything, as described below.</p>
+      <div className="divide-y divide-border text-sm">
+        <div className="flex flex-wrap items-center gap-4 px-5 py-3">
+          <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-xl bg-surface text-muted"><Clock className="size-5" /></span>
+          <div className="min-w-0 flex-1">
+            <p className="font-medium">How long recordings are kept</p>
+            <p className="mt-1 text-muted">Original audio, and video of meetings you chose to record, is removed <strong className="text-foreground">{days} {days === 1 ? "day" : "days"}</strong> after it has been processed. Transcripts and documents stay until you delete them.</p>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-4 px-5 py-3">
+          <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-xl bg-surface text-muted"><FileLock className="size-5" /></span>
+          <div className="min-w-0 flex-1">
+            <p id="outputs-only-label" className="font-medium">Outputs only</p>
+            <p className="mt-1 text-muted">Remove the original recording as soon as it has been transcribed. You keep the transcript and any documents, but you won&rsquo;t be able to play the recording back, and meeting video can&rsquo;t be recorded. This applies to recordings from now on.</p>
+          </div>
+          <Switch checked={profile.outputsOnly} onChange={(v) => void toggle(v)} labelledBy="outputs-only-label" disabled={busy} />
+        </div>
+        {error && <p role="alert" className="px-5 py-3 text-danger">{error}</p>}
+        <p className="px-5 py-3 text-xs text-muted">Removing recordings can&rsquo;t be undone. Deleting your account removes everything, as described under Delete account.</p>
       </div>
     </Card>
   );
@@ -204,7 +218,7 @@ export function DeleteAccountCard() {
         {unavailable ? (
           <p role="status" className="text-muted">Account deletion is not available yet.</p>
         ) : deletion === undefined ? (
-          <p className="text-muted">Loading…</p>
+          <Loading label="Loading"><SkeletonLines lines={2} /></Loading>
         ) : deletion ? (
           <div role="status" className="space-y-3">
             <p className="flex items-center gap-2 font-medium">
@@ -257,7 +271,7 @@ export function DeleteAccountCard() {
             </div>
             <label className="block">
               <span className="font-medium">Type DELETE to confirm</span>
-              <input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" spellCheck={false} className="mt-1.5 block w-full max-w-xs rounded-lg border border-border bg-background px-3 py-2" />
+              <input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" spellCheck={false} className="mt-2 block w-full max-w-xs min-h-10 rounded-xl border border-border bg-background px-4 py-2" />
             </label>
             {error && <p role="alert" className="text-danger">{error}</p>}
             <div className="flex gap-2">

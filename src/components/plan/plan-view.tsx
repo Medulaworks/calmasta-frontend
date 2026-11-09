@@ -92,7 +92,7 @@ function PlanCard({
     <section
       aria-labelledby={id}
       className={`flex flex-col rounded-xl border bg-background ${highlight ? "border-accent ring-1 ring-accent/20" : "border-border"}`}>
-      <div className="space-y-4 p-6">
+      <div className="space-y-4 p-5">
         <div className="flex items-center gap-2">
           <h2 id={id} className="text-xl font-semibold text-accent">
             {name}
@@ -104,7 +104,7 @@ function PlanCard({
             />
           )}
           {badge && (
-            <span className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent ring-1 ring-inset ring-accent/25">
+            <span className="rounded-full bg-accent/10 px-2 py-1 text-xs font-medium text-accent ring-1 ring-inset ring-accent/25">
               {badge}
             </span>
           )}
@@ -118,25 +118,25 @@ function PlanCard({
         </div>
         <div>{action}</div>
       </div>
-      <ul className="space-y-3 border-t border-border p-6 text-sm">
+      <ul className="space-y-3 border-t border-border p-5 text-sm">
         {headline.map((h) => (
           <li key={h} className="flex gap-3">
             <Check
               aria-hidden
-              className="mt-0.5 h-4 w-4 shrink-0 text-accent"
+              className="mt-1 h-4 w-4 shrink-0 text-accent"
             />
             <span className="font-medium">{h}</span>
           </li>
         ))}
       </ul>
-      <div className="flex flex-1 flex-col border-t border-border p-6 text-sm">
+      <div className="flex flex-1 flex-col border-t border-border p-5 text-sm">
         <p className="text-muted">{groupTitle}</p>
         <ul className="mt-3 space-y-3">
           {points.map((p) => (
             <li key={p} className="flex gap-3">
               <Check
                 aria-hidden
-                className="mt-0.5 h-4 w-4 shrink-0 text-muted"
+                className="mt-1 h-4 w-4 shrink-0 text-muted"
               />
               <span>{p}</span>
             </li>
@@ -168,7 +168,7 @@ function BillingToggle({
       className={`flex h-8 items-center gap-2 rounded-md px-4 text-sm transition-colors ${value === id ? "bg-background font-medium text-foreground shadow-sm ring-1 ring-border" : "text-muted hover:text-foreground"}`}>
       {label}
       {pill && (
-        <span className="rounded bg-success/15 px-1.5 py-0.5 text-xs font-medium text-success">
+        <span className="rounded bg-success/15 px-2 py-1 text-xs font-medium text-success">
           {pill}
         </span>
       )}
@@ -305,14 +305,14 @@ export function PlanView() {
   const label = PLAN_LABEL[current];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {plan.placeholder && (
         <p
           role="note"
           className="flex gap-2 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
           <AlertTriangle
             aria-hidden
-            className="mt-0.5 h-4 w-4 shrink-0 text-warning"
+            className="mt-1 h-4 w-4 shrink-0 text-warning"
           />
           Prices, allowances and hour packs shown here are placeholders until
           pricing is confirmed.
@@ -448,7 +448,7 @@ export function PlanView() {
         )}
       </p>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <Card>
           <CardHeader
             title="Your usage this month"

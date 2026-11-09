@@ -104,7 +104,7 @@ export function UserDialogs({ user, dialog, onClose, onDone }: { user: UserLike;
 /** Signed-in devices and workspaces on the account page. */
 export function DevicesAndWorkspaces({ user }: { user: Extras }) {
   return (
-    <div className="grid gap-6 md:grid-cols-2">
+    <div className="grid gap-5 md:grid-cols-2">
       <Card>
         <CardHeader title="Signed-in devices" />
         {user.sessions.length === 0 ? <p className="p-5 text-sm text-muted">Not signed in anywhere.</p> : (
@@ -126,7 +126,7 @@ export function DevicesAndWorkspaces({ user }: { user: Extras }) {
             return (
               <li key={w.id} className="space-y-2 px-5 py-3">
                 <div className="flex items-center justify-between gap-3"><span className="font-medium">{w.name}</span><span className="text-xs capitalize text-muted">{w.role}</span></div>
-                <div role="img" aria-label={`${pct}% of the allowance used`} className="h-1.5 overflow-hidden rounded-full bg-border"><div className="h-full rounded-full bg-accent" style={{ width: `${pct}%` }} /></div>
+                <div role="img" aria-label={`${pct}% of the allowance used`} className="h-2 overflow-hidden rounded-full bg-border"><div className="h-full rounded-full bg-accent" style={{ width: `${pct}%` }} /></div>
                 <p className="text-xs text-muted">{formatMinutes(Math.round(w.usedSeconds / 60))} of {formatMinutes(Math.round(w.allowanceSeconds / 60))} used{w.processingPaused ? " · paused" : ""}</p>
               </li>
             );

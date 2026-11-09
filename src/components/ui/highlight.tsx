@@ -5,7 +5,7 @@ export function Highlight({ text, query }: { text: string; query: string }) {
   const parts = text.split(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi"));
   return (
     <>
-      {parts.map((part, i) => (i % 2 === 1 ? <mark key={i} className="rounded bg-accent/20 px-0.5 text-foreground">{part}</mark> : part))}
+      {parts.map((part, i) => (i % 2 === 1 ? <mark key={i} className="rounded bg-accent/20 px-1 text-foreground">{part}</mark> : part))}
     </>
   );
 }

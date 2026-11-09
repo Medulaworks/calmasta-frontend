@@ -8,7 +8,7 @@ import { Brand } from "@/components/ui/brand";
 import { buttonClass } from "@/components/ui/button";
 
 const FIELD =
-  "h-11 w-full rounded-xl border border-border bg-background px-4 text-base shadow-sm transition focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent-solid/20";
+  "h-10 w-full rounded-xl border border-border bg-background px-4 text-base shadow-sm transition focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent-solid/20";
 
 const safeReturn = (p: string | null) => (p && p.startsWith("/admin") && !p.includes("//") && !p.includes("\\") ? p : "/admin");
 
@@ -56,7 +56,7 @@ export function AdminLogin() {
       <div className="relative w-full max-w-[26rem]">
         <div className="mb-6 flex items-center justify-center gap-3 text-xl">
           <Brand size={36} />
-          <span className="rounded-md bg-danger-solid px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-white">Admin</span>
+          <span className="rounded-md bg-danger-solid px-2 py-1 text-xs font-medium uppercase tracking-wide text-white">Admin</span>
         </div>
 
         <div className="rounded-2xl border border-border bg-background p-7 shadow-[0_24px_60px_-28px_rgb(0_0_0/0.35)]">
@@ -66,18 +66,18 @@ export function AdminLogin() {
           <h1 className="mt-4 text-2xl font-semibold tracking-tight">Sign in to admin</h1>
 
           {error && (
-            <p role="alert" className="mt-5 rounded-xl border border-danger/30 bg-danger/10 px-3.5 py-2.5 text-sm text-danger">
+            <p role="alert" className="mt-5 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
               {error}
             </p>
           )}
 
           <form onSubmit={submit} className="mt-6 space-y-4">
             <div>
-              <label htmlFor="staff-email" className="mb-1.5 block text-sm font-medium">Work email</label>
+              <label htmlFor="staff-email" className="mb-2 block text-sm font-medium">Work email</label>
               <input id="staff-email" type="email" required autoFocus autoComplete="username" disabled={busy} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" className={FIELD} />
             </div>
             <div>
-              <label htmlFor="staff-password" className="mb-1.5 block text-sm font-medium">Password</label>
+              <label htmlFor="staff-password" className="mb-2 block text-sm font-medium">Password</label>
               <div className="relative">
                 <input id="staff-password" type={show ? "text" : "password"} required minLength={8} autoComplete="current-password" disabled={busy} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Your password" className={`${FIELD} pr-12`} />
                 <button type="button" aria-label={show ? "Hide password" : "Show password"} aria-pressed={show} onClick={() => setShow((s) => !s)} className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-xl text-muted transition-colors hover:text-foreground">
@@ -85,7 +85,7 @@ export function AdminLogin() {
                 </button>
               </div>
             </div>
-            <button type="submit" disabled={busy} className={`${buttonClass("primary", "group min-h-11! w-full rounded-xl text-base", "lg")}${busy ? " pointer-events-none opacity-60" : ""}`}>
+            <button type="submit" disabled={busy} className={`${buttonClass("primary", "group min-h-10! w-full rounded-xl text-base", "lg")}${busy ? " pointer-events-none opacity-60" : ""}`}>
               {busy ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : null}
               {busy ? "Signing in…" : "Sign in"}
               {!busy && <ArrowRight aria-hidden className="size-4 transition-transform group-hover:translate-x-1" />}

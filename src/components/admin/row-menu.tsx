@@ -83,7 +83,7 @@ export function RowMenu({ label, items, align = "end", trigger }: { label: strin
             const body = (
               <>
                 <span className="font-medium">{it.label}</span>
-                {it.disabled && it.reason && <span className="mt-0.5 text-xs font-normal text-muted">{it.reason}</span>}
+                {it.disabled && it.reason && <span className="mt-1 text-xs font-normal text-muted">{it.reason}</span>}
               </>
             );
             const sep = it.divider && i > 0 ? "border-t border-border" : "";
@@ -165,7 +165,7 @@ export function DetailsDialog({ title, rows, actions, onClose }: { title: string
           {rows.map(([k, v]) => (
             <div key={k}>
               <dt className="text-xs text-muted">{k}</dt>
-              <dd className="mt-0.5 break-words">{v}</dd>
+              <dd className="mt-1 break-words">{v}</dd>
             </div>
           ))}
         </dl>

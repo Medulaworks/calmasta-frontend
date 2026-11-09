@@ -35,6 +35,9 @@ const RECORDING_LABELS: Record<string, string> = {
   recorded: "Waiting for transcription",
 };
 
+/** A state name we have no wording for, made readable: "waiting_for_host" becomes "Waiting for host". */
+const tidy = (raw: string) => (raw ? raw.charAt(0).toUpperCase() + raw.slice(1).replace(/_/g, " ") : "Unknown");
+
 function baseCaptureStatus(c: { source: string; state: string; status: string }): StatusView {
   if(c.state==="reconciliation_required")return {label:"Needs attention",tone:"warning",active:false};
   if(c.state==="transcription_failed")return {label:"Transcription failed",tone:"danger",active:false};
@@ -49,13 +52,13 @@ function baseCaptureStatus(c: { source: string; state: string; status: string })
     if (c.status === "timed_out") return { label: "Not let in in time", tone: "warning", active: false };
     if (c.status === "recording") return { label: "Recording", tone: "danger", active: true }; // red on purpose: recording must be obvious
     if (MEETING_ACTIVE.has(c.status)) return { label: MEETING_LABELS[c.status] ?? c.status, tone: "info", active: true };
-    if (c.status === "completed") return { label: "Ready", tone: "success", active: false };
-    return { label: c.status, tone: "neutral", active: false };
+    if (c.status === "completed" || c.status === "ready_to_review") return { label: "Ready", tone: "success", active: false };
+    return { label: tidy(c.status), tone: "neutral", active: false };
   }
 
   if (c.state in RECORDING_LABELS) return { label: RECORDING_LABELS[c.state], tone: "info", active: true };
   if (c.state === "ready_to_review" || c.state === "completed") return { label: "Ready", tone: "success", active: false };
-  return { label: c.state, tone: "neutral", active: false };
+  return { label: tidy(c.state), tone: "neutral", active: false };
 }
 
 /** Add visual marks only after existing failure/attention/status precedence has been resolved. */

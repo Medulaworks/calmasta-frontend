@@ -1,4 +1,7 @@
 "use client";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { SkeletonDetail } from "@/components/ui/skeleton";
+import { markResultSeen } from "@/lib/first-result";
 import { useRouter } from "next/navigation";
 import {
   readInsightTab,
@@ -6,8 +9,8 @@ import {
   listenInsightNavigation,
   updateInsightUrl,
 } from "@/lib/insight-navigation";
-import { Clock, FileText, Video } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Bot, CalendarDays, Check, Clock, ExternalLink, FileText, Mic, Timer, Users, Video } from "lucide-react";
+import { Button, buttonClass } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, tabId, tabPanelId } from "@/components/ui/tabs";
 import { PrivateAudio } from "@/components/private-audio";
@@ -26,8 +29,150 @@ import {
 } from "@/lib/upload-client";
 import { captureStatus } from "@/lib/status";
 import { formatDuration } from "@/lib/audio";
-import Image from "next/image";
+import { RowStatus } from "@/components/dashboard/item-row";
+import { useProfile } from "@/components/shell/profile-context";
+import { useDisplayTitle } from "@/components/shell/use-display-title";
+import { CaptureTile } from "@/components/ui/platform-logo";
+import { browserTimeZone, formatDateTime } from "@/lib/tz";
+type Ext = {
+  botName?: string | null;
+  meetingUrl?: string | null;
+  meeting_url?: string | null;
+  durationSeconds?: number | null;
+  participants?: Array<{ name: string; role?: string }>;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+  events?: Array<{ status: string; detail: string | null; at: string }>;
+};
+
+/** The breadcrumb, with the title the rest of the app shows (a real one, or "Meeting on 29 Oct, 10:15"). */
+function RecordingCrumb({ capture, createdAt }: { capture: CaptureView | null; createdAt?: string }) {
+  const titleOf = useDisplayTitle();
+  const label = capture ? titleOf({ title: capture.title, source: capture.source, at: createdAt }) : "Recording";
+  return <Breadcrumb items={[{ label: "My Folder", href: "/dashboard/library" }, { label: "Recordings", href: "/dashboard/library?tab=recordings" }, { label }]} />;
+}
+
+const chip = "inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1 text-xs font-medium text-muted ring-1 ring-inset ring-border";
+
+type Common = { capture: CaptureView; ext: Ext; isMeeting: boolean; meetingUrl: string | null; duration: string | null };
+
+/** Who and what: the title, where it is up to, the few facts that matter, and the actions that apply. */
+function RecordingHeader({ capture, ext, status, isMeeting, meetingUrl, duration, retryable, busy, consent, setConsent, act }: Common & { status: ReturnType<typeof captureStatus> | null; retryable: boolean; busy: boolean; consent: boolean; setConsent: (v: boolean) => void; act: (retry: boolean) => Promise<void> }) {
+  const titleOf = useDisplayTitle();
+  const timeZone = useProfile()?.timezone || browserTimeZone();
+  const shownTitle = titleOf({ title: capture.title, source: capture.source, at: ext.createdAt });
+  return (
+    <>
+      {/* Who and what: the title, where it is up to, and the few facts that matter, with the actions that apply. */}
+      <header className="rounded-2xl border border-border bg-background p-5 shadow-sm">
+        <div className="flex flex-wrap items-start gap-4">
+          <CaptureTile kind={isMeeting ? "meeting" : "recording"} platform={capture.platform} hint={capture.title} size={56} />
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <h1 className="truncate text-2xl font-semibold tracking-tight">{shownTitle}</h1>
+              {status && <span role="status"><RowStatus status={status} /></span>}
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {isMeeting && capture.platform && <span className={chip}>{PLATFORM_LABELS[capture.platform] ?? capture.platform}</span>}
+              {duration && <span className={chip} title="Length of the recording"><Timer aria-hidden className="size-3.5" /> {duration}</span>}
+              <span className={chip}><CalendarDays aria-hidden className="size-3.5" /> {isMeeting ? "Joined" : "Recorded"} {formatDateTime(ext.createdAt, timeZone)}</span>
+            </div>
+          </div>
+          <div role={isMeeting ? "group" : undefined} aria-label={isMeeting ? "Meeting controls" : undefined} className="flex flex-wrap items-center gap-2">
+            {meetingUrl && (
+              <a href={meetingUrl} target="_blank" rel="noopener noreferrer" className={buttonClass("secondary", "", "sm")}>
+                <ExternalLink aria-hidden className="size-4" /> Open meeting
+              </a>
+            )}
+            {isMeeting && isMeetingActive(capture.status) && (
+              <Button size="sm" disabled={busy || !!capture.cancelRequestedAt} onClick={() => void act(false)}>
+                {capture.cancelRequestedAt ? "Cancellation requested" : "Cancel capture"}
+              </Button>
+            )}
+          </div>
+        </div>
+        {retryable && (
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-xl bg-surface p-4">
+            <label className="flex max-w-xl items-start gap-3 text-sm">
+              <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-1 size-4 shrink-0 accent-[var(--accent-solid)]" />
+              I have the right to record this meeting again and will tell its participants.
+            </label>
+            <Button variant="primary" disabled={busy || !consent} onClick={() => void act(true)}>{busy ? "Sending…" : "Send assistant again"}</Button>
+          </div>
+        )}
+      </header>
+    </>
+  );
+}
+
+const EVENT_LABELS: Record<string, { title: string; desc: string; Icon: typeof Clock }> = {
+  queued: { title: "Queued", desc: "Added to the processing queue", Icon: Clock },
+  video_ready: { title: "Video ready", desc: "Recording secured and ready", Icon: Video },
+  transcript_ready: { title: "Transcript ready", desc: "Transcript available for insights", Icon: FileText },
+};
+
+/** The facts and the timeline. */
+function RecordingAside({ capture, ext, isMeeting, meetingUrl, duration }: Common) {
+  const timeZone = useProfile()?.timezone || browserTimeZone();
+  const metaFields = ext.metadata ? Object.keys(ext.metadata).length : 0;
+  return (
+    <aside className="space-y-5 lg:sticky lg:top-24">
+      <Card>
+        <div className="border-b border-border px-5 py-3"><h2 className="text-base font-semibold">Details</h2></div>
+        <dl className="divide-y divide-border text-sm">
+          <div className="flex items-start gap-3 px-5 py-3"><CalendarDays aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" /><dt className="w-20 shrink-0 text-muted">{isMeeting ? "Joined" : "Recorded"}</dt><dd className="min-w-0 flex-1 font-medium">{formatDateTime(ext.createdAt, timeZone)}</dd></div>
+          {isMeeting && <div className="flex items-start gap-3 px-5 py-3"><Bot aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" /><dt className="w-20 shrink-0 text-muted">Assistant</dt><dd className="min-w-0 flex-1 font-medium">{ext.botName ?? "—"}</dd></div>}
+          {!isMeeting && <div className="flex items-start gap-3 px-5 py-3"><Mic aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" /><dt className="w-20 shrink-0 text-muted">Source</dt><dd className="min-w-0 flex-1 font-medium">{capture.source === "voice_recording" ? "Recorded in browser" : "Upload"}</dd></div>}
+          {duration && <div className="flex items-start gap-3 px-5 py-3"><Timer aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" /><dt className="w-20 shrink-0 text-muted">Length</dt><dd className="min-w-0 flex-1 font-medium tabular-nums">{duration}</dd></div>}
+          {meetingUrl && <div className="flex items-start gap-3 px-5 py-3"><ExternalLink aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" /><dt className="w-20 shrink-0 text-muted">Meeting</dt><dd className="min-w-0 flex-1 truncate font-medium"><a href={meetingUrl} target="_blank" rel="noopener noreferrer" title={meetingUrl} className="text-accent hover:underline">{meetingUrl.replace(/^https?:\/\//, "")}</a></dd></div>}
+          {isMeeting && (
+            <div className="px-5 py-3">
+              <p className="flex items-center gap-3 text-muted"><Users aria-hidden className="size-4 shrink-0" /> Participants{ext.participants?.length ? ` · ${ext.participants.length}` : ""}</p>
+              {ext.participants?.length ? (
+                <ul className="mt-2 flex flex-wrap gap-2">
+                  {ext.participants.map((p, i) => <li key={i} className="rounded-full bg-surface px-3 py-1 text-xs ring-1 ring-inset ring-border">{p.name}{p.role ? ` · ${p.role}` : ""}</li>)}
+                </ul>
+              ) : (
+                <p className="mt-1 pl-7 text-xs text-muted">No participant list yet.</p>
+              )}
+            </div>
+          )}
+          {metaFields > 0 && <div className="flex items-start gap-3 px-5 py-3"><FileText aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" /><dt className="w-20 shrink-0 text-muted">Metadata</dt><dd className="min-w-0 flex-1 font-medium">{metaFields} field{metaFields === 1 ? "" : "s"}</dd></div>}
+        </dl>
+      </Card>
+
+      {ext.events?.length ? (
+        <Card>
+          <div className="border-b border-border px-5 py-3"><h2 className="text-base font-semibold">Timeline</h2></div>
+          <ol aria-label="Timeline" className="p-5">
+            {ext.events.slice(0, 8).map((ev, i, all) => {
+              const meta = EVENT_LABELS[ev.status] ?? { title: ev.status.replace(/_/g, " "), desc: ev.detail ?? "", Icon: Clock };
+              const last = i === all.length - 1;
+              return (
+                <li key={i} className="relative flex gap-4 pb-5 last:pb-0">
+                  {!last && <span aria-hidden className="absolute left-4 top-9 h-[calc(100%-2rem)] w-px bg-border" />}
+                  <span aria-hidden className={`relative z-10 grid size-8 shrink-0 place-items-center rounded-full ${last ? "bg-success text-white" : "border border-border bg-background text-muted"}`}>
+                    {last ? <Check className="size-4" strokeWidth={3} /> : <meta.Icon className="size-4" />}
+                  </span>
+                  <span className="min-w-0 flex-1 pt-0.5">
+                    <span className="block text-sm font-medium capitalize">{meta.title}</span>
+                    <span className="block text-xs text-muted tabular-nums">{ev.at ? formatDateTime(ev.at, timeZone) : ""}</span>
+                    {(meta.desc || (ev.detail && !EVENT_LABELS[ev.status])) && <span className="mt-1 block text-xs text-muted">{meta.desc}{ev.detail && !EVENT_LABELS[ev.status] ? `: ${ev.detail}` : ""}</span>}
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+        </Card>
+      ) : null}
+    </aside>
+  );
+}
+
 export function LibraryRecording({ id }: { id: string }) {
+  useEffect(() => {
+    markResultSeen();
+  }, []);
   const router = useRouter();
   const [selectedContent, setSelectedContent] = useState<{
     captureId: string;
@@ -130,360 +275,80 @@ export function LibraryRecording({ id }: { id: string }) {
       saveChanges={saveLibraryTranscript}
     />
   ) : null;
+  const isMeeting = capture?.source === "meeting_url";
+  const ext = capture as unknown as Ext | null;
+  const meetingUrl = ext?.meetingUrl ?? ext?.meeting_url ?? null;
+  const duration = ext?.durationSeconds != null ? formatDuration(ext.durationSeconds) : null;
+  const retryable = !!capture && isMeeting && ["host_denied", "admission_timeout", "cancelled", "failed"].includes(capture.state);
+
   return (
     <div className="space-y-5">
-      <button
-        type="button"
-        onClick={() => router.back()}
-        className="text-sm text-muted underline">
-        Go Back
-      </button>
-      {error && (
-        <p role="alert" className="text-danger">
-          {error}
-        </p>
-      )}
-      {capture ? (
+      <RecordingCrumb capture={capture} createdAt={(capture as unknown as Ext | null)?.createdAt} />
+      {error && <p role="alert" className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">{error}</p>}
+      {capture && ext ? (
         <>
-          <h1 className="text-2xl font-semibold">
-            {capture.title || "Recording"}
-          </h1>
-          <p role="status" className="text-sm text-muted">
-            {status?.label}
-          </p>
-          {(() => {
-            const ext = capture as unknown as {
-              botName?: string | null;
-              meetingUrl?: string | null;
-              meeting_url?: string | null;
-              durationSeconds?: number | null;
-              participants?: Array<{ name: string; role?: string }>;
-              metadata?: Record<string, unknown>;
-            };
-            const meetingUrl = ext.meetingUrl ?? ext.meeting_url ?? null;
-            const usage =
-              ext.durationSeconds != null
-                ? formatDuration(ext.durationSeconds)
-                : null;
-            const joinAt = new Date(
-              (capture as unknown as { createdAt: string }).createdAt,
-            ).toLocaleString();
-            return (
-              <Card>
-                <div className="grid gap-6 p-5 text-sm lg:grid-cols-[minmax(0,1fr)_320px]">
-                  <div className="space-y-4">
-                    <div className="grid gap-3 sm:grid-cols-3">
-                      <div>
-                        <p className="text-muted">Platform</p>
-                        <p className="flex items-center gap-2 font-medium">
-                          {capture.platform ? (
-                            <>
-                              <Image
-                                src={
-                                  capture.platform === "microsoft_teams"
-                                    ? "/icons/icons8-teams-96.png"
-                                    : capture.platform === "zoom"
-                                      ? "/icons/icons8-zoom-96.png"
-                                      : "/icons/icons8-google-meet-96.png"
-                                }
-                                alt={
-                                  PLATFORM_LABELS[capture.platform] ??
-                                  capture.platform
-                                }
-                                width={20}
-                                height={20}
-                                className="h-5 w-5 shrink-0"
-                              />
-                              {PLATFORM_LABELS[capture.platform] ??
-                                capture.platform}
-                            </>
-                          ) : (
-                            "—"
-                          )}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-muted">Status</p>
-                        <p className="font-medium">{status?.label ?? "—"}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted">Usage</p>
-                        <p className="font-medium">{usage ?? "—"}</p>
-                      </div>
-                    </div>
-                    <dl className="divide-y divide-border rounded-lg border border-border">
-                      <div className="grid grid-cols-[8rem_1fr] gap-3 px-4 py-3">
-                        <dt className="text-muted">Join At</dt>
-                        <dd>{joinAt}</dd>
-                      </div>
-                      <div className="grid grid-cols-[8rem_1fr] gap-3 px-4 py-3">
-                        <dt className="text-muted">Bot Name</dt>
-                        <dd>{ext.botName ?? "—"}</dd>
-                      </div>
-                      <div className="grid grid-cols-[8rem_1fr] gap-3 px-4 py-3">
-                        <dt className="text-muted">Metadata</dt>
-                        <dd>
-                          {ext.metadata
-                            ? `${Object.keys(ext.metadata).length} field${Object.keys(ext.metadata).length === 1 ? "" : "s"}`
-                            : "—"}
-                        </dd>
-                      </div>
-                      <div className="grid grid-cols-[8rem_1fr] gap-3 px-4 py-3">
-                        <dt className="text-muted">Meeting</dt>
-                        <dd className="truncate">
-                          {meetingUrl ? (
-                            <a
-                              href={meetingUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-accent hover:underline">
-                              {meetingUrl}
-                            </a>
-                          ) : (
-                            "—"
-                          )}
-                        </dd>
-                      </div>
-                      <div className="px-4 py-3">
-                        <p className="text-muted">
-                          Participants · {(ext.participants?.length ?? 0) || 0}
-                        </p>
-                        {ext.participants?.length ? (
-                          <ul className="mt-2 flex flex-wrap gap-2">
-                            {ext.participants.map((p, i) => (
-                              <li
-                                key={i}
-                                className="rounded-full bg-surface px-3 py-1 text-xs">
-                                {p.name}
-                                {p.role ? ` · ${p.role}` : ""}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="mt-1 text-muted">
-                            No participant list yet.
-                          </p>
-                        )}
-                      </div>
-                    </dl>
-                  </div>
-                  <div className="min-w-0">
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
-                      Timeline
-                    </p>
-                    {(
-                      capture as unknown as {
-                        events?: Array<{
-                          status: string;
-                          detail: string | null;
-                          at: string;
-                        }>;
-                      }
-                    ).events?.length ? (
-                      <ol className="relative space-y-0 rounded-lg border border-border bg-surface/30 p-3">
-                        {(() => {
-                          const labels: Record<
-                            string,
-                            { title: string; desc: string }
-                          > = {
-                            queued: {
-                              title: "Queued",
-                              desc: "Added to processing queue",
-                            },
-                            video_ready: {
-                              title: "Video ready",
-                              desc: "Recording secured and ready",
-                            },
-                            transcript_ready: {
-                              title: "Transcript ready",
-                              desc: "Transcript available for insights",
-                            },
-                          };
-                          const icons: Record<string, typeof Clock> = {
-                            queued: Clock,
-                            video_ready: Video,
-                            transcript_ready: FileText,
-                          };
-                          const items = (
-                            capture as unknown as {
-                              events: Array<{
-                                status: string;
-                                detail: string | null;
-                                at: string;
-                              }>;
-                            }
-                          ).events.slice(0, 3);
-                          return items.map((ev, i) => {
-                            const meta = labels[ev.status] ?? {
-                              title: ev.status.replace(/_/g, " "),
-                              desc: ev.detail ?? "",
-                            };
-                            const Icon = icons[ev.status] ?? Clock;
-                            const isLast = i === items.length - 1;
-                            return (
-                              <li
-                                key={i}
-                                className="relative flex gap-3 pb-4 last:pb-0">
-                                {!isLast && (
-                                  <span
-                                    aria-hidden
-                                    className="absolute left-[11px] top-7 h-[calc(100%-8px)] w-px bg-border"
-                                  />
-                                )}
-                                <span className="relative z-10 grid h-6 w-6 shrink-0 place-items-center rounded-full border border-border bg-background shadow-sm">
-                                  <Icon
-                                    aria-hidden
-                                    className="h-3.5 w-3.5 text-muted"
-                                  />
-                                </span>
-                                <span className="min-w-0 flex-1 pt-0.5">
-                                  <span className="flex flex-wrap items-baseline gap-2">
-                                    <span className="text-sm font-medium capitalize">
-                                      {meta.title}
-                                    </span>
-                                    <span className="text-xs text-muted">
-                                      {ev.at
-                                        ? new Date(ev.at).toLocaleString()
-                                        : ""}
-                                    </span>
-                                  </span>
-                                  <span className="mt-0.5 block text-xs text-muted">
-                                    {meta.desc}
-                                    {ev.detail && !labels[ev.status]
-                                      ? `: ${ev.detail}`
-                                      : ""}
-                                  </span>
-                                </span>
-                              </li>
-                            );
-                          });
-                        })()}
-                      </ol>
-                    ) : (
-                      <p className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted">
-                        No events yet
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </Card>
-            );
-          })()}
-          {capture.source === "meeting_url" && (
-            <section className="space-y-3" aria-label="Meeting controls">
-              {isMeetingActive(capture.status) && (
-                <Button
-                  disabled={busy || !!capture.cancelRequestedAt}
-                  onClick={() => void act(false)}>
-                  {capture.cancelRequestedAt
-                    ? "Cancellation requested"
-                    : "Cancel capture"}
-                </Button>
-              )}
-              {[
-                "host_denied",
-                "admission_timeout",
-                "cancelled",
-                "failed",
-              ].includes(capture.state) && (
-                <>
-                  <label className="flex items-start gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={consent}
-                      onChange={(e) => setConsent(e.target.checked)}
+          <RecordingHeader capture={capture} ext={ext} status={status} isMeeting={isMeeting} meetingUrl={meetingUrl} duration={duration} retryable={retryable} busy={busy} consent={consent} setConsent={setConsent} act={act} />
+
+          <div className="grid items-start gap-5 lg:grid-cols-3">
+            {/* The content: the audio, then what was said. */}
+            <div className="min-w-0 space-y-5 lg:col-span-2">
+              <div id="recording-audio">
+                <PrivateAudio key={capture.id} id={capture.id} onAudioChange={onAudioChange} />
+              </div>
+              {isMeeting ? (
+                <Card className="overflow-visible">
+                  <div className="sticky top-16 z-10 rounded-t-2xl border-b border-border bg-background px-5 pt-4">
+                    <Tabs
+                      label="Recording details"
+                      items={[
+                        { id: `recording-${capture.id}-insights`, label: "Meeting insights" },
+                        { id: `recording-${capture.id}-transcript`, label: "Transcript" },
+                      ]}
+                      active={`recording-${capture.id}-${selectedContent.captureId === capture.id ? selectedContent.tab : "insights"}`}
+                      onChange={(value) => {
+                        const tab = value === `recording-${capture.id}-insights` ? "insights" : "transcript";
+                        setSelectedContent({ captureId: capture.id, tab });
+                        updateInsightUrl({ tab });
+                      }}
                     />
-                    I have the right to record this meeting again and will tell
-                    its participants.
-                  </label>
-                  <Button
-                    disabled={busy || !consent}
-                    onClick={() => void act(true)}>
-                    {busy ? "Sending…" : "Send assistant again"}
-                  </Button>
-                </>
+                  </div>
+                  <div
+                    role="tabpanel"
+                    id={tabPanelId(`recording-${capture.id}-transcript`)}
+                    aria-labelledby={tabId(`recording-${capture.id}-transcript`)}
+                    hidden={selectedContent.captureId === capture.id && selectedContent.tab !== "transcript"}
+                    tabIndex={0}
+                    className="p-5">
+                    {transcriptEditor}
+                  </div>
+                  <div
+                    role="tabpanel"
+                    id={tabPanelId(`recording-${capture.id}-insights`)}
+                    aria-labelledby={tabId(`recording-${capture.id}-insights`)}
+                    hidden={selectedContent.captureId !== capture.id || selectedContent.tab !== "insights"}
+                    tabIndex={0}
+                    className="p-5">
+                    <MeetingInsights
+                      key={capture.id}
+                      id={capture.id}
+                      transcriptVersion={capture.transcriptVersion}
+                      audioAvailable={insightAudio?.captureId === capture.id && capture.id === id}
+                      onSeek={(startMs) => {
+                        if (insightAudio?.captureId === capture.id && capture.id === id) seekInsightAudio(insightAudio.element, startMs);
+                      }}
+                    />
+                  </div>
+                </Card>
+              ) : (
+                transcriptEditor
               )}
-            </section>
-          )}
-          <div id="recording-audio">
-            <PrivateAudio
-              key={capture.id}
-              id={capture.id}
-              onAudioChange={onAudioChange}
-            />
+            </div>
+
+            <RecordingAside capture={capture} ext={ext} isMeeting={isMeeting} meetingUrl={meetingUrl} duration={duration} />
           </div>
-          {capture.source === "meeting_url" ? (
-            <Card className="overflow-visible">
-              <div className="sticky top-0 z-10 border-b border-border bg-background px-5 pt-4">
-                <Tabs
-                  label="Recording details"
-                  items={[
-                    {
-                      id: `recording-${capture.id}-insights`,
-                      label: "Meeting insights",
-                    },
-                    {
-                      id: `recording-${capture.id}-transcript`,
-                      label: "Transcript",
-                    },
-                  ]}
-                  active={`recording-${capture.id}-${selectedContent.captureId === capture.id ? selectedContent.tab : "insights"}`}
-                  onChange={(value) => {
-                    const tab =
-                      value === `recording-${capture.id}-insights`
-                        ? "insights"
-                        : "transcript";
-                    setSelectedContent({ captureId: capture.id, tab });
-                    updateInsightUrl({ tab });
-                  }}
-                />
-              </div>
-              <div
-                role="tabpanel"
-                id={tabPanelId(`recording-${capture.id}-transcript`)}
-                aria-labelledby={tabId(`recording-${capture.id}-transcript`)}
-                hidden={
-                  selectedContent.captureId === capture.id &&
-                  selectedContent.tab !== "transcript"
-                }
-                tabIndex={0}
-                className="p-5 sticky top-[57px] max-h-[calc(100vh-57px)] overflow-y-auto">
-                {transcriptEditor}
-              </div>
-              <div
-                role="tabpanel"
-                id={tabPanelId(`recording-${capture.id}-insights`)}
-                aria-labelledby={tabId(`recording-${capture.id}-insights`)}
-                hidden={
-                  selectedContent.captureId !== capture.id ||
-                  selectedContent.tab !== "insights"
-                }
-                tabIndex={0}
-                className="p-5 sticky top-[57px] max-h-[calc(100vh-57px)] overflow-y-auto [&>section]:border-0 [&>section]:bg-transparent">
-                <MeetingInsights
-                  key={capture.id}
-                  id={capture.id}
-                  transcriptVersion={capture.transcriptVersion}
-                  audioAvailable={
-                    insightAudio?.captureId === capture.id && capture.id === id
-                  }
-                  onSeek={(startMs) => {
-                    if (
-                      insightAudio?.captureId === capture.id &&
-                      capture.id === id
-                    ) {
-                      seekInsightAudio(insightAudio.element, startMs);
-                    }
-                  }}
-                />
-              </div>
-            </Card>
-          ) : (
-            transcriptEditor
-          )}
         </>
       ) : (
-        !error && <p role="status">Loading recording…</p>
+        !error && <SkeletonDetail label="Loading this recording" />
       )}
     </div>
   );

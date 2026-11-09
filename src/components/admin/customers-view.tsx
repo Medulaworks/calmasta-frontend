@@ -30,7 +30,7 @@ export function CustomerDetail({ id }: { id: string }) {
           const suspended = !!nc.user.suspendedAt;
           const user = { id: nc.user.id, email: nc.user.email, name: nc.user.name, timezone: nc.user.timezone ?? undefined, suspended, emailVerified: nc.user.emailVerified, plan: nc.workspaces[0]?.plan ?? "free", planSource: null, sessionCount: 0, deleting: false };
           return (
-            <div className="space-y-6">
+            <div className="space-y-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <h1 className="break-words text-2xl font-semibold">{nc.user.name ?? nc.user.email}</h1>
@@ -51,7 +51,7 @@ export function CustomerDetail({ id }: { id: string }) {
                   <Row label="Staff">{nc.user.isStaff ? "Yes" : "No"}</Row>
                   <Row label="Suspended">{nc.user.suspendedAt ? fmtUtc(nc.user.suspendedAt) : "No"}</Row>
                 </dl>
-                <p className="flex items-center gap-2 border-t border-border px-5 py-3 text-xs text-muted"><Lock aria-hidden className="size-3.5 shrink-0" /> Recordings and documents aren&rsquo;t visible to admins.</p>
+                <p className="flex items-center gap-2 border-t border-border px-5 py-3 text-xs text-muted"><Lock aria-hidden className="size-4 shrink-0" /> Recordings and documents aren&rsquo;t visible to admins.</p>
               </Card>
               <Card>
                 <CardHeader title="Workspaces" />
@@ -69,7 +69,7 @@ export function CustomerDetail({ id }: { id: string }) {
         const suspended = (c as Customer).status === "suspended";
         const user = { id, email: (c as Customer).email, name: (c as Customer).name, timezone: (c as Customer).timezone, suspended, emailVerified: (c as Customer).emailVerified, plan: (c as Customer).plan.plan, planSource: (c as Customer).plan.source, sessionCount: (c as Customer).sessions.length, deleting: !!(c as Customer).deletion };
         return (
-          <div className="space-y-6">
+          <div className="space-y-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 <h1 className="break-words text-2xl font-semibold">{c.name ?? c.email}</h1>
@@ -96,7 +96,7 @@ export function CustomerDetail({ id }: { id: string }) {
                 <Row label="Recordings">{c.counts.captures}</Row>
                 <Row label="Documents">{c.counts.documents}</Row>
               </dl>
-              <p className="flex items-center gap-2 border-t border-border px-5 py-3 text-xs text-muted"><Lock aria-hidden className="size-3.5 shrink-0" /> Recordings and documents aren&rsquo;t visible to admins.</p>
+              <p className="flex items-center gap-2 border-t border-border px-5 py-3 text-xs text-muted"><Lock aria-hidden className="size-4 shrink-0" /> Recordings and documents aren&rsquo;t visible to admins.</p>
             </Card>
 
             <Card>
@@ -160,7 +160,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   return (
     <div className="min-w-0">
       <dt className="text-xs text-muted">{label}</dt>
-      <dd className="mt-0.5 break-words">{children}</dd>
+      <dd className="mt-1 break-words">{children}</dd>
     </div>
   );
 }
