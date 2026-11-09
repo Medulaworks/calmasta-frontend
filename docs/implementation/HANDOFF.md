@@ -1,5 +1,12 @@
 ## 2026-10-29 — meeting assistant display names
 
+## 2026-11-09 — hosted rollout and verification
+
+- **What was done (files + behavior):** Pulled and deployed latest fixes for both repositories. Deployed staging backend (7b8b046c5c99affd3e8a4cd92a282a1603292ffb), production backend (7b8b046c5c99affd3e8a4cd92a282a1603292ffb), and production frontend (fdcb2b161e5a9deb2736aa2fd3931edd83075452). Verified live endpoints (/health, /ready, /auth/login), fail-closed browser telemetry (HTTP 503), playback error support references, and duplicate bot prevention.
+- **Proof (command + result + revision):** Backend PG16 isolated suite: 288/288 passed (285 passed, 3 skipped, 0 failed), OpenAPI valid: 122 paths. Frontend suite: 358/358 passed across 50 files; tsc --noEmit passed; next build passed. Live checks: /health & /ready 200, frontend /auth/login 200, unauthenticated /api/captures/:id/audio returns 401 with x-correlation-id, POST /api/telemetry returns 503 browser_telemetry_unavailable. PM2 calmasta-api, calmasta-worker, calmasta-staging-api, calmasta-staging-worker, calmasta-frontend all online under ubuntu user.
+- **What is NOT done:** Automated probe execution & alert delivery remain blocked awaiting operator provisioning of dedicated fixture credentials/capture ID and authorized on-call notification destination. No customer meetings created, no billing holds altered.
+- **Next action (task ID + files):** OTEL-09/OPERATIONS — operator provisions operator-owned fixture capture ID and session cookie in protected env for scripts/check-playback.cjs, and designates alert destination.
+
 ## 2026-11-09 — runtime source published on main and staging
 
 - **What was done (files + behavior):** Published frontend runtime commit20bc27c and backend7b8b046 to main/staging in the Medulaworks repositories. Both source trees contain the tested auth/playback and active-meeting safeguards. Server handoff now directs pull/deploy of committed source; patch artifacts are historical references.

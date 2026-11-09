@@ -1,5 +1,12 @@
 # CAPTURE consumption
 
+## 2026-11-09 — hosted rollout and verification
+
+- **What was done (files + behavior):** Pulled and deployed latest fixes for both repositories. Deployed staging backend (7b8b046), production backend (7b8b046), and production frontend (fdcb2b1). Verified duplicate-bot prevention, canonical meeting URL handling, and empty-transcript display ("No speech detected").
+- **Proof (command + result + revision):** Backend PG16 isolated suite: 288/288 passed, 122 OpenAPI paths. Frontend suite: 358/358 passed; tsc --noEmit and next build passed. Live checks: /dashboard/voice and /auth/login return 200; PM2 processes healthy.
+- **What is NOT done:** Automated probe execution & alert delivery remain blocked awaiting operator provisioning of dedicated fixture credentials/capture ID and authorized on-call notification destination.
+- **Next action (task ID + files):** OTEL-09/OPERATIONS — operator provisions operator-owned fixture capture ID and session cookie in protected env for scripts/check-playback.cjs, and designates alert destination.
+
 ## 2026-11-09 — runtime source published on main and staging
 
 - **What was done (files + behavior):** Published frontend runtime commit20bc27c and backend7b8b046 to main/staging in the Medulaworks repositories. Both source trees contain the tested auth/playback and active-meeting safeguards. Server handoff now directs pull/deploy of committed source; patch artifacts are historical references.

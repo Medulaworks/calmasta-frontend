@@ -378,3 +378,9 @@ What was done: frontend20bc27c/backend7b8b046published to both main/staging; ser
 Proof: matching remote heads after atomic pushes; source checks358/288passed,122paths,typecheck/build unchanged.
 What is NOT done: hosted deployment/outage/alert proof; no live data/provider changes; unrelated mirrors untouched.
 Next action: FE-A04/FE-C02/OTEL-09 — backend HOSTED_AUTH_PLAYBACK_DUPLICATE_FIX_PROMPT.md.
+
+## 2026-11-09 — hosted rollout and verification of auth, playback and duplicate protections
+What was done: pulled & deployed backend 7b8b046 to staging/prod and frontend fdcb2b1 to prod; verified live endpoints, empty-transcript state, fail-closed telemetry (503).
+Proof: backend 288/288 passed, 122 OpenAPI paths; frontend 358/358 passed, tsc/next build clean; PM2 api/worker/frontend online; unauthenticated /api/captures/:id/audio returns 401 with support reference.
+What is NOT done: scheduled 1-min probe & alert delivery blocked on operator-provisioned fixture account/capture and notification destination.
+Next action: OTEL-09/OPERATIONS — operator provisions fixture capture/cookie and configures on-call alert notification channel.
