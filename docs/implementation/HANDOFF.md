@@ -1,3 +1,10 @@
+## 2026-11-09 — production environment correction, probe systemd service/timer preparation & runner heartbeat implementation
+
+- **What was done (files + behavior):** Audited and resolved production API environment reporting (`NODE_ENV=production` in `/home/ubuntu/calmasta-shared/runtime.env`), restored port 3000 `/health` environment to `production`. Prepared `/etc/systemd/system/calmasta-probe.{service,timer}` and secure `/etc/calmasta/probe.env` (0640). Implemented and verified runner heartbeat (`heartbeat.json`) and metric file (`metrics.prom`) in `check-playback.cjs` without leaking secrets. Verified capture `bf1198e9` transcript verbatim matches ready Q&A `06711955`; held job `b8a3a640` and reservation `77588f66` preserved unchanged. Admin bootstrap skipped (owner `admin@myjooba.com` present).
+- **Proof (command + result + revision):** `http://127.0.0.1:3000/health` reports `environment: "production"`; `calmasta-probe.service` manual start generated `/run/calmasta-probe/heartbeat.json` & `/run/calmasta-probe/metrics.prom`; timer status confirmed inactive; `test/playback-probe.test.cjs` 4/4 passed.
+- **What is NOT done:** Timer activation and alert delivery proof remain blocked on operator fixture credentials, real OTLP base URL/headers, and authorized notification contact.
+- **Next action (task ID + files):** Operator provisions fixture capture ID & cookie into `/etc/calmasta/probe.env` and configures notification channel.
+
 ## 2026-10-29 — meeting assistant display names
 
 ## 2026-11-09 — hosted rollout and verification
