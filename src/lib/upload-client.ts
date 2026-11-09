@@ -1,3 +1,4 @@
+import { brandText } from "./brand";
 import {blobSha256} from "./blob-sha256";
 // Browser side of the upload flow: ask the API for a signed URL, PUT the file
 // with progress, tell the API it finished, then poll processing status.
@@ -83,7 +84,8 @@ export async function api<T>(url:string,init?:RequestInit):Promise<T>{
  const res=await fetch(url,{cache:"no-store",...init});if(res.status===204)return undefined as T;const body=await res.json().catch(()=>({}));
  if(!res.ok){
   const reference=typeof body.correlationId==="string"&&/^[a-f0-9-]{36}$/i.test(body.correlationId)?body.correlationId:undefined;
-  const message=res.status===401?"Your session ended. Please sign in again.":messages[body.code]??body.error??"Something went wrong. Please try again.";
+  const raw=res.status===401?"Your session ended. Please sign in again.":messages[body.code]??body.error??"Something went wrong. Please try again.";
+  const message=brandText(String(raw));
   throw new ApiError(res.status,message+(res.status>=500&&reference?` Reference: ${reference}`:""),body.code,reference);
  }return body as T;
 }

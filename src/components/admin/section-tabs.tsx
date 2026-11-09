@@ -11,7 +11,7 @@ export function SectionTabs() {
   const tabs = sectionFor(pathname)?.tabs ?? [];
   if (tabs.length < 2) return null;
   return (
-    <nav aria-label="In this section" className="flex gap-6 overflow-x-auto border-b border-border [scrollbar-width:none]">
+    <nav aria-label="In this section" className="flex gap-5 overflow-x-auto border-b border-border [scrollbar-width:none]">
       {tabs.map((t) => {
         const on = tabActive(pathname, t);
         return (
@@ -19,7 +19,7 @@ export function SectionTabs() {
             key={t.href}
             href={t.href}
             aria-current={on ? "page" : undefined}
-            className={`whitespace-nowrap border-b-2 px-0.5 pb-3 pt-1 text-sm transition-colors ${on ? "border-accent-solid font-medium text-foreground" : "border-transparent text-muted hover:text-foreground"}`}
+            className={`whitespace-nowrap border-b-2 px-1 pb-3 pt-1 text-sm transition-colors ${on ? "border-accent-solid font-medium text-foreground" : "border-transparent text-muted hover:text-foreground"}`}
           >
             {t.label}
           </Link>

@@ -12,7 +12,7 @@ export function Skeleton({ className = "" }: { className?: string }) {
 
 /** A panel-shaped skeleton (a card or chart that hasn't arrived yet). */
 export function SkeletonPanel({ className = "" }: { className?: string }) {
-  return <div aria-hidden className={`jb-skel rounded-xl border border-border bg-surface ${className}`} />;
+  return <div aria-hidden className={`jb-skel rounded-2xl border border-border bg-surface ${className}`} />;
 }
 
 /** Marks a group of skeletons as one busy region with a single spoken label. */
@@ -46,7 +46,7 @@ export function SkeletonRows({ count = 4, label = "Loading", icon = true }: { co
             {icon && <Skeleton className="size-9 shrink-0 rounded-lg" />}
             <span className="block flex-1 space-y-2">
               <Skeleton className="h-3 w-1/2" />
-              <Skeleton className="h-2.5 w-1/4" />
+              <Skeleton className="h-3 w-1/4" />
             </span>
             <Skeleton className="h-5 w-16 rounded-full" />
           </li>
@@ -59,10 +59,10 @@ export function SkeletonRows({ count = 4, label = "Loading", icon = true }: { co
 /** A page title, a line of description and a body panel: the default while a page's content loads. */
 export function SkeletonPage({ label = "Loading" }: { label?: string }) {
   return (
-    <Loading label={label} className="space-y-6">
+    <Loading label={label} className="space-y-5">
       <div aria-hidden className="space-y-2">
         <Skeleton className="h-6 w-48" />
-        <Skeleton className="h-3.5 w-80 max-w-full" />
+        <Skeleton className="h-4 w-80 max-w-full" />
       </div>
       <SkeletonPanel className="h-64" />
     </Loading>
@@ -72,7 +72,7 @@ export function SkeletonPage({ label = "Loading" }: { label?: string }) {
 /** A detail page (a recording, a document): back link, title with a status, tabs, and a card. */
 export function SkeletonDetail({ label = "Loading" }: { label?: string }) {
   return (
-    <Loading label={label} className="space-y-6">
+    <Loading label={label} className="space-y-5">
       <Skeleton className="h-4 w-20" />
       <div className="flex items-start gap-3">
         <Skeleton className="size-11 shrink-0 rounded-xl" />
@@ -81,7 +81,7 @@ export function SkeletonDetail({ label = "Loading" }: { label?: string }) {
           <Skeleton className="h-4 w-48 max-w-full" />
         </div>
       </div>
-      <div aria-hidden className="flex gap-6 border-b border-border pb-3">
+      <div aria-hidden className="flex gap-5 border-b border-border pb-3">
         {["w-16", "w-20", "w-20", "w-14"].map((w, i) => <Skeleton key={i} className={`h-4 ${w}`} />)}
       </div>
       <SkeletonPanel className="h-56" />
@@ -96,9 +96,9 @@ export function SkeletonForm({ label = "Loading" }: { label?: string }) {
       <Skeleton className="h-10 w-4/5" />
       <SkeletonLines lines={2} />
       <div aria-hidden className="space-y-4 pt-4">
-        <Skeleton className="h-11 w-full rounded-xl" />
-        <Skeleton className="h-11 w-full rounded-xl" />
-        <Skeleton className="h-11 w-full rounded-xl" />
+        <Skeleton className="h-10 w-full rounded-xl" />
+        <Skeleton className="h-10 w-full rounded-xl" />
+        <Skeleton className="h-10 w-full rounded-xl" />
       </div>
     </Loading>
   );
@@ -107,7 +107,7 @@ export function SkeletonForm({ label = "Loading" }: { label?: string }) {
 /** The public booking pages: a title and description beside a list of choices. */
 export function SkeletonGuest({ label = "Loading" }: { label?: string }) {
   return (
-    <Loading label={label} className="mx-auto grid max-w-4xl gap-8 py-10 md:grid-cols-[18rem_1fr]">
+    <Loading label={label} className="mx-auto grid max-w-4xl gap-6 py-10 md:grid-cols-[18rem_1fr]">
       <div aria-hidden className="space-y-4">
         <Skeleton className="h-4 w-28" />
         <Skeleton className="h-8 w-64 max-w-full" />

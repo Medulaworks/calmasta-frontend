@@ -41,7 +41,7 @@ function Check({ delay }: { delay: number }) {
 
 function Avatar({ children, tone }: { children: ReactNode; tone: string }) {
   return (
-    <span className={`-ml-2 grid size-7 place-items-center rounded-full border-2 border-background text-[11px] font-medium first:ml-0 ${tone}`}>
+    <span className={`-ml-2 grid size-7 place-items-center rounded-full border-2 border-background text-xs font-medium first:ml-0 ${tone}`}>
       {children}
     </span>
   );
@@ -64,10 +64,10 @@ export function AuthShowcase() {
 
       <header className="relative max-w-md shrink-0 text-center">
         <p className="mx-auto inline-flex items-center gap-2 rounded-full border border-border bg-background/80 px-3 py-1 text-xs font-medium text-muted backdrop-blur">
-          <Sparkles aria-hidden className="size-3.5 text-accent" /> Your meetings, working for you
+          <Sparkles aria-hidden className="size-4 text-accent" /> Your meetings, working for you
         </p>
         <h2 className="mt-3 text-[clamp(1.25rem,3.4vh,1.75rem)] font-semibold leading-tight tracking-tight">Say it once. Jooba handles the rest.</h2>
-        <p className="mt-1.5 text-[13px] leading-5 text-muted">From the call to the transcript, the decisions and the follow-up, nothing said in a meeting slips away.</p>
+        <p className="mt-2 text-sm leading-5 text-muted">From the call to the transcript, the decisions and the follow-up, nothing said in a meeting slips away.</p>
       </header>
 
       {/* The stage: 540 x 552, scaled to fit the space left on screen. */}
@@ -94,8 +94,8 @@ export function AuthShowcase() {
                   <p className="truncate text-sm font-medium">Quarterly planning</p>
                   <p className="truncate text-xs text-muted">Jooba Assistant is in the meeting</p>
                 </div>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/10 px-2 py-0.5 text-[11px] font-medium text-red-600 dark:text-red-400">
-                  <span className="jb-rec size-1.5 rounded-full bg-red-500" /> REC
+                <span className="inline-flex items-center gap-2 rounded-full bg-red-500/10 px-2 py-1 text-xs font-medium text-red-600 dark:text-red-400">
+                  <span className="jb-rec size-2 rounded-full bg-red-500" /> REC
                 </span>
               </div>
               <div className="mt-3 flex items-center justify-between gap-3">
@@ -111,7 +111,7 @@ export function AuthShowcase() {
 
           {/* Consent chip */}
           <Float x={318} y={26} w={210} d={0.9} f={8} z={4}>
-            <div className={`${CARD} flex items-center gap-2.5 px-3.5 py-2.5`}>
+            <div className={`${CARD} flex items-center gap-3 px-4 py-3`}>
               <ShieldCheck aria-hidden className="size-[18px] shrink-0 text-accent" />
               <p className="text-xs leading-4"><span className="font-medium">Always visible.</span> <span className="text-muted">Records only with consent.</span></p>
             </div>
@@ -123,14 +123,14 @@ export function AuthShowcase() {
               <div className="flex items-center gap-2">
                 <Mic aria-hidden className="size-4 text-accent" />
                 <p className="text-sm font-medium">Transcript</p>
-                <span className="jb-found ml-auto inline-flex items-center gap-1 rounded-full bg-accent-solid/25 px-2 py-0.5 text-[11px] font-medium">
+                <span className="jb-found ml-auto inline-flex items-center gap-1 rounded-full bg-accent-solid/25 px-2 py-1 text-xs font-medium">
                   <Sparkles aria-hidden className="size-3" /> Action found
                 </span>
               </div>
-              <ul className="mt-3 space-y-2.5 text-[13px] leading-5">
-                <li><span className="font-medium text-accent">Maya</span> <span className="text-[11px] text-muted">00:08</span><br />Let&rsquo;s lock the Q4 budget at 120k.</li>
-                <li><span className="font-medium text-accent">Amara</span> <span className="text-[11px] text-muted">00:21</span><br />Agreed. <span className="jb-mark px-0.5">I&rsquo;ll send the revised estimate by Friday.</span></li>
-                <li className="text-muted"><span className="font-medium text-accent">Maya</span> <span className="text-[11px]">00:34</span><br />Perfect, launch stays on the 12th.</li>
+              <ul className="mt-3 space-y-3 text-sm leading-5">
+                <li><span className="font-medium text-accent">Maya</span> <span className="text-xs text-muted">00:08</span><br />Let&rsquo;s lock the Q4 budget at 120k.</li>
+                <li><span className="font-medium text-accent">Amara</span> <span className="text-xs text-muted">00:21</span><br />Agreed. <span className="jb-mark px-1">I&rsquo;ll send the revised estimate by Friday.</span></li>
+                <li className="text-muted"><span className="font-medium text-accent">Maya</span> <span className="text-xs">00:34</span><br />Perfect, launch stays on the 12th.</li>
               </ul>
             </div>
           </Float>
@@ -141,14 +141,14 @@ export function AuthShowcase() {
               <div className="flex items-center gap-2">
                 <ListChecks aria-hidden className="size-4 text-accent" />
                 <p className="text-sm font-medium">Action items</p>
-                <span className="ml-auto text-[11px] text-muted">You decide</span>
+                <span className="ml-auto text-xs text-muted">You decide</span>
               </div>
-              <ul className="mt-3 space-y-2.5 text-[13px] leading-5">
+              <ul className="mt-3 space-y-3 text-sm leading-5">
                 {["Send the revised estimate", "Confirm the launch date", "Share the onboarding checklist"].map((t, i) => (
-                  <li key={t} className="flex items-start gap-2.5"><span className="mt-0.5"><Check delay={0.8 + i * 0.9} /></span>{t}</li>
+                  <li key={t} className="flex items-start gap-3"><span className="mt-1"><Check delay={0.8 + i * 0.9} /></span>{t}</li>
                 ))}
               </ul>
-              <p className="mt-3 text-[11px] text-muted">Suggestions only. You decide what happens.</p>
+              <p className="mt-3 text-xs text-muted">Suggestions only. You decide what happens.</p>
             </div>
           </Float>
 
@@ -158,10 +158,10 @@ export function AuthShowcase() {
               <div className="flex items-center gap-2">
                 <FileText aria-hidden className="size-4 text-accent" />
                 <p className="truncate text-sm font-medium">Meeting summary</p>
-                <span className="jb-ready ml-auto rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">Ready</span>
+                <span className="jb-ready ml-auto rounded-full bg-emerald-500/15 px-2 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">Ready</span>
               </div>
               <div className="mt-3 space-y-2" aria-hidden>
-                <span className="jb-line block h-2.5 w-2/3 rounded-full bg-accent/70" style={vars(0)} />
+                <span className="jb-line block h-3 w-2/3 rounded-full bg-accent/70" style={vars(0)} />
                 <span className="jb-line block h-2 w-full rounded-full bg-border" style={vars(0.15)} />
                 <span className="jb-line block h-2 w-[92%] rounded-full bg-border" style={vars(0.3)} />
                 <span className="jb-line block h-2 w-[70%] rounded-full bg-border" style={vars(0.45)} />
@@ -169,9 +169,9 @@ export function AuthShowcase() {
                 <span className="jb-line block h-2 w-[88%] rounded-full bg-border" style={vars(0.75)} />
                 <span className="jb-line block h-2 w-[60%] rounded-full bg-border" style={vars(0.9)} />
               </div>
-              <div className="mt-3 flex gap-1.5 text-[11px] text-muted">
-                <span className="rounded-full border border-border px-2 py-0.5">Edit freely</span>
-                <span className="rounded-full border border-border px-2 py-0.5">Export</span>
+              <div className="mt-3 flex gap-2 text-xs text-muted">
+                <span className="rounded-full border border-border px-2 py-1">Edit freely</span>
+                <span className="rounded-full border border-border px-2 py-1">Export</span>
               </div>
             </div>
           </Float>

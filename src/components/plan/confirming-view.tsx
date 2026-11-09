@@ -49,7 +49,7 @@ export function ConfirmingView() {
 
   return (
     <Card className="max-w-2xl">
-      <div className="space-y-4 p-6 text-sm" role="status" aria-live="polite">
+      <div className="space-y-4 p-5 text-sm" role="status" aria-live="polite">
         {done ? (
           <>
             <p className="flex items-center gap-2 text-lg font-semibold">

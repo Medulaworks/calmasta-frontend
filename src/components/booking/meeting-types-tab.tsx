@@ -242,7 +242,7 @@ export function MeetingTypesTab() {
                         : false,
                     })
                   }
-                  className="mt-0.5 h-4 w-4"
+                  className="mt-1 h-4 w-4"
                 />
                 <span>
                   <span className="font-medium">
@@ -268,7 +268,7 @@ export function MeetingTypesTab() {
                             captureConfirmed: e.target.checked,
                           })
                         }
-                        className="mt-0.5 h-4 w-4"
+                        className="mt-1 h-4 w-4"
                       />
                       <span>
                         I have the right to record these meetings, and I will
@@ -285,7 +285,7 @@ export function MeetingTypesTab() {
                   <p className="flex items-start gap-2 text-xs text-muted">
                     <Video
                       aria-hidden
-                      className="mt-0.5 h-3.5 w-3.5 shrink-0"
+                      className="mt-1 h-4 w-4 shrink-0"
                     />{" "}
                     The location above must be a Google Meet, Teams or Zoom link
                     for the assistant to join.
@@ -333,7 +333,7 @@ export function MeetingTypesTab() {
             {types.map((t: import("@/lib/booking-client").MeetingTypeView) => (
               <li
                 key={t.id}
-                className="flex flex-wrap items-start justify-between gap-3 px-5 py-4 text-sm">
+                className="flex flex-wrap items-start justify-between gap-3 px-5 py-3 text-sm">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-medium">{t.name}</p>

@@ -12,7 +12,7 @@ export function ChangePasswordDialog({ onClose }: { onClose: () => void }) {
   const [message, setMessage] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
-  const field = "mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm";
+  const field = "mt-1 w-full min-h-10 rounded-xl border border-border bg-background px-4 py-2 text-sm";
 
   async function submit(e: FormEvent) {
     e.preventDefault();

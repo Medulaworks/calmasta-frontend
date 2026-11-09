@@ -1,31 +1,32 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { Button } from "@/components/ui/button";
 
-export const field = "mt-1 block w-full rounded-lg border border-border bg-background px-3 py-2 text-sm";
+export const field = "mt-2 block w-full min-h-10 rounded-xl border border-border bg-background px-4 py-2 text-sm shadow-sm placeholder:text-muted focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent-solid/20";
 
 export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
     <label className="block text-sm">
       <span className="font-medium">{label}</span>
       {children}
-      {hint && <span className="mt-1 block text-xs text-muted">{hint}</span>}
+      {hint && <span className="mt-2 block text-xs text-muted">{hint}</span>}
     </label>
   );
 }
 
 export function ErrorBox({ message }: { message: string | null }) {
-  return message ? <p role="alert" className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">{message}</p> : null;
+  return message ? <p role="alert" className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">{message}</p> : null;
 }
 
 export function Confirm({ title, text, action, busy, onConfirm, onCancel }: { title: string; text: string; action: string; busy: boolean; onConfirm: () => void; onCancel: () => void }) {
   return (
-    <div role="alertdialog" aria-label={title} className="rounded-xl border border-border bg-surface p-5 text-sm">
-      <p className="font-medium">{title}</p>
+    <div role="alertdialog" aria-label={title} className="rounded-2xl border border-danger/30 bg-danger/5 p-5 text-sm">
+      <p className="text-base font-semibold">{title}</p>
       <p className="mt-1 text-muted">{text}</p>
-      <div className="mt-4 flex gap-2">
-        <button type="button" disabled={busy} onClick={onConfirm} className="inline-flex min-h-9 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-danger-solid px-4 text-sm font-medium text-white transition-colors hover:brightness-95 active:brightness-90 disabled:pointer-events-none disabled:opacity-50">{busy ? "Working…" : action}</button>
-        <button type="button" disabled={busy} onClick={onCancel} className="rounded-lg px-4 py-2 text-muted hover:text-foreground">Cancel</button>
+      <div className="mt-4 flex flex-wrap gap-3">
+        <Button variant="danger" disabled={busy} onClick={onConfirm}>{busy ? "Working…" : action}</Button>
+        <Button variant="ghost" disabled={busy} onClick={onCancel}>Keep it</Button>
       </div>
     </div>
   );

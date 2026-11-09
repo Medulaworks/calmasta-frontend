@@ -56,7 +56,7 @@ interface Section {
 }
 
 const Kbd = ({ children }: { children: React.ReactNode }) => (
-  <kbd className="rounded border border-border bg-surface px-1.5 py-px font-sans text-[11px] leading-4 text-muted">{children}</kbd>
+  <kbd className="rounded border border-border bg-surface px-2 py-px font-sans text-xs leading-4 text-muted">{children}</kbd>
 );
 
 /** Opens the search from the top bar. The palette itself is mounted only while open. */
@@ -92,8 +92,8 @@ export function HeaderSearch({ compact = false }: { compact?: boolean }) {
   return (
     <>
       {compact ? (
-        <button type="button" onClick={show} aria-label="Search" aria-haspopup="dialog" className="grid h-9 w-9 place-items-center rounded-lg text-muted transition-colors hover:bg-surface hover:text-foreground">
-          <Search aria-hidden className="h-[18px] w-[18px]" />
+        <button type="button" onClick={show} aria-label="Search" aria-haspopup="dialog" className="grid size-10 place-items-center rounded-lg text-muted transition-colors hover:bg-surface hover:text-foreground">
+          <Search aria-hidden className="h-5 w-5" />
         </button>
       ) : (
         <button
@@ -263,9 +263,9 @@ function Palette({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 px-4 pt-[8vh] backdrop-blur-[2px] sm:pt-[12vh]" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div ref={box} role="dialog" aria-modal="true" aria-label="Search" onKeyDown={onKeyDown} className="flex max-h-[min(34rem,80vh)] w-full max-w-xl flex-col overflow-hidden rounded-xl border border-border bg-background text-foreground shadow-2xl">
+      <div ref={box} role="dialog" aria-modal="true" aria-label="Search" onKeyDown={onKeyDown} className="flex max-h-[min(34rem,80vh)] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-sm text-foreground shadow-2xl">
         <div className="flex items-center gap-3 border-b border-border px-4">
-          <Search aria-hidden className="h-[18px] w-[18px] shrink-0 text-muted" />
+          <Search aria-hidden className="h-5 w-5 shrink-0 text-muted" />
           <input
             autoFocus
             role="combobox"
@@ -308,7 +308,7 @@ function Palette({ onClose }: { onClose: () => void }) {
         </div>
 
         {searchable && (
-          <div role="group" aria-label="Narrow results to" className="flex gap-1.5 overflow-x-auto border-b border-border px-4 py-2">
+          <div role="group" aria-label="Narrow results to" className="flex gap-2 overflow-x-auto border-b border-border px-4 py-2">
             {FILTERS.map((f) => (
               <button
                 key={f.id}
@@ -318,7 +318,7 @@ function Palette({ onClose }: { onClose: () => void }) {
                   setFilter(f.id);
                   setActive(0);
                 }}
-                className={`h-6 shrink-0 rounded-md px-2.5 text-xs transition-colors ${filter === f.id ? "bg-accent/10 font-medium text-accent ring-1 ring-inset ring-accent/25" : "text-muted hover:bg-surface hover:text-foreground"}`}
+                className={`h-6 shrink-0 rounded-md px-3 text-xs transition-colors ${filter === f.id ? "bg-accent/10 font-medium text-accent ring-1 ring-inset ring-accent/25" : "text-muted hover:bg-surface hover:text-foreground"}`}
               >
                 {f.label}
               </button>
@@ -327,7 +327,7 @@ function Palette({ onClose }: { onClose: () => void }) {
         )}
 
         <div id={listId} role="listbox" aria-label="Results" className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2">
-          {q && !searchable && sections.length === 0 && <p className="px-3 py-6 text-center text-sm text-muted">Keep typing to search your library.</p>}
+          {q && !searchable && sections.length === 0 && <p className="px-3 py-5 text-center text-sm text-muted">Keep typing to search your library.</p>}
 
           {error && (
             <div role="alert" className="mx-1 mb-2 flex items-center justify-between gap-3 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
@@ -372,7 +372,7 @@ function Palette({ onClose }: { onClose: () => void }) {
                     className={`flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 ${on ? "bg-surface" : ""}`}
                   >
                     <OptionBody o={o} q={q} />
-                    {on && <CornerDownLeft aria-hidden className="hidden h-3.5 w-3.5 shrink-0 text-muted sm:block" />}
+                    {on && <CornerDownLeft aria-hidden className="hidden h-4 w-4 shrink-0 text-muted sm:block" />}
                   </div>
                 );
               })}
@@ -381,9 +381,9 @@ function Palette({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="hidden items-center gap-4 border-t border-border bg-surface px-4 py-2 text-xs text-muted sm:flex">
-          <span className="flex items-center gap-1.5"><Kbd>↑</Kbd><Kbd>↓</Kbd> navigate</span>
-          <span className="flex items-center gap-1.5"><Kbd>↵</Kbd> open</span>
-          {searchable && <span className="flex items-center gap-1.5"><Kbd>⇧ ↵</Kbd> all results</span>}
+          <span className="flex items-center gap-2"><Kbd>↑</Kbd><Kbd>↓</Kbd> navigate</span>
+          <span className="flex items-center gap-2"><Kbd>↵</Kbd> open</span>
+          {searchable && <span className="flex items-center gap-2"><Kbd>⇧ ↵</Kbd> all results</span>}
         </div>
         <p role="status" className="sr-only">{status}</p>
       </div>

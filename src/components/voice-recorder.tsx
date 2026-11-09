@@ -1,11 +1,18 @@
 "use client";
 
-import { Mic, Square, Upload, Video } from "lucide-react";
+import { SkeletonRows } from "@/components/ui/skeleton";
+import { VoiceIllustration } from "@/components/ui/illustrations";
+import { useDisplayTitle } from "@/components/shell/use-display-title";
+import { LiveWaveform } from "@/components/live-waveform";
+import { takePendingFile } from "@/lib/pending-upload";
+import { playSound } from "@/lib/sounds";
+import { ArrowRight, FileAudio, Mic, Square, Upload, Video } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
+import { UploadProgress } from "@/components/upload-progress";
 import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -84,6 +91,7 @@ export function VoiceRecorder() {
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const [liveStream, setLiveStream] = useState<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const startedAtRef = useRef(0);
   const cancelledRef = useRef(false);
@@ -107,7 +115,10 @@ export function VoiceRecorder() {
   }, [previewUrl]);
 
   function stopRecording() {
-    if (recorderRef.current?.state === "recording") recorderRef.current.stop();
+    if (recorderRef.current?.state === "recording") {
+      playSound("recordStop");
+      recorderRef.current.stop();
+    }
   }
 
   // Elapsed-time ticker; also enforces the maximum recording length.
@@ -117,7 +128,7 @@ export function VoiceRecorder() {
       const seconds = (Date.now() - startedAtRef.current) / 1000;
       setElapsed(seconds);
       if (maxSeconds!==null && seconds >= Math.max(1,maxSeconds-1)) {
-        if (recorderRef.current?.state === "recording") recorderRef.current.stop();
+        if (recorderRef.current?.state === "recording") { playSound("recordStop"); recorderRef.current.stop(); }
       }
     }, 250);
     return () => clearInterval(id);
@@ -135,6 +146,13 @@ export function VoiceRecorder() {
       return 2000;
     },
   });
+
+  // A short sound when it finishes or fails, once per change of outcome.
+  const outcome = job?.kind === "done" || job?.kind === "failed" ? job.kind : null;
+  useEffect(() => {
+    if (outcome === "done") playSound("success");
+    else if (outcome === "failed") playSound("error");
+  }, [outcome]);
 
   useEffect(() => {
     if (!processingId) return;
@@ -250,6 +268,8 @@ export function VoiceRecorder() {
       setPhase("idle");
       return;
     }
+    playSound("recordStart");
+    setLiveStream(stream);
     setPhase("recording");
   }
 
@@ -279,33 +299,44 @@ export function VoiceRecorder() {
     });
   }
 
+  // A file dropped on the dashboard arrives here once the upload settings are known.
+  useEffect(() => {
+    if (!policy) return;
+    const f = takePendingFile();
+    if (f) acceptFile(f);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [policy]);
+
   const recording = phase === "recording";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="grid gap-4 md:grid-cols-2">
-        <section aria-labelledby="record-heading" className="flex flex-col rounded-xl border border-border p-6">
+        <section aria-labelledby="record-heading" className="flex flex-col rounded-2xl border border-border p-5">
           <span aria-hidden className="grid h-10 w-10 place-items-center rounded-lg bg-accent/10 text-accent">
             <Mic className="h-5 w-5" />
           </span>
           <h2 id="record-heading" className="mt-4 text-base font-medium">
-            Record a thought
+            Record your voice
           </h2>
           <p className="mt-1 text-sm text-muted">
             {maxSeconds===null ? "No recording time limit." : `Record up to ${formatDuration(maxSeconds)}.`} Keep this tab open and in the foreground: browsers can pause recording when the screen locks.
           </p>
 
-          <div className="mt-auto pt-6">
+          <div className="mt-auto pt-5">
             {supported ? (
               recording ? (
-                <div className="flex flex-wrap items-center gap-4">
+                <div className="space-y-4">
+                  <LiveWaveform stream={liveStream} />
+                  <div className="flex flex-wrap items-center gap-4">
                   <Button variant="danger" size="lg" onClick={stopRecording}>
-                    <Square aria-hidden className="h-3.5 w-3.5 fill-current" /> Stop
+                    <Square aria-hidden className="h-4 w-4 fill-current" /> Stop
                   </Button>
                   <p role="timer" aria-live="off" className="flex items-center gap-2 text-sm tabular-nums">
                     <span aria-hidden className="inline-block h-2 w-2 animate-pulse rounded-full bg-danger-solid" />
                     Recording {formatDuration(elapsed)}
                   </p>
+                  </div>
                 </div>
               ) : (
                 <Button variant="primary" size="lg" onClick={startRecording} disabled={phase === "requesting" || !policy?.uploadEnabled}>
@@ -318,7 +349,7 @@ export function VoiceRecorder() {
           </div>
         </section>
 
-        <section aria-labelledby="upload-heading" className="flex flex-col rounded-xl border border-border p-6">
+        <section aria-labelledby="upload-heading" className="flex flex-col rounded-2xl border border-border p-5">
           <span aria-hidden className="grid h-10 w-10 place-items-center rounded-lg bg-accent/10 text-accent">
             <Upload className="h-5 w-5" />
           </span>
@@ -339,7 +370,7 @@ export function VoiceRecorder() {
               const file = e.dataTransfer.files?.[0];
               if (file && !recording) acceptFile(file);
             }}
-            className={`mt-6 flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed px-4 py-6 text-center transition-colors focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20 ${dragging ? "border-accent bg-accent/5" : "border-border hover:bg-surface"} ${recording ? "pointer-events-none opacity-50" : ""}`}
+            className={`mt-6 flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed px-4 py-5 text-center transition-colors focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20 ${dragging ? "border-accent bg-accent/5" : "border-border hover:bg-surface"} ${recording ? "pointer-events-none opacity-50" : ""}`}
           >
             <span className="text-sm font-medium">Choose a file</span>
             <span className="text-xs text-muted">or drop it here</span>
@@ -355,85 +386,93 @@ export function VoiceRecorder() {
       )}
 
       {selected && (
-        <section aria-labelledby="review-heading" className="space-y-4 rounded-xl border border-border p-6">
-          <h2 id="review-heading" className="text-base font-medium">
-            Review
-          </h2>
-          <audio controls src={selected.previewUrl} className="w-full" />
-          <p className="text-sm text-muted">
-            {selected.source === "recording" ? "Recording" : selected.name} · {formatBytes(selected.blob.size)}
-            {selected.durationSeconds !== null && ` · ${formatDuration(selected.durationSeconds)}`}
-          </p>
-          <div className="flex flex-wrap items-start gap-3">
-            <label className="text-sm">
-              <span className="sr-only">Title</span>
-              <select
-                value={titleMode}
-                onChange={(e) => setTitleMode(e.target.value as "auto" | "mine")}
-                className="rounded-lg border border-border bg-surface px-3 py-2 text-sm"
-              >
-                <option value="auto">Auto-generated title</option>
-                <option value="mine">Choose a title</option>
-              </select>
-            </label>
-            {titleMode === "mine" ? (
-              <label className="min-w-[12rem] flex-1 text-sm">
-                <span className="sr-only">Meeting title</span>
-                <input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  maxLength={200}
-                  placeholder="Quarterly planning"
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2"
-                />
-              </label>
-            ) : (
-              <p className="flex-1 py-2 text-sm text-muted">We’ll generate a title from the transcript.</p>
-            )}
+        <section aria-labelledby="review-heading" className="jb-rise overflow-hidden rounded-2xl border border-border bg-background shadow-sm">
+          <div className="flex min-h-14 items-center justify-between gap-4 border-b border-border px-5 py-3">
+            <h2 id="review-heading" className="text-base font-semibold">Review</h2>
           </div>
-          {job?.kind === "uploading" && (
-            <div role="status">
-              <progress value={job.progress} max={1} className="h-1.5 w-full overflow-hidden rounded-full accent-[var(--accent-solid)]" aria-label="Upload progress" />
-              <p className="mt-1 text-xs text-muted">Uploading… {Math.round(job.progress * 100)}%</p>
+          <div className="space-y-5 p-5">
+            <div className="flex items-center gap-4">
+              <span aria-hidden className="grid size-12 shrink-0 place-items-center rounded-xl bg-accent-solid/15 text-accent">{selected.source === "recording" ? <Mic className="size-6" /> : <FileAudio className="size-6" />}</span>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">{selected.source === "recording" ? "Recording" : selected.name}</p>
+                <p className="text-xs text-muted tabular-nums">
+                  {formatBytes(selected.blob.size)}
+                  {selected.durationSeconds !== null && ` · ${formatDuration(selected.durationSeconds)}`}
+                </p>
+              </div>
             </div>
-          )}
-          {job?.kind === "processing" && (
-            <p role="status" className="text-sm">
-              {processingQuery.data ? (processingQuery.data as CaptureView).state : "uploaded"}…
-            </p>
-          )}
-          {job?.kind === "failed" && (
-            <p role="alert" className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
-              {job.message}
-            </p>
-          )}
-          {job?.kind === "done" && (
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium">Transcript</h3>
-              <ol className="space-y-1.5 text-sm">
-                {job.capture.transcript.map((seg) => (
-                  <li key={seg.id} className="flex gap-3">
-                    <span className="w-12 shrink-0 text-xs tabular-nums text-muted">{formatDuration(seg.startMs / 1000)}</span>
-                    <span>
-                      {seg.speakerId && <span className="mr-2 text-xs text-muted">{seg.speakerId}</span>}
-                      {seg.text}
-                    </span>
-                  </li>
-                ))}
-              </ol>
+            <audio controls src={selected.previewUrl} className="w-full" />
+
+            {job && (
+              <UploadProgress
+                stage={job.kind}
+                progress={job.kind === "uploading" ? job.progress : 1}
+                totalBytes={selected.blob.size}
+                state={job.kind === "processing" ? (processingQuery.data as CaptureView | undefined)?.state : undefined}
+                message={job.kind === "failed" ? job.message : undefined}
+              />
+            )}
+
+            {(!job || job.kind === "failed") && (
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-start gap-3">
+                  <label className="text-sm">
+                    <span className="sr-only">Title</span>
+                    <select value={titleMode} onChange={(e) => setTitleMode(e.target.value as "auto" | "mine")} className="min-h-10 rounded-xl border border-border bg-background px-4 text-sm shadow-sm">
+                      <option value="auto">Auto-generated title</option>
+                      <option value="mine">Choose a title</option>
+                    </select>
+                  </label>
+                  {titleMode === "mine" ? (
+                    <label className="min-w-[12rem] flex-1 text-sm">
+                      <span className="sr-only">Meeting title</span>
+                      <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} placeholder="Quarterly planning" className="min-h-10 w-full rounded-xl border border-border bg-background px-4 text-sm shadow-sm" />
+                    </label>
+                  ) : (
+                    <p className="flex-1 py-3 text-sm text-muted">We’ll generate a title from the transcript.</p>
+                  )}
+                </div>
+                <label className="flex items-start gap-3 rounded-xl bg-surface p-4 text-sm">
+                  <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-1 size-4 shrink-0 accent-[var(--accent-solid)]" />
+                  I have the right to upload and transcribe this recording.
+                </label>
+              </div>
+            )}
+
+            {job?.kind === "done" && job.capture.transcript.length > 0 && (
+              <div>
+                <h3 className="text-sm font-semibold">Transcript</h3>
+                <ol className="mt-3 max-h-64 space-y-3 overflow-y-auto rounded-xl border border-border p-4 text-sm">
+                  {job.capture.transcript.map((seg) => (
+                    <li key={seg.id} className="flex gap-3">
+                      <span className="w-12 shrink-0 text-xs tabular-nums text-muted">{formatDuration(seg.startMs / 1000)}</span>
+                      <span>
+                        {seg.speakerId && <span className="mr-2 text-xs text-muted">{seg.speakerId}</span>}
+                        {seg.text}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+
+            {(!policy || !policy.uploadEnabled) && <p role="status" className="text-sm text-muted">{policyError ?? (policy ? "Uploading is not enabled for this account yet." : "Loading capture limits…")}</p>}
+            {job?.kind === "processing" && policy && !policy.liveProcessingEnabled && <p className="text-sm text-muted">Your recording is saved. Processing is currently paused.</p>}
+
+            <div className="flex flex-wrap items-center gap-3">
+              {job?.kind === "done" ? (
+                <ButtonLink href={`/dashboard/library/recordings/${job.captureId}`} variant="primary" size="lg">Open transcript <ArrowRight aria-hidden className="size-4" /></ButtonLink>
+              ) : job?.kind === "uploading" || job?.kind === "processing" ? (
+                job.kind === "processing" && <ButtonLink href={`/dashboard/library/recordings/${job.captureId}`} variant="secondary" size="lg">Open recording</ButtonLink>
+              ) : (
+                <Button variant="primary" size="lg" onClick={submit} disabled={!consent || !policy?.uploadEnabled || uploadMutation.isPending}>
+                  <Upload aria-hidden className="size-4" /> {job?.kind === "failed" ? "Try again" : "Upload and transcribe"}
+                </Button>
+              )}
+              <Button variant="ghost" size="lg" onClick={discardEverything} disabled={job?.kind === "uploading" || uploadMutation.isPending}>
+                {job?.kind === "done" ? "Start another" : "Clear selection"}
+              </Button>
             </div>
-          )}
-          {job&&"captureId" in job&&job.captureId&&<Link href={`/dashboard/library/recordings/${job.captureId}`} className="block text-sm font-medium text-accent">Review recording and transcript</Link>}
-          <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)}/>I have the right to upload and transcribe this recording.</label>
-          {(!policy||!policy.uploadEnabled)&&<p role="status" className="text-sm text-muted">{policyError??(policy?"Uploading is not enabled for this account yet.":"Loading capture limits…")}</p>}
-          {job?.kind==="processing"&&policy&&!policy.liveProcessingEnabled&&<p className="text-sm text-muted">Your recording is saved. Processing is currently paused.</p>}
-          <div className="flex items-center gap-2">
-            <Button variant="primary" onClick={submit} disabled={!consent || !policy?.uploadEnabled || job?.kind === "uploading" || job?.kind === "processing" || job?.kind === "done" || uploadMutation.isPending}>
-              {job?.kind === "failed" ? "Try again" : "Upload and transcribe"}
-            </Button>
-            <Button variant="ghost" onClick={discardEverything} disabled={job?.kind === "uploading" || uploadMutation.isPending}>
-              Clear selection
-            </Button>
           </div>
         </section>
       )}
@@ -445,6 +484,7 @@ export function VoiceRecorder() {
 
 /** The last few recordings and meetings, so Capture is also where you see what you captured. */
 function RecentRecordings() {
+  const titleOf = useDisplayTitle();
   const { data: items, isLoading, isError } = useQuery(capturesQuery(6, "recordings"));
 
   return (
@@ -459,18 +499,11 @@ function RecentRecordings() {
         }
       />
       {isError && !items ? (
-        <p role="alert" className="px-5 py-6 text-sm text-danger">Couldn&rsquo;t load your recordings just now.</p>
+        <p role="alert" className="px-5 py-5 text-sm text-danger">Couldn&rsquo;t load your recordings just now.</p>
       ) : isLoading ? (
-        <ul aria-hidden className="divide-y divide-border">
-          {[0, 1, 2].map((i) => (
-            <li key={i} className="flex items-center gap-3 px-5 py-3">
-              <span className="h-9 w-9 animate-pulse rounded-lg bg-border" />
-              <span className="h-3 w-1/3 animate-pulse rounded bg-border" />
-            </li>
-          ))}
-        </ul>
+        <SkeletonRows count={3} label="Loading your recordings" />
       ) : !items || items.length === 0 ? (
-        <EmptyState icon={<Mic />} title="Nothing recorded yet" body="Your recordings and captured meetings will be listed here." />
+        <EmptyState illustration={<VoiceIllustration />} title="Nothing recorded yet" body="Your recordings and captured meetings will be listed here." />
       ) : (
         <ul aria-labelledby="recent-recordings" className="divide-y divide-border">
           {items.map((c: CaptureListItem) => {
@@ -479,11 +512,11 @@ function RecentRecordings() {
             return (
               <li key={c.id}>
                 <Link href={`/dashboard/captures/${c.id}`} className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-surface">
-                  <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-surface text-muted">
+                  <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-lg bg-surface text-muted">
                     <Icon className="h-4 w-4" />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">{c.title}</span>
+                    <span className="block truncate text-sm font-medium">{titleOf({ title: c.title, source: c.source, at: c.createdAt })}</span>
                     <span className="block truncate text-xs text-muted">
                       {c.source === "meeting_url" ? "Meeting" : c.source === "voice_recording" ? "Recorded in browser" : "Upload"} · {timeAgo(c.createdAt)}
                     </span>

@@ -92,7 +92,7 @@ export function MeetingPanel({
           <div className="flex items-start gap-3">
             <span
               aria-hidden
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-surface text-muted">
+              className="grid size-10 shrink-0 place-items-center rounded-lg bg-surface text-muted">
               <Video className="h-4 w-4" />
             </span>
             <div>
@@ -110,7 +110,7 @@ export function MeetingPanel({
               className="flex items-center gap-3 rounded-lg border border-danger/40 bg-danger/10 px-4 py-3 text-danger">
               <span
                 aria-hidden
-                className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-danger-solid"
+                className="h-3 w-3 shrink-0 animate-pulse rounded-full bg-danger-solid"
               />
               <p>
                 <span className="font-semibold">Recording in progress.</span>{" "}
@@ -122,7 +122,7 @@ export function MeetingPanel({
             <div
               role="status"
               className={`flex items-start gap-3 rounded-lg border px-4 py-3 ${cap.status === "waiting_for_admission" ? "border-warning/30 bg-warning/10 text-warning" : "border-border bg-surface"}`}>
-              <Clock aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
+              <Clock aria-hidden className="mt-1 h-4 w-4 shrink-0" />
               <p>
                 <span className="font-semibold">{step.label}.</span> {step.text}
               </p>
@@ -132,10 +132,10 @@ export function MeetingPanel({
             <div
               role="status"
               className={`flex items-start gap-3 rounded-lg border px-4 py-3 ${cap.status === "cancelled" ? "border-border bg-surface" : "border-warning/30 bg-warning/10 text-warning"}`}>
-              <TriangleAlert aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
+              <TriangleAlert aria-hidden className="mt-1 h-4 w-4 shrink-0" />
               <div>
                 <p className="font-semibold">{outcome.title}</p>
-                <p className="mt-0.5">
+                <p className="mt-1">
                   {cap.status === "failed" && cap.failureReason
                     ? cap.failureReason
                     : outcome.text}
@@ -154,7 +154,7 @@ export function MeetingPanel({
                   <li key={`${e.status}-${i}`} className="relative">
                     <span
                       aria-hidden
-                      className={`absolute -left-[26px] top-1.5 h-2 w-2 rounded-full ${e.status === "recording" ? "bg-danger-solid" : "bg-muted"}`}
+                      className={`absolute -left-[26px] top-2 h-2 w-2 rounded-full ${e.status === "recording" ? "bg-danger-solid" : "bg-muted"}`}
                     />
                     <p className="font-medium">
                       {label(e.status)}{" "}
@@ -171,7 +171,7 @@ export function MeetingPanel({
                   <li className="relative text-muted">
                     <span
                       aria-hidden
-                      className="absolute -left-[26px] top-1.5 h-2 w-2 rounded-full border border-border bg-background"
+                      className="absolute -left-[26px] top-2 h-2 w-2 rounded-full border border-border bg-background"
                     />
                     <p>Next: {next.label}</p>
                   </li>
@@ -188,7 +188,7 @@ export function MeetingPanel({
                   type="checkbox"
                   checked={consent}
                   onChange={(e) => setConsent(e.target.checked)}
-                  className="mt-0.5 h-4 w-4"
+                  className="mt-1 h-4 w-4"
                 />
                 <span className="text-muted">
                   I have the right to record this meeting and will tell its

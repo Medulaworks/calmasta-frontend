@@ -9,7 +9,7 @@ import type { AdminPlan } from "@/lib/admin-types";
 import { PlanCard } from "./plan-card";
 
 type Plan = Json<AdminPlan>;
-const input = "mt-1.5 block h-10 w-full rounded-lg border border-border bg-background px-3 text-sm tabular-nums outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-solid/15 disabled:opacity-60";
+const input = "mt-2 block h-10 w-full rounded-lg border border-border bg-background px-3 text-sm tabular-nums outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-solid/15 disabled:opacity-60";
 const label = "text-sm font-medium";
 
 const hours = (minutes: number) => String(Math.round((minutes / 60) * 100) / 100);
@@ -73,15 +73,15 @@ export function PlanEditor({ plan, discountPct, onClose, onSaved }: { plan: Plan
   const preview = { name: plan.name, tagline: f.tagline.trim(), monthlyCents: monthly ?? 0, allowanceMinutes: minutes ?? 0, checkoutMonthlyUrl: f.monthlyUrl.trim() || null, checkoutYearlyUrl: f.yearlyUrl.trim() || null, subscribers: plan.subscribers };
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-3 sm:p-6" onMouseDown={(e) => e.target === e.currentTarget && !busy && onClose()}>
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-3 sm:p-5" onMouseDown={(e) => e.target === e.currentTarget && !busy && onClose()}>
       <form role="dialog" aria-modal="true" aria-labelledby={`${id}-t`} noValidate onSubmit={(e) => { e.preventDefault(); void save(); }} className="flex max-h-[94vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl">
-        <header className="flex items-center justify-between gap-3 border-b border-border px-6 py-4">
+        <header className="flex items-center justify-between gap-3 border-b border-border px-5 py-3">
           <h2 id={`${id}-t`} className="text-base font-semibold">Edit {plan.name}</h2>
           <button type="button" aria-label="Close" onClick={onClose} disabled={busy} className="grid size-8 place-items-center rounded-lg text-muted hover:bg-surface hover:text-foreground"><X aria-hidden className="size-4" /></button>
         </header>
 
         <div className="grid min-h-0 flex-1 overflow-y-auto md:grid-cols-[1fr_17rem]">
-          <div className="space-y-5 p-6">
+          <div className="space-y-5 p-5">
             <label className="block"><span className={label}>Description</span>
               <input ref={first} value={f.tagline} onChange={(e) => set("tagline", e.target.value)} maxLength={100} className={`${input}`} />{err("tagline")}
             </label>
@@ -96,7 +96,7 @@ export function PlanEditor({ plan, discountPct, onClose, onSaved }: { plan: Plan
               </label>
             </div>
             {plan.subscribers > 0 && priceChanged && (
-              <p role="note" className="rounded-lg border border-accent/30 bg-accent/10 px-3.5 py-2.5 text-sm">
+              <p role="note" className="rounded-lg border border-accent/30 bg-accent/10 px-4 py-3 text-sm">
                 <b className="font-medium">Existing subscribers keep their current price.</b>
               </p>
             )}
@@ -111,13 +111,13 @@ export function PlanEditor({ plan, discountPct, onClose, onSaved }: { plan: Plan
               </>
             )}
           </div>
-          <aside aria-label="Preview" className="hidden border-l border-border bg-surface/40 p-6 md:block">
+          <aside aria-label="Preview" className="hidden border-l border-border bg-surface/40 p-5 md:block">
             <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted">Preview</p>
             <PlanCard plan={preview} discountPct={discountPct} preview />
           </aside>
         </div>
 
-        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-6 py-4">
+        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-3">
           <p role="alert" className="min-h-5 text-sm text-danger">{error ?? (tried && Object.keys(errors).length > 0 ? "Fix the marked fields." : "")}</p>
           <div className="flex gap-2">
             <Button variant="ghost" onClick={onClose} disabled={busy}>Cancel</Button>

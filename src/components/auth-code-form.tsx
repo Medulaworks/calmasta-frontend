@@ -8,7 +8,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { buttonClass } from "@/components/ui/button";
 import { codeSecondsLeft, createAuthCodeFlow, type CodePurpose } from "@/lib/auth-code-flow";
 
-const field = `${AUTH_FIELD} mt-1.5`;
+const field = `${AUTH_FIELD} mt-2`;
 
 export function AuthCodeForm({ purpose, initialEmail = "", onBack }: { purpose: CodePurpose; initialEmail?: string; onBack?: () => void }) {
   const [flow] = useState(() => createAuthCodeFlow(purpose));

@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { SkeletonDetail } from "@/components/ui/skeleton";
 import { DocumentStudio } from "@/components/document-studio";
 
 export const metadata = { title: "Document · Jooba" };
@@ -12,7 +13,7 @@ export default function DocumentPage(
   props: PageProps<"/dashboard/library/[id]">,
 ) {
   return (
-    <Suspense fallback={<p className="text-sm text-muted">Loading…</p>}>
+    <Suspense fallback={<SkeletonDetail label="Loading this document" />}>
       <Studio {...props} />
     </Suspense>
   );

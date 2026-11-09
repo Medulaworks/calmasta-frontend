@@ -1,4 +1,5 @@
 "use client";
+import { SkeletonForm } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
@@ -42,5 +43,5 @@ function CallbackInner() {
 }
 
 export default function CallbackPage() {
-  return <Suspense fallback={<div className="p-8 text-center text-sm text-muted">Loading…</div>}><CallbackInner /></Suspense>;
+  return <Suspense fallback={<div className="mx-auto max-w-md p-8"><SkeletonForm label="Signing you in" /></div>}><CallbackInner /></Suspense>;
 }

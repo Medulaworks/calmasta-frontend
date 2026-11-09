@@ -7,40 +7,44 @@
 @custom-variant sc (&:where([data-sidebar="collapsed"], [data-sidebar="collapsed"] *));
 
 /* Design scale. Everything in the UI is built from Tailwind utilities, so changing a value here changes the whole app.
-   Weights are light on purpose (Geist is a variable font, so in-between weights are real). Type is 13px for UI text and
-   12px for captions; spacing is a 4px grid (p-1 = 4px) with controls at 32 / 36 / 40px high; corners are 4 / 6 / 8px. */
+   Spacing is a strict 4px grid (p-1 = 4px, p-2 = 8px, p-4 = 16px, p-6 = 24px). Type is 14px for UI text, 16px for body
+   copy, with line heights on the same grid. Controls are 36 / 40 / 48px high; corners are 6 / 8 / 12 / 16px. Weights are
+   400 / 500 / 600 so headings read clearly without shouting. */
 @theme {
   --font-weight-normal: 400;
-  --font-weight-medium: 450;
-  --font-weight-semibold: 520;
-  --font-weight-bold: 600;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
 
   --text-xs: 0.75rem;
   --text-xs--line-height: 1rem;
-  --text-sm: 0.8125rem;
+  --text-sm: 0.875rem;
   --text-sm--line-height: 1.25rem;
-  --text-base: 0.9375rem;
+  --text-base: 1rem;
   --text-base--line-height: 1.5rem;
-  --text-lg: 1.0625rem;
-  --text-lg--line-height: 1.5rem;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.75rem;
   --text-xl: 1.25rem;
   --text-xl--line-height: 1.75rem;
-  --text-2xl: 1.375rem;
-  --text-2xl--line-height: 1.75rem;
-  --text-3xl: 1.75rem;
-  --text-3xl--line-height: 2rem;
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 2rem;
+  --text-3xl: 2rem;
+  --text-3xl--line-height: 2.5rem;
+  --text-4xl: 2.5rem;
+  --text-4xl--line-height: 3rem;
 
-  --radius-sm: 0.125rem;
-  --radius-md: 0.25rem;
-  --radius-lg: 0.375rem;
-  --radius-xl: 0.5rem;
-  --radius-2xl: 0.75rem;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.5rem;
 
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.04);
-  --shadow-md: 0 2px 6px -1px rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
-  --shadow-lg: 0 8px 20px -6px rgb(0 0 0 / 0.12), 0 2px 6px -2px rgb(0 0 0 / 0.06);
-  --shadow-xl: 0 16px 40px -12px rgb(0 0 0 / 0.2), 0 4px 10px -4px rgb(0 0 0 / 0.08);
-  --shadow-2xl: 0 24px 64px -16px rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.04);
+  --shadow-lg: 0 12px 28px -8px rgb(0 0 0 / 0.12), 0 4px 8px -4px rgb(0 0 0 / 0.06);
+  --shadow-xl: 0 20px 44px -12px rgb(0 0 0 / 0.18), 0 8px 16px -8px rgb(0 0 0 / 0.08);
+  --shadow-2xl: 0 28px 64px -16px rgb(0 0 0 / 0.28);
 }
 
 /* Defaults, used until the theme script has run: theme A, light. The real values per theme are below. */
@@ -383,16 +387,16 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   line-height: 1.25rem;
   font-weight: 400;
   letter-spacing: -0.003em;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
-h1, h2, h3 { letter-spacing: -0.015em; }
+h1, h2, h3 { letter-spacing: -0.02em; }
 /* Light, even icons everywhere (Lucide draws at 2px by default). */
-svg.lucide { stroke-width: 1.5; }
+svg.lucide { stroke-width: 1.75; }
 /* Numbers line up in tables and tiles. */
 .tabular-nums { font-variant-numeric: tabular-nums; }
 ::selection { background: color-mix(in srgb, var(--accent-solid) 35%, transparent); }
@@ -491,3 +495,41 @@ svg.lucide { stroke-width: 1.5; }
   .jb-mark { background-size: 100% 100%; }
   .jb-lift { transition: none; }
 }
+
+/* Welcome flow: each step rises in, its parts follow one after another, and the progress bar glides. */
+@keyframes jb-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes jb-fade { from { opacity: 0; } to { opacity: 1; } }
+.jb-rise { animation: jb-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) var(--d, 0s) both; }
+.jb-fade { animation: jb-fade 0.5s ease-out var(--d, 0s) both; }
+@media (prefers-reduced-motion: reduce) { .jb-rise, .jb-fade { animation: none !important; } }
+
+/* Spot illustrations: a slow bob, a twinkle, a drifting dashed ring and a soft pop. All stop under "reduced motion". */
+@keyframes jb-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes jb-twinkle { 0%, 100% { opacity: 0.35; transform: scale(0.7); } 50% { opacity: 1; transform: scale(1.1); } }
+@keyframes jb-spin { to { transform: rotate(360deg); } }
+@keyframes jb-pop-soft { from { opacity: 0; transform: translateY(8px) scale(0.92); } to { opacity: 1; transform: none; } }
+.jb-bob { animation: jb-bob 5s ease-in-out infinite; }
+.jb-twinkle { animation: jb-twinkle 2.8s ease-in-out infinite; }
+.jb-spin { animation: jb-spin 40s linear infinite; }
+.jb-pop-soft { animation: jb-pop-soft 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@media (prefers-reduced-motion: reduce) { .jb-bob, .jb-twinkle, .jb-spin, .jb-pop-soft { animation: none !important; } }
+
+/* The welcome banner's sound-wave ribbons drift slowly sideways. */
+@keyframes jb-sway { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-36px); } }
+.jb-sway { animation: jb-sway 14s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .jb-sway { animation: none !important; } }
+
+/* A soft light sweep across a pill while something is being worked on. */
+@keyframes jb-shimmer { from { transform: translateX(0); } to { transform: translateX(200%); } }
+.jb-shimmer { animation: jb-shimmer 2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .jb-shimmer { animation: none !important; display: none; } }
+
+/* A soft ring that breathes around a floating status pill. */
+@keyframes jb-glow { 0%, 100% { box-shadow: 0 8px 24px -8px rgb(0 0 0 / 0.18), 0 0 0 0 color-mix(in srgb, var(--accent-solid) 35%, transparent); } 50% { box-shadow: 0 8px 24px -8px rgb(0 0 0 / 0.18), 0 0 0 8px color-mix(in srgb, var(--accent-solid) 0%, transparent); } }
+.jb-glow { animation: jb-glow 2.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .jb-glow { animation: none !important; } }
+
+/* A bar with no known length: a short segment sweeps across it while the server works. */
+@keyframes jb-indeterminate { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+.jb-indeterminate { animation: jb-indeterminate 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .jb-indeterminate { animation: none !important; width: 100%; opacity: 0.5; } }

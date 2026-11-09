@@ -31,7 +31,10 @@ export function AdminProfile() {
   }, []);
 
   const admins = useResource<Json<AdminList>>("/api/admin/staff");
-  const me = admins.data?.admins.find((a) => a.you);
+  // The live API sends { items, nextCursor } (no "you" flag); the sample data sends { admins }. Anything else means "unknown".
+  const raw = admins.data as unknown as { admins?: unknown; items?: unknown } | unknown[] | null;
+  const list = Array.isArray(raw) ? raw : Array.isArray(raw?.admins) ? raw.admins : Array.isArray(raw?.items) ? raw.items : [];
+  const me = (list as Array<{ you?: boolean; email?: string; addedAt?: string | null; addedBy?: string | null }>).find((a) => a?.you || (!!profile && a?.email?.toLowerCase() === profile.email.toLowerCase()));
   const mine = usePaged<Json<AuditPage>["entries"][number], Json<AuditPage>>(profile ? `/api/admin/audit?q=${encodeURIComponent(profile.email)}` : null, (p) => p.entries);
 
   async function save(e: React.FormEvent) {
@@ -57,7 +60,7 @@ export function AdminProfile() {
   const initial = (profile.name || profile.email).trim().charAt(0).toUpperCase();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <Card>
         <div className="flex items-center gap-4 p-5">
           <span aria-hidden className="grid size-14 shrink-0 place-items-center rounded-full bg-accent/10 text-xl font-semibold text-accent">{initial}</span>
@@ -69,15 +72,15 @@ export function AdminProfile() {
         <form onSubmit={save} className="space-y-4 border-t border-border p-5">
           <label className="block text-sm">
             <span className="font-medium">Name</span>
-            <span className="mt-1.5 flex gap-2">
+            <span className="mt-2 flex gap-2">
               <input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} placeholder="How your name appears in Activity" className={`${field} max-w-sm`} />
               <Button type="submit" variant="primary" disabled={saving || name.trim() === (profile.name ?? "")}>{saving ? "Saving…" : "Save"}</Button>
             </span>
           </label>
           <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
-            <div><dt className="text-xs text-muted">Email</dt><dd className="mt-0.5">{profile.email}</dd></div>
-            <div><dt className="text-xs text-muted">Time zone</dt><dd className="mt-0.5">{profile.timezone}</dd></div>
-            <div><dt className="text-xs text-muted">Admin since</dt><dd className="mt-0.5">{me?.addedAt ? `${fmtUtc(me.addedAt)}${me.addedBy ? ` · added by ${me.addedBy}` : ""}` : "–"}</dd></div>
+            <div><dt className="text-xs text-muted">Email</dt><dd className="mt-1">{profile.email}</dd></div>
+            <div><dt className="text-xs text-muted">Time zone</dt><dd className="mt-1">{profile.timezone}</dd></div>
+            <div><dt className="text-xs text-muted">Admin since</dt><dd className="mt-1">{me?.addedAt ? `${fmtUtc(me.addedAt)}${me.addedBy ? ` · added by ${me.addedBy}` : ""}` : "–"}</dd></div>
           </dl>
           <p className="text-xs"><Link href="/dashboard/profile" target="_blank" rel="noopener noreferrer" className="text-muted underline hover:text-foreground">Change email or password</Link></p>
         </form>

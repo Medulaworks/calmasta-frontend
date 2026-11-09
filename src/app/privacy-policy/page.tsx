@@ -114,7 +114,7 @@ export default function PrivacyPolicyPage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-6 py-5">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-6 py-6">
           <Brand size={32} />
           <Link href="/auth/login" className="text-sm text-muted underline-offset-4 hover:text-foreground hover:underline">Back to sign in</Link>
         </div>
@@ -124,7 +124,7 @@ export default function PrivacyPolicyPage() {
         <h1 className="mt-5 text-4xl font-semibold tracking-tight sm:text-5xl">Privacy policy</h1>
         <p className="mt-4 text-base leading-7 text-muted">How MyJooba handles information when you use Jooba to capture conversations and turn them into useful work.</p>
         <p className="mt-3 text-sm text-muted">Draft updated <time dateTime="2026-10-31">31 October 2026</time></p>
-        <aside aria-label="Draft policy notice" className="mt-6 rounded-xl border border-border bg-surface px-5 py-4 text-sm leading-6 text-muted">
+        <aside aria-label="Draft policy notice" className="mt-6 rounded-xl border border-border bg-surface px-6 py-4 text-sm leading-6 text-muted">
           This is a working draft, not the final published policy. Business jurisdiction, production providers, retention schedules and international-transfer arrangements still need confirmation.
         </aside>
         <nav aria-label="Privacy policy contents" className="mt-8 border-y border-border py-6">

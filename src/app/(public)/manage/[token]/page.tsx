@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { SkeletonGuest } from "@/components/ui/skeleton";
 import { ManageBooking } from "@/components/booking/manage-booking";
 
 export const metadata = { title: "Your booking · Jooba" };
@@ -12,7 +13,7 @@ export default function ManagePage(props: PageProps<"/manage/[token]">) {
   return (
     <Suspense
       fallback={
-        <p className="py-10 text-center text-sm text-muted">Loading…</p>
+        <SkeletonGuest label="Loading" />
       }>
       <Manage {...props} />
     </Suspense>

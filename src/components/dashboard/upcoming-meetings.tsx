@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowRight, CalendarDays, Video } from "lucide-react";
+import { CalendarIllustration } from "@/components/ui/illustrations";
+import { ArrowRight, Video } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -59,13 +60,13 @@ export function UpcomingMeetings({ timeZone }: { timeZone: string }) {
         }
       />
       {loading ? (
-        <ul aria-hidden className="divide-y divide-border">{[0, 1, 2].map((i) => <li key={i} className="px-5 py-4"><span className="block h-4 w-2/3 jb-skel rounded bg-border" /></li>)}</ul>
+        <ul aria-hidden className="divide-y divide-border">{[0, 1, 2].map((i) => <li key={i} className="px-5 py-3"><span className="block h-4 w-2/3 jb-skel rounded bg-border" /></li>)}</ul>
       ) : state.error ? (
-        <p role="alert" className="px-5 py-6 text-sm text-danger">Couldn&rsquo;t load your calendar just now. Try refreshing in a moment.</p>
+        <p role="alert" className="px-5 py-5 text-sm text-danger">Couldn&rsquo;t load your calendar just now. Try refreshing in a moment.</p>
       ) : !state.data?.connected ? (
-        <EmptyState icon={<CalendarDays className="h-5 w-5" />} title="Connect your calendar" body="See what's coming up here, avoid double-booking, and send the assistant to a meeting in one click." action={<ButtonLink href="/dashboard/calendar" variant="primary">Connect a calendar</ButtonLink>} />
+        <EmptyState illustration={<CalendarIllustration />} title="Connect your calendar" body="See what's coming up here, avoid double-booking, and send the assistant to a meeting in one click." action={<ButtonLink href="/dashboard/calendar" variant="primary">Connect a calendar</ButtonLink>} />
       ) : shown.length === 0 ? (
-        <EmptyState icon={<CalendarDays className="h-5 w-5" />} title="Nothing in the next week" body="Meetings from your calendars and bookings will show up here." action={<ButtonLink href="/dashboard/booking" variant="secondary">Set up booking</ButtonLink>} />
+        <EmptyState illustration={<CalendarIllustration />} title="Nothing in the next week" body="Meetings from your calendars and bookings will show up here." action={<ButtonLink href="/dashboard/booking" variant="secondary">Set up booking</ButtonLink>} />
       ) : (
         <ul aria-labelledby="upcoming" className="divide-y divide-border">
           {shown.map((e, i) => {
@@ -83,7 +84,7 @@ export function UpcomingMeetings({ timeZone }: { timeZone: string }) {
                   <span aria-hidden className="h-9 w-1 shrink-0 rounded-full" style={{ background: e.calendarColor ?? "var(--accent)" }} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium">{e.title}</span>
-                    <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+                    <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
                       {platform !== "none" && <span>{PLATFORM_LABEL[platform]}</span>}
                       {others.length > 0 && <span>{others.length} {others.length === 1 ? "guest" : "guests"}</span>}
                       {rec === "in_progress" && <Badge tone="warning" active>Assistant joining</Badge>}

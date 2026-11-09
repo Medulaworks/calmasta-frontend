@@ -50,7 +50,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   if (notStaff || check.state === "failed") {
     return (
       <main id="main" className="grid min-h-dvh place-items-center bg-surface px-4">
-        <div role="alert" className="w-full max-w-md space-y-4 rounded-2xl border border-border bg-background p-8 text-center shadow-[0_24px_60px_-28px_rgb(0_0_0/0.3)]">
+        <div role="alert" className="w-full max-w-md space-y-4 rounded-2xl border border-border bg-background p-6 text-center shadow-[0_24px_60px_-28px_rgb(0_0_0/0.3)]">
           <span aria-hidden className="mx-auto grid size-12 place-items-center rounded-2xl bg-surface text-muted">
             <ShieldAlert className="size-6" />
           </span>
@@ -90,7 +90,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </p>
           {/* Opens the Jooba app in its own tab, so the staff area stays where it is. */}
           <a href="/dashboard" target="_blank" rel="noopener noreferrer" className="hidden h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background text-sm font-medium text-muted transition-colors hover:bg-surface hover:text-foreground md:mt-4 md:flex">
-            Open Jooba <ExternalLink aria-hidden className="size-3.5" /><span className="sr-only">(opens in a new tab)</span>
+            Open Jooba <ExternalLink aria-hidden className="size-4" /><span className="sr-only">(opens in a new tab)</span>
           </a>
           {/* On a phone the same two actions sit in the top bar as icons. */}
           <div className="flex items-center gap-1 md:hidden">
@@ -108,7 +108,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 href={tabs[0].href}
                 aria-current={active ? "page" : undefined}
                 className={`flex h-9 items-center gap-3 whitespace-nowrap rounded-lg px-3 text-sm transition-colors ${active ? "bg-accent/10 font-medium text-accent" : "text-muted hover:bg-surface hover:text-foreground"}`}>
-                <Icon aria-hidden className="h-[18px] w-[18px] shrink-0" />
+                <Icon aria-hidden className="h-5 w-5 shrink-0" />
                 {label}
               </Link>
             );
@@ -117,7 +117,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             href="/admin/profile"
             aria-current={pathname === "/admin/profile" ? "page" : undefined}
             className={`flex h-9 items-center gap-3 whitespace-nowrap rounded-lg px-3 text-sm transition-colors md:hidden ${pathname === "/admin/profile" ? "bg-accent/10 font-medium text-accent" : "text-muted hover:bg-surface hover:text-foreground"}`}>
-            <UserRound aria-hidden className="h-[18px] w-[18px] shrink-0" />
+            <UserRound aria-hidden className="h-5 w-5 shrink-0" />
             My profile
           </Link>
         </nav>
@@ -143,12 +143,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <main id="main" tabIndex={-1} className="min-w-0 flex-1 outline-none">
-        <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 md:px-8 md:py-8">
+        <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-5 md:px-6 md:py-6">
           {check.state === "checking" ? (
-            <Loading label="Checking your access" className="space-y-6">
+            <Loading label="Checking your access" className="space-y-5">
               <div aria-hidden className="space-y-2">
                 <Skeleton className="h-6 w-48" />
-                <Skeleton className="h-3.5 w-72 max-w-full" />
+                <Skeleton className="h-4 w-72 max-w-full" />
               </div>
               <SkeletonPanel className="h-64" />
             </Loading>
