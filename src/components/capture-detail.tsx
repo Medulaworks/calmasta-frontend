@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, tabId, tabPanelId } from "@/components/ui/tabs";
 import { ActionsPanel } from "@/components/actions-panel";
+import { ShareNotesDialog } from "@/components/sharing/share-notes-dialog";
 import { MeetingVideo } from "./meeting-video";
 import { MeetingPanel } from "@/components/meeting-panel";
 import { TranscriptEditor } from "@/components/transcript-editor";
@@ -84,6 +85,7 @@ export function CaptureDetail({
   const [audioSeconds, setAudioSeconds] = useState<number | null>(null);
   // The template the user picked, else the one that suits their role, else a sensible general one.
   const [picked, setTemplate] = useState<string | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
   const template = picked ?? profile?.defaultTemplate ?? TEMPLATE_CHOICES[1].id;
   const [confirmDelete, setConfirmDelete] = useState(false);
   const meetingAudio = useRef<HTMLAudioElement>(null);
@@ -252,6 +254,7 @@ export function CaptureDetail({
           </div>
         </div>
         <div className="flex gap-2">
+          <Button variant="ghost" onClick={() => setShareOpen(true)}>Share notes</Button>
           {meetingActive && (
             <Button onClick={() => void cancelMeeting()} disabled={cancelMutation.isPending}>Cancel capture</Button>
           )}
@@ -264,6 +267,7 @@ export function CaptureDetail({
             </Button>
           )}
         </div>
+        {shareOpen && <ShareNotesDialog captureId={id} open={shareOpen} onClose={() => setShareOpen(false)} />}
       </header>
 
       {(() => {

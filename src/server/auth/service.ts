@@ -189,7 +189,7 @@ export class AuthService {
     try {
       if (!["GET", "POST", "PATCH", "PUT", "DELETE"].includes(request.method)) throw new HttpError(405, "Method not allowed");
       if (request.method !== "GET") this.checkOrigin(request);
-      const allowed = new Set(["uploads", "jobs", "usage", "account", "dashboard", "captures", "documents", "library", "calendar", "booking", "plan", "admin", "notifications", "public"]);
+      const allowed = new Set(["uploads", "jobs", "usage", "account", "dashboard", "captures", "documents", "library", "calendar", "booking", "plan", "admin", "notifications", "public", "shared-notes"]);
       if (!allowed.has(segments[0]) || segments.some(s => !/^[A-Za-z0-9_-]+$/.test(s))) throw new HttpError(404, "API route not found");
       const isPublicRoute = segments[0] === "public";
       const session = await this.session(request);

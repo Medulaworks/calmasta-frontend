@@ -83,8 +83,8 @@ export function useUploadAudio() {
 export function useRequestMeeting() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (vars: { url: string; consent: boolean; title?: string; botName?: string; video: boolean; seconds: number }) =>
-      requestMeetingCapture(vars.url, vars.consent, vars.title, vars.video, { maxDurationSeconds: vars.seconds, botName: vars.botName }),
+    mutationFn: (vars: { url: string; consent: boolean; title?: string; titleMode?: "auto" | "manual"; botName?: string; video: boolean; seconds: number }) =>
+      requestMeetingCapture(vars.url, vars.consent, vars.title, vars.video, { maxDurationSeconds: vars.seconds, botName: vars.botName, titleMode: vars.titleMode }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["captures"] });
       qc.invalidateQueries({ queryKey: qk.usage() });

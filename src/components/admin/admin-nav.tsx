@@ -1,4 +1,4 @@
-import { CreditCard, House, ScrollText, Settings2, Users } from "lucide-react";
+import { CreditCard, House, ScrollText, Settings2, Users, Video } from "lucide-react";
 
 const A = "/admin";
 
@@ -15,6 +15,12 @@ export const SECTIONS = [
       { href: A, label: "Summary", exact: true },
       { href: `${A}/health`, label: "System status" },
     ],
+  },
+  {
+    id: "captures",
+    label: "Captures",
+    Icon: Video,
+    tabs: [{ href: `${A}/captures`, label: "Captures" }],
   },
   {
     id: "users",

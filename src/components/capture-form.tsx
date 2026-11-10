@@ -12,7 +12,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronDown, RefreshCw, Search, ShieldCheck, Square, Video } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { BotNamePreferenceDialog } from "@/components/capture/bot-name-preference-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -46,11 +47,13 @@ export function CaptureForm() {
       : policyErrorRaw
         ? String(policyErrorRaw)
         : null;
-  const [durationMinutes] = useState(30);
-  const [titleMode, setTitleMode] = useState<"auto" | "mine">("auto");
+  const [durationMinutes, setDurationMinutes] = useState<number | null>(null);
+  const [titleMode, setTitleMode] = useState<"auto" | "manual">("auto");
   const [title, setTitle] = useState("");
   const [botName, setBotName] = useState("");
   const [recordVideo, setRecordVideo] = useState(false);
+  const [prefs, setPrefs] = useState<import("@/lib/capture-preferences-client").CapturePreferences | null>(null);
+  const [titleState, setTitleState] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -98,8 +101,19 @@ export function CaptureForm() {
 
   const busy = requestMutation.isPending;
   const submitting = useRef(false);
+  useEffect(() => {
+    if (policy && durationMinutes === null) {
+      const def = policy.maxMeetingDurationSeconds === null ? 30 : Math.round((policy.maxMeetingDurationSeconds ?? 1800) / 60);
+      const fromPolicy = (policy as unknown as { defaultMeetingDurationSeconds?: number | null }).defaultMeetingDurationSeconds;
+      if (fromPolicy) setDurationMinutes(Math.round(fromPolicy / 60));
+      else setDurationMinutes(def);
+    }
+  }, [policy, durationMinutes]);
+  useEffect(() => {
+    if (prefs && !botName) setBotName(prefs.effectiveBotName ?? prefs.adminDefaultBotName ?? "");
+  }, [prefs]);
   const detected = platformKey(url.trim() || null, url);
-  const assistant = botName.trim() || defaultBotName(policy?.botName) || policy?.botName || "Recording assistant";
+  const assistant = botName.trim() || defaultBotName(policy?.botName) || prefs?.effectiveBotName || policy?.botName || "Recording assistant";
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -108,16 +122,18 @@ export function CaptureForm() {
     setError(null);
     setNotice(null);
     try {
+      const mins = durationMinutes ?? 30;
+      const seconds = Math.round(mins * 60);
+      if (policy?.maxMeetingDurationSeconds !== null && seconds > (policy?.maxMeetingDurationSeconds ?? 7200)) throw new Error("Duration exceeds maximum allowed.");
+      if (seconds < 30) throw new Error("Duration must be at least 30 seconds.");
       const result=await requestMutation.mutateAsync({
         url,
         consent,
-        title: titleMode === "mine" ? title : undefined,
+        title: titleMode === "manual" ? title : undefined,
+        titleMode,
         video: recordVideo,
-        botName: botName.trim() || defaultBotName(policy?.botName) || undefined,
-        seconds: Math.min(
-          Math.round(durationMinutes * 60),
-          policy?.maxMeetingDurationSeconds === null ? Infinity : policy?.maxMeetingDurationSeconds ?? 0,
-        ),
+        botName: botName.trim() || undefined,
+        seconds,
       });
       setNotice(
         result.duplicate ? "An assistant is already set up for this meeting. No second one was sent." : `Request queued for ${botName.trim() || defaultBotName(policy?.botName) || policy?.botName || "the recording assistant"}. ${policy?.liveProcessingEnabled ? "It may need to be admitted by the host." : "Recording will start when processing becomes available."}`,
@@ -126,9 +142,9 @@ export function CaptureForm() {
       setUrl("");
       setConsent(false);
       setTitle("");
+      // Keep personal bot name autofill; only clear per-request title mode to auto.
       setTitleMode("auto");
       setRecordVideo(false);
-      setBotName("");
     } catch (err) {
       setError(
         err instanceof Error
@@ -154,6 +170,7 @@ export function CaptureForm() {
   const blocker = !policy?.meetingEnabled ? null : !url.trim() ? "Add a meeting link to continue." : !consent ? "Confirm you have the right to record to continue." : null;
   return (
     <div className="grid gap-5 lg:grid-cols-2">
+      <BotNamePreferenceDialog onReady={setPrefs} />
       <ToastStack items={toasts.items} onDismiss={toasts.dismiss} />
 
       {/* Left: the one task. The two halves are the same width and the same height. */}
@@ -209,19 +226,23 @@ export function CaptureForm() {
                 <div>
                   <label htmlFor="title-mode" className="text-sm font-medium">Meeting title</label>
                   <div className="mt-2 flex flex-wrap items-start gap-3">
-                    <select id="title-mode" value={titleMode} onChange={(e) => setTitleMode(e.target.value as "auto" | "mine")} className={`${field} min-h-10 w-auto`}>
-                      <option value="auto">Auto-generated</option>
-                      <option value="mine">Choose a title</option>
+                    <select id="title-mode" value={titleMode} onChange={(e) => setTitleMode(e.target.value as "auto" | "manual")} className={`${field} min-h-10 w-auto`}>
+                      <option value="auto">Auto-generated — date until transcript ready</option>
+                      <option value="manual">Choose a title</option>
                     </select>
-                    {titleMode === "mine" && <input aria-label="Meeting title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} placeholder="Quarterly planning" className={`${field} min-h-10 min-w-40 flex-1`} />}
+                    {titleMode === "manual" && <input aria-label="Meeting title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} placeholder="Quarterly planning" className={`${field} min-h-10 min-w-40 flex-1`} required />}
                   </div>
+                  {titleMode === "auto" && <p className="mt-2 text-xs text-muted">A title will be created after the transcript is ready. {titleState ? `Status: ${titleState}` : ""}</p>}
                 </div>
-                {policy?.meetingEnabled && policy.maxMeetingDurationSeconds !== null && (
-                  <div>
-                    <label htmlFor="max-minutes" className="text-sm font-medium">Maximum recording minutes</label>
-                    <input id="max-minutes" type="number" disabled value={30} aria-disabled="true" className={`${field} mt-2 min-h-10 disabled:cursor-not-allowed disabled:opacity-60`} />
-                  </div>
-                )}
+                <div>
+                  <label htmlFor="duration-minutes" className="text-sm font-medium">Maximum recording minutes</label>
+                  <input id="duration-minutes" type="number" min={0.5} max={120} step={0.5} value={durationMinutes ?? ""} onChange={(e) => setDurationMinutes(e.target.value === "" ? null : Number(e.target.value))} placeholder={policy ? String(Math.round((policy.maxMeetingDurationSeconds ?? 1800)/60)) : "30"} className={`${field} mt-2 min-h-10`} />
+                  <p className="mt-1 text-xs text-muted">Default {policy ? Math.round(((policy as unknown as { defaultMeetingDurationSeconds?: number }).defaultMeetingDurationSeconds ?? policy.maxMeetingDurationSeconds ?? 600)/60) : "–"} min · max {policy?.maxMeetingDurationSeconds === null ? "no limit" : `${Math.round((policy?.maxMeetingDurationSeconds ?? 1800)/60)} min`} · 30s minimum, 120 min maximum. Changing does not affect active meetings.</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setBotName(prefs?.adminDefaultBotName ?? policy?.botName ?? "")}>Use organization default</Button>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => { if (prefs) setBotName(prefs.effectiveBotName ?? ""); }}>Restore my default</Button>
+                </div>
                 <label className={`flex items-start gap-3 text-sm ${!policy?.videoEnabled ? "opacity-60" : ""}`}>
                   <input type="checkbox" checked={recordVideo} onChange={(e) => setRecordVideo(e.target.checked)} disabled={!policy?.videoEnabled} title={!policy?.videoEnabled ? "Video recording is not enabled for this account yet — see backend doc" : undefined} className="mt-1 size-4 shrink-0 accent-[var(--accent-solid)] disabled:cursor-not-allowed" />
                   <span>

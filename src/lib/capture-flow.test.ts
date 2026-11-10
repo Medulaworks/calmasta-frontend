@@ -29,7 +29,7 @@ it("meeting requests and retries bind renewed consent, duration and stable opera
  setup();fetcher.mockImplementation(async(url:string)=>url.endsWith("policy")?json(policy):json({id:"meeting",state:"queued"}));
  await expect(requestMeetingCapture("https://meet.google.com/abc-defg-hij",false)).rejects.toThrow();expect(fetcher).not.toHaveBeenCalled();
  await requestMeetingCapture("https://meet.google.com/abc-defg-hij",true,"Planning",false,{maxDurationSeconds:60,idempotencyKey:"meeting-key"});
- const create=fetcher.mock.calls.find(([url])=>url==="/api/captures/meetings")!;expect(JSON.parse(create[1].body)).toEqual({meetingUrl:"https://meet.google.com/abc-defg-hij",maxDurationSeconds:60,consent:true,title:"Planning"});expect(new Headers(create[1].headers).get("Idempotency-Key")).toBe("meeting-key");
+ const create=fetcher.mock.calls.find(([url])=>url==="/api/captures/meetings")!;expect(JSON.parse(create[1].body)).toEqual({meetingUrl:"https://meet.google.com/abc-defg-hij",maxDurationSeconds:60,consent:true,title:"Planning",titleMode:"manual"});expect(new Headers(create[1].headers).get("Idempotency-Key")).toBe("meeting-key");
  await retryMeeting("old",true);await retryMeeting("old",true);const retries=fetcher.mock.calls.filter(([url])=>url.endsWith("/retry"));expect(JSON.parse(retries[0][1].body)).toEqual({consent:true});expect(new Headers(retries[0][1].headers).get("Idempotency-Key")).toBe(new Headers(retries[1][1].headers).get("Idempotency-Key"));
  await expect(requestMeetingCapture("https://meet.google.com/abc-defg-hij",true,undefined,true)).rejects.toThrow();
 });

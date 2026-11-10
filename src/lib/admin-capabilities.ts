@@ -1,4 +1,4 @@
-export type AdminCapability = "user_edit_profile" | "user_suspend" | "user_revoke_sessions" | "user_send_mail" | "user_staff_role" | "staff_manage" | "settings_edit" | "integration_replace" | "integration_check" | "export_audit" | "job_retry" | "webhook_replay" | "commerce_edit" | "deletion_execute";
+export type AdminCapability = "user_edit_profile" | "user_suspend" | "user_revoke_sessions" | "user_send_mail" | "user_staff_role" | "staff_manage" | "settings_edit" | "integration_replace" | "integration_check" | "export_audit" | "job_retry" | "webhook_replay" | "commerce_edit" | "deletion_execute" | "cost_read" | "capture_read" | "capture_stop" | "global_budget_edit";
 export interface CapabilityState { allowed: boolean; reason: string | null }
 export interface CapabilitiesResponse { capabilities: Record<AdminCapability, CapabilityState>; permissionVersion: string; scope: string }
 

@@ -14,6 +14,8 @@ import { Button, buttonClass } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, tabId, tabPanelId } from "@/components/ui/tabs";
 import { PrivateAudio } from "@/components/private-audio";
+import { ShareNotesDialog } from "@/components/sharing/share-notes-dialog";
+import { MeetingVideo } from "@/components/meeting-video";
 import { MeetingInsights } from "@/components/meeting-insights";
 import { seekInsightAudio } from "@/lib/meeting-insights";
 import { useCallback, useEffect, useState } from "react";
@@ -130,11 +132,15 @@ function RecordingAside({ capture, ext, isMeeting, meetingUrl, duration }: Commo
               <p className="flex items-center gap-3 text-muted"><Users aria-hidden className="size-4 shrink-0" /> Participants{ext.participants?.length ? ` · ${ext.participants.length}` : ""}</p>
               {ext.participants?.length ? (
                 <ul className="mt-2 flex flex-wrap gap-2">
-                  {ext.participants.map((p, i) => <li key={i} className="rounded-full bg-surface px-3 py-1 text-xs ring-1 ring-inset ring-border">{p.name}{p.role ? ` · ${p.role}` : ""}</li>)}
+                  {ext.participants.map((p, i) => <li key={i} className="rounded-full bg-surface px-3 py-1 text-xs ring-1 ring-inset ring-border">{String(p.name).slice(0, 80)}{p.role ? ` · ${String(p.role).slice(0, 40)}` : ""}</li>)}
                 </ul>
-              ) : (
-                <p className="mt-1 pl-7 text-xs text-muted">No participant list yet.</p>
-              )}
+              ) : (() => {
+                const rosterState = (capture as unknown as { rosterState?: string }).rosterState;
+                if (rosterState === "pending") return <p className="mt-1 pl-7 text-xs text-muted">Participant list pending…</p>;
+                if (rosterState === "unavailable") return <p className="mt-1 pl-7 text-xs text-muted">Participant list unavailable.</p>;
+                if (rosterState === "expired") return <p className="mt-1 pl-7 text-xs text-muted">Participant list expired.</p>;
+                return <p className="mt-1 pl-7 text-xs text-muted">No participant list yet.</p>;
+              })()}
             </div>
           )}
           {metaFields > 0 && <div className="flex items-start gap-3 px-5 py-3"><FileText aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" /><dt className="w-20 shrink-0 text-muted">Metadata</dt><dd className="min-w-0 flex-1 font-medium">{metaFields} field{metaFields === 1 ? "" : "s"}</dd></div>}
@@ -203,6 +209,7 @@ export function LibraryRecording({ id }: { id: string }) {
   );
   const [consent, setConsent] = useState(false),
     [busy, setBusy] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [capture, setCapture] = useState<CaptureView | null>(null),
     [error, setError] = useState<string | null>(null),
     [revision, setRevision] = useState(0);
@@ -287,11 +294,14 @@ export function LibraryRecording({ id }: { id: string }) {
       {error && <p role="alert" className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">{error}</p>}
       {capture && ext ? (
         <>
+          <div className="flex justify-end"><Button variant="ghost" size="sm" onClick={() => setShareOpen(true)}>Share notes</Button></div>
           <RecordingHeader capture={capture} ext={ext} status={status} isMeeting={isMeeting} meetingUrl={meetingUrl} duration={duration} retryable={retryable} busy={busy} consent={consent} setConsent={setConsent} act={act} />
+          {shareOpen && <ShareNotesDialog captureId={id} open={shareOpen} onClose={() => setShareOpen(false)} />}
 
           <div className="grid items-start gap-5 lg:grid-cols-3">
             {/* The content: the audio, then what was said. */}
             <div className="min-w-0 space-y-5 lg:col-span-2">
+              {isMeeting && capture.recordVideo && <MeetingVideo cap={capture} />}
               <div id="recording-audio">
                 <PrivateAudio key={capture.id} id={capture.id} onAudioChange={onAudioChange} />
               </div>
