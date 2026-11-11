@@ -5,14 +5,25 @@ export interface CapabilitiesResponse { capabilities: Record<AdminCapability, Ca
 let cache: CapabilitiesResponse | null = null;
 export function setCapabilities(data: CapabilitiesResponse) { cache = data; }
 export function getCapabilities(): CapabilitiesResponse | null { return cache; }
+export function clearCapabilities(): void { cache = null; }
 export function capability(action: AdminCapability): CapabilityState {
   if (!cache) return { allowed: false, reason: "capabilities_not_loaded" };
   return cache.capabilities[action] ?? { allowed: false, reason: "unknown_capability" };
 }
-export async function loadCapabilities(): Promise<CapabilitiesResponse> {
-  const res = await fetch("/api/admin/capabilities", { cache: "no-store" });
+export function hasCapability(action: AdminCapability): boolean { return capability(action).allowed; }
+export function requireCapability(action: AdminCapability): CapabilityState {
+  const state = capability(action);
+  if (!state.allowed) throw Object.assign(new Error(state.reason ?? "forbidden"), { code: state.reason ?? "forbidden", status: 403 });
+  return state;
+}
+export async function loadCapabilities(signal?: AbortSignal): Promise<CapabilitiesResponse> {
+  const res = await fetch("/api/admin/capabilities", { cache: "no-store", signal });
   if (!res.ok) throw new Error("capabilities_unavailable");
   const data = (await res.json()) as CapabilitiesResponse;
+  // Validate no secret leakage — capabilities must not carry provider keys.
+  if (typeof data !== "object" || data === null || !("capabilities" in data)) throw new Error("malformed_capabilities");
   cache = data;
   return data;
 }
+// Call on logout to prevent stale capabilities from authorizing a new session.
+export function clearOnLogout(): void { cache = null; }

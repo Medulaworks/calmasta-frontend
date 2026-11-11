@@ -4,10 +4,13 @@ import type { SharingState, PublicNotes, SharedNotesView } from "./sharing-types
 
 async function req<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, { cache: "no-store", ...init });
+  if (res.status === 204) return undefined as T;
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const corr = res.headers.get("x-correlation-id") ?? body.correlationId;
-    throw new ApiError(res.status, body.error ?? body.message ?? "Something went wrong.", body.code ?? (corr ? `correlation:${corr}` : undefined));
+    const corr = res.headers.get("x-correlation-id") ?? (body as { correlationId?: string }).correlationId;
+    const code = (body as { code?: string }).code ?? (res.status === 503 ? "capability_unavailable" : undefined);
+    const msg = (body as { error?: string; message?: string }).error ?? (body as { message?: string }).message ?? "Something went wrong.";
+    throw new ApiError(res.status, msg, code ?? (corr ? `correlation:${corr}` : undefined), corr ?? undefined);
   }
   return body as T;
 }

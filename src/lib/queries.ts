@@ -21,11 +21,27 @@ import {
 import { adminGet } from "./admin-client";
 import { getMeetingInsights, getMeetingPreferences } from "./meeting-insights-client";
 import { insightsPollInterval } from "./meeting-insights";
+import { getEffectivePolicy, getCatalog, getPolicyHistory } from "./product-policy-client";
+import { getCaptureOperational, getCaptureEvents, getCaptureCosts, getCustomerActivity, listCaptures as listAdminCaptures } from "./capture-admin-client";
+import { getSharing, getPublicNotes, getSharedNotes } from "./sharing-client";
+import { getCapturePreferences } from "./capture-preferences-client";
 
 // hierarchical keys
 export const qk = {
   profile: () => ["profile"] as const,
   capturePolicy: () => ["capturePolicy"] as const,
+  productPolicy: () => ["admin", "productPolicy"] as const,
+  productCatalog: () => ["admin", "productCatalog"] as const,
+  productHistory: (limit?: number, cursor?: number) => ["admin", "productHistory", limit, cursor] as const,
+  adminCaptures: (params: Record<string, unknown>) => ["admin", "captures", params] as const,
+  adminCapture: (id: string) => ["admin", "capture", id] as const,
+  adminEvents: (id: string) => ["admin", "events", id] as const,
+  adminCosts: (id: string) => ["admin", "costs", id] as const,
+  adminActivity: (customerId: string) => ["admin", "activity", customerId] as const,
+  sharing: (captureId: string) => ["sharing", captureId] as const,
+  publicNotes: (token: string) => ["publicNotes", token] as const,
+  sharedNotes: (grantId: string) => ["sharedNotes", grantId] as const,
+  capturePreferences: () => ["capturePreferences"] as const,
   captures: (limit: number, kind?: "meetings" | "recordings") => ["captures", { limit, kind }] as const,
   capture: (id: string) => ["capture", id] as const,
   meetingInsights: (id: string,templateId="enhanced") => templateId==="enhanced"?["capture", id, "insights"] as const:["capture", id, "insights",templateId] as const,
@@ -222,6 +238,108 @@ export const adminQuery = <T,>(path: string) =>
     staleTime: 15 * 1000,
     enabled: !!path,
   });
+
+// FE-CP-01 — capability-aware, abortable, 503-aware queries with bounded retry.
+
+export const productPolicyQuery = queryOptions({
+  queryKey: qk.productPolicy(),
+  queryFn: ({ signal }) => getEffectivePolicy(signal),
+  staleTime: 5 * 1000,
+  gcTime: 5 * 60 * 1000,
+  retry: (count, error) => count < 2 && !(error instanceof ApiError && [401, 403, 404, 409, 503].includes(error.status)),
+  retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
+});
+
+export const productCatalogQuery = queryOptions({
+  queryKey: qk.productCatalog(),
+  queryFn: ({ signal }) => getCatalog(signal),
+  staleTime: 60 * 1000,
+  retry: false,
+});
+
+export const policyHistoryQuery = (limit = 25, cursor?: number) =>
+  queryOptions({
+    queryKey: qk.productHistory(limit, cursor),
+    queryFn: ({ signal }) => getPolicyHistory({ limit, cursor, signal }),
+    staleTime: 15 * 1000,
+  });
+
+export const adminCapturesQuery = (params: Parameters<typeof listAdminCaptures>[0]) =>
+  queryOptions({
+    queryKey: qk.adminCaptures(params as Record<string, unknown>),
+    queryFn: ({ signal }) => listAdminCaptures({ ...params, signal }),
+    staleTime: 5 * 1000,
+    placeholderData: (prev) => prev,
+    retry: (count, error) => count < 2 && !(error instanceof ApiError && [401, 403, 429, 503].includes((error as ApiError).status)),
+  });
+
+export const adminCaptureQuery = (id: string) =>
+  queryOptions({
+    queryKey: qk.adminCapture(id),
+    queryFn: ({ signal }) => getCaptureOperational(id, signal),
+    staleTime: 5 * 1000,
+    enabled: !!id,
+    retry: false,
+  });
+
+export const adminEventsQuery = (id: string) =>
+  queryOptions({
+    queryKey: qk.adminEvents(id),
+    queryFn: ({ signal }) => getCaptureEvents(id, signal),
+    staleTime: 5 * 1000,
+    enabled: !!id,
+  });
+
+export const adminCostsQuery = (id: string) =>
+  queryOptions({
+    queryKey: qk.adminCosts(id),
+    queryFn: ({ signal }) => getCaptureCosts(id, signal),
+    staleTime: 10 * 1000,
+    enabled: !!id,
+    retry: (count, error) => count < 1 && !(error instanceof ApiError && [401, 403, 404, 503].includes((error as ApiError).status)),
+  });
+
+export const adminActivityQuery = (customerId: string) =>
+  queryOptions({
+    queryKey: qk.adminActivity(customerId),
+    queryFn: ({ signal }) => getCustomerActivity(customerId, signal),
+    staleTime: 15 * 1000,
+    enabled: !!customerId,
+  });
+
+export const sharingQuery = (captureId: string) =>
+  queryOptions({
+    queryKey: qk.sharing(captureId),
+    queryFn: ({ signal }) => getSharing(captureId, signal),
+    staleTime: 10 * 1000,
+    enabled: !!captureId,
+    retry: false,
+  });
+
+export const publicNotesQuery = (token: string) =>
+  queryOptions({
+    queryKey: qk.publicNotes(token),
+    queryFn: ({ signal }) => getPublicNotes(token, signal),
+    staleTime: 60 * 1000,
+    enabled: !!token,
+    retry: false,
+  });
+
+export const sharedNotesQuery = (grantId: string) =>
+  queryOptions({
+    queryKey: qk.sharedNotes(grantId),
+    queryFn: ({ signal }) => getSharedNotes(grantId, signal),
+    staleTime: 30 * 1000,
+    enabled: !!grantId,
+    retry: false,
+  });
+
+export const capturePreferencesQueryOpts = queryOptions({
+  queryKey: qk.capturePreferences(),
+  queryFn: ({ signal }) => getCapturePreferences(signal),
+  staleTime: 60 * 1000,
+  retry: false,
+});
 
 export const publicSlotsQuery = (slug: string, typeId: string, from: string, days: number, tz: string) =>
   queryOptions({
