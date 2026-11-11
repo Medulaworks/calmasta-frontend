@@ -32,7 +32,7 @@ export function IntegrationsView() {
             <div className="space-y-5">
               {!nd.secretReplacementEnabled && <Notice tone="warning">Secret replacement disabled — ADMIN_SECRET_ENCRYPTION_KEY not configured. Requires operator restart for adoption.</Notice>}
               {!replace.allowed && <Notice>{replace.reason}</Notice>}
-              <p className="text-xs text-muted">IDs: openrouter / recall / assemblyai — never display credential values. Effective adoption requires restart.</p>
+              <p className="text-xs text-muted">IDs: openrouter / recall / assemblyai / woo / smtp / google / calendar — never display credential values. Effective adoption requires restart.</p>
               <div className="grid gap-3 md:grid-cols-2">
                 {nd.items.map((i) => (
                   <Card key={i.id}>
@@ -49,12 +49,27 @@ export function IntegrationsView() {
                   </Card>
                 ))}
               </div>
-              {editing && (
-                <ActionDialog title={`Replace ${editing.id}`} description="Write-only encrypted replacement with optimistic version. Disabled without server encryption key." confirmLabel="Replace" fields={[{ name: "value", label: "Value", secret: true }, { name: "version", label: "Version", type: "number", defaultValue: String(editing.storedVersion) }]} onClose={() => setEditing(null)} onSubmit={async (v) => {
-                  await adminPatch(`/api/admin/integrations/${editing.id}`, { value: v.value, version: Number(v.version), reason: v.reason }, { "Idempotency-Key": key() });
-                  toasts.push({ tone: "success", message: "Stored — restart_required." }); setEditing(null); res.reload();
-                }} />
-              )}
+              {editing && (() => {
+                const fieldMap: Record<string, Array<{ name: string; label: string; secret?: boolean; placeholder?: string }>> = {
+                  recall: [{ name: "apiKey", label: "API Key", secret: true }, { name: "webhookSecret", label: "Webhook Secret", secret: true }, { name: "region", label: "Region", placeholder: "us-west-2" }],
+                  assemblyai: [{ name: "apiKey", label: "API Key", secret: true }, { name: "webhookSecret", label: "Webhook Secret", secret: true }, { name: "region", label: "Region", placeholder: "us" }],
+                  openrouter: [{ name: "apiKey", label: "API Key", secret: true }],
+                  woo: [{ name: "storeUrl", label: "Store URL (https://...)" }, { name: "consumerKey", label: "Consumer Key", secret: true }, { name: "consumerSecret", label: "Consumer Secret", secret: true }, { name: "webhookSecret", label: "Webhook Secret", secret: true }, { name: "mode", label: "Mode (sandbox/production)" }],
+                  mail: [{ name: "host", label: "SMTP Host" }, { name: "port", label: "SMTP Port" }, { name: "secure", label: "Secure (true/false)" }, { name: "user", label: "SMTP User" }, { name: "pass", label: "SMTP Pass", secret: true }, { name: "from", label: "From Email" }],
+                  oauth_google: [{ name: "clientId", label: "Google Client ID" }, { name: "clientSecret", label: "Client Secret", secret: true }, { name: "redirectUri", label: "Redirect URI" }],
+                  calendar_google: [{ name: "clientId", label: "Google Client ID" }, { name: "clientSecret", label: "Client Secret", secret: true }],
+                  calendar_microsoft: [{ name: "clientId", label: "Microsoft Client ID" }, { name: "clientSecret", label: "Client Secret", secret: true }],
+                };
+                const extra = fieldMap[editing.id] ?? [{ name: "value", label: "Value", secret: true }];
+                return (
+                  <ActionDialog title={`Replace ${editing.id}`} description="Write-only encrypted replacement with optimistic version. Disabled without server encryption key. Blank = unchanged, empty = clear." confirmLabel="Replace" fields={[...extra, { name: "version", label: "Version", type: "number", defaultValue: String(editing.storedVersion) }]} onClose={() => setEditing(null)} onSubmit={async (v) => {
+                    const changes: Record<string, string> = {};
+                    for (const f of extra) if (v[f.name] !== undefined && String(v[f.name]).trim() !== "") changes[f.name] = String(v[f.name]).trim();
+                    await adminPatch(`/api/admin/integrations/${editing.id}`, { expectedVersion: Number(v.version), changes, clearFields: [], reason: v.reason }, { "Idempotency-Key": key() });
+                    toasts.push({ tone: "success", message: "Stored — restart_required." }); setEditing(null); res.reload();
+                  }} />
+                );
+              })()}
               <ToastStack items={toasts.items} onDismiss={toasts.dismiss} />
             </div>
           );
