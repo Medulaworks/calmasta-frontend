@@ -1,6 +1,6 @@
 export interface AuthConfig {
  trustProxy?:boolean;appOrigin:string;apiOrigin:string;sessionSecret:string;secure:boolean;
- callbackUrl:string;sessionCookie:string;transactionCookie:string;
+ callbackUrl:string;sessionCookie:string;adminSessionCookie?:string;transactionCookie:string;
 }
 export function authConfig(env:NodeJS.ProcessEnv=process.env):AuthConfig {
  const required=(name:string)=>{const v=env[name]?.trim();if(!v)throw Error(`Missing ${name}`);return v;};
@@ -11,5 +11,5 @@ export function authConfig(env:NodeJS.ProcessEnv=process.env):AuthConfig {
  const appOrigin=origin("APP_URL",env.NODE_ENV!=="production"),apiOrigin=origin("CALMASTA_API_URL",true),sessionSecret=required("SESSION_SECRET");
  if(!/^[a-f0-9]{64}$/i.test(sessionSecret))throw Error("Invalid SESSION_SECRET");
  if(env.NODE_ENV==="production"&&env.AUTH_TRUST_PROXY!=="true")throw Error("AUTH_TRUST_PROXY=true requires a trusted platform proxy that appends client IP");
- const secure=appOrigin.startsWith("https:");return {trustProxy:env.AUTH_TRUST_PROXY==="true",appOrigin,apiOrigin,sessionSecret,secure,callbackUrl:appOrigin+"/api/auth/callback",sessionCookie:secure?"__Host-calmasta_session":"calmasta_session",transactionCookie:secure?"__Host-calmasta_oauth":"calmasta_oauth"};
+ const secure=appOrigin.startsWith("https:");return {trustProxy:env.AUTH_TRUST_PROXY==="true",appOrigin,apiOrigin,sessionSecret,secure,callbackUrl:appOrigin+"/api/auth/callback",sessionCookie:secure?"__Host-calmasta_session":"calmasta_session",adminSessionCookie:secure?"__Host-calmasta_admin":"calmasta_admin",transactionCookie:secure?"__Host-calmasta_oauth":"calmasta_oauth"};
 }

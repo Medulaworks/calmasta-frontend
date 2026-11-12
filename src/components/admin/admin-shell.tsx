@@ -41,7 +41,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     };
   }, [router, attempt]);
 
-  function leaveAdmin() { router.push("/dashboard"); }
+  async function logoutAdmin() {
+    try { await fetch("/api/admin/auth/logout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}), credentials: "same-origin" }); } catch {}
+    router.replace("/admin/auth/login");
+  }
 
   const profile = check.state === "ready" ? check.profile : null;
   const allowed = !!profile?.isStaff;
@@ -95,7 +98,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           {/* On a phone the same two actions sit in the top bar as icons. */}
           <div className="flex items-center gap-1 md:hidden">
             <a href="/dashboard" target="_blank" rel="noopener noreferrer" aria-label="Open Jooba (opens in a new tab)" title="Open Jooba" className="grid size-9 place-items-center rounded-lg text-muted hover:bg-surface hover:text-foreground"><ExternalLink aria-hidden className="size-[18px]" /></a>
-            <button type="button" onClick={() => leaveAdmin()} aria-label="Back to Jooba" title="Back to Jooba" className="grid size-9 place-items-center rounded-lg text-muted hover:bg-surface hover:text-foreground disabled:opacity-50"><ArrowLeft aria-hidden className="size-[18px]" /></button>
+            <button type="button" onClick={() => { void logoutAdmin(); }} aria-label="Log out" title="Log out" className="grid size-9 place-items-center rounded-lg text-muted hover:bg-surface hover:text-foreground disabled:opacity-50"><ArrowLeft aria-hidden className="size-[18px]" /></button>
           </div>
         </div>
 
@@ -136,8 +139,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               </span>
             </Link>
           )}
-          <button type="button" onClick={() => leaveAdmin()} title="Back to Jooba" className="mt-3 flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-border bg-background text-sm font-medium transition-colors hover:bg-surface disabled:opacity-50">
-            <ArrowLeft aria-hidden className="size-4" /> Back to Jooba
+          <button type="button" onClick={() => { void logoutAdmin(); }} title="Log out" aria-label="Log out" className="mt-3 flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-border bg-background text-sm font-medium transition-colors hover:bg-surface disabled:opacity-50">
+            <ArrowLeft aria-hidden className="size-4" /> Log out
           </button>
         </div>
       </aside>
