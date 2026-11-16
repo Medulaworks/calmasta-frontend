@@ -204,7 +204,7 @@ export function Login({
         ) : mode === "signin" ? (
           <>
             Turn every conversation into{" "}
-            <span className="text-accent">finished work</span>.
+            <span className="text-accent">finished work</span>
           </>
         ) : (
           <>
@@ -217,8 +217,8 @@ export function Login({
         {admin
           ? "Sign in with your staff account to access the administration console."
           : mode === "signin"
-            ? "Meetings and voice notes become transcripts, briefs and follow-ups. Pick up where you left off"
-            : "Start capturing, transcribing, and organizing your conversations"}
+            ? "Meetings and voice notes become transcripts, briefs and follow-ups. Pick up where you left off."
+            : "Start capturing, transcribing, and organizing your conversations."}
       </p>
 
       {expired && (
