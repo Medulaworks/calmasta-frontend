@@ -9,6 +9,7 @@ export interface PlanSummary {
   usedMinutes: number;
   includedRemainingMinutes: number;
   purchasedMinutes: number;
+  reservedMinutes?: number;
   remainingMinutes: number;
   resetsAt: string;
   breakdown: Array<{ operation: string; label: string; minutes: number }>;

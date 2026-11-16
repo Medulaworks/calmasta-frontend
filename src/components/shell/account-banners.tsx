@@ -44,7 +44,7 @@ export function bannersFor(plan: PlanSummary | null, deletion: DeletionView | nu
   } else if (plan.plan.status === "pending_activation") {
     out.push({ id: "pending", level: "info", text: "We're waiting for the store to confirm your payment. Your plan starts as soon as it does.", href: "/dashboard/plan/confirming", cta: "Check status" });
   }
-  if (plan.exhausted) out.push({ id: "exhausted", level: "warning", text: "You've used this month's allowance, so new recordings can't be processed. Everything you have stays available.", href: "/dashboard/plan", cta: "Buy hours or upgrade" });
+  if (plan.exhausted) out.push({ id: "exhausted", level: "warning", text: (plan.reservedMinutes ?? 0) > 0 ? "Your allowance is used or reserved for recordings awaiting processing or billing confirmation. New recordings need available time. See usage for the breakdown." : "You've used this month's allowance, so new recordings can't be processed. Your saved work remains subject to its retention period.", href: "/dashboard/plan", cta: "Buy hours or upgrade" });
   else if (plan.allowanceMinutes > 0 && plan.remainingMinutes <= plan.allowanceMinutes * 0.2) out.push({ id: "low", level: "info", text: `${formatMinutes(plan.remainingMinutes)} left this month.`, href: "/dashboard/plan", cta: "See usage" });
   return out;
 }
