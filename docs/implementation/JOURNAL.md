@@ -492,3 +492,27 @@ Next action: OTEL-09/OPERATIONS — operator provisions fixture capture/cookie a
 - **Proof (command + result + revision):** Run 43910500962 SUCCESS; Vercel reacted 16:43 UTC; domain 200s and OAuth start uses staging callback; backend evidence covers details.
 - **What is NOT done:** Vercel dashboard live-SHA/env proof, backend server proof, authenticated acceptance; docs edits uncommitted.
 - **Next action (task ID + files):** FE-L02/FE-U01/F02 — owner/server-agent proof prompt outstanding before acceptance claims.
+
+## 2026-11-16 — admin recording defaults and video controls
+- **What was done (files + behavior):** FE-ADM01 recording duration/video controls wired into settings-view and corrected product-settings-form; added regressions and capture-policy cache refresh. IMPLEMENTED locally.
+- **Proof (command + result + revision):** 92ead04 + diff: focused vitest24/24, types and focused eslint PASS; API8d08c4c + diff: disposable-PG admin/product-policy16/16 PASS; review no important findings.
+- **What is NOT done:** No live save/provider call/shared DB change/migration/deployment/browser check; concurrent changes preserved.
+- **Next action (task ID + files):** FE-ADM01 — refresh /admin/settings and use Recording defaults; hosted rollout remains separately scoped.
+
+## 2026-11-16 — admin environment processing switches
+- **What was done (files + behavior):** FE-ADM01/ADM-09 processing enable/pause switches in product-settings-form; frontend/backend regressions. IMPLEMENTED locally; unchanged backend runtime.
+- **Proof (command + result + revision):** FE92ead04 + diff: focused28/28/types/zero-warning lint PASS; API8d08c4c + diff: disposable-PG admin/product-policy17/17 PASS; review no important findings.
+- **What is NOT done:** No live policy/allowance/budget/provider/schema/deployment changes or browser acceptance.
+- **Next action (task ID + files):** FE-ADM01/ADM-09 — refresh admin/settings; deliberately save environment switches with reason under existing bounded guards.
+
+## 2026-11-16 — simplify recording settings save action
+- **What was done (files + behavior):** FE-ADM01 single Save action; removed Preview/Discard/environment-pause UI; valid edits enable Save and missing reason shows an error/focus. Form/tests updated. IMPLEMENTED locally.
+- **Proof (command + result + revision):** FE92ead04 + diff: targeted28/28, types and zero-warning lint PASS; two regressions failed before fix; review no important findings.
+- **What is NOT done:** No live settings/pause/DB/provider/backend runtime/deployment change or browser check; audit and policy guards retained.
+- **Next action (task ID + files):** FE-ADM01 — refresh admin/settings; save a valid edit with a reason.
+
+## 2026-11-16 — dynamic live provider processing from Admin Settings
+- **What was done (files + behavior):** FE-ADM01/ADM-09/B01/F02 live policy flag/monitor/lazy workers/guarded requeue; frontend single-Save checkbox and refresh-safe drafts; contracts/OpenAPI/inventory. IMPLEMENTED locally.
+- **Proof (command + result + revision):** API8d08c4c + FE92ead04 working diffs: frontend36/types/lint; backend unit12/inventory2/disposable dispatch4/expanded workers81 PASS, OpenAPI155; reviews clean. Local staging restarted; ready200, live=false.
+- **What is NOT done:** No provider/live flag/cap/profile/schema/hosted changes; staging Assembly webhook secret needs valid configuration; older hosted workers need rollout; no browser check.
+- **Next action (task ID + files):** FE-ADM01/ADM-09/B01/F02 — complete staging readiness, then deliberately save the live toggle; local supervisors23749/23750/private temp logs retained.

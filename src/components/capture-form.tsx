@@ -51,6 +51,7 @@ export function CaptureForm() {
   const [titleMode, setTitleMode] = useState<"auto" | "manual">("auto");
   const [title, setTitle] = useState("");
   const [botName, setBotName] = useState("");
+  const [botNameEdited, setBotNameEdited] = useState(false);
   const [recordVideo, setRecordVideo] = useState(false);
   const [prefs, setPrefs] = useState<import("@/lib/capture-preferences-client").CapturePreferences | null>(null);
   const [titleState, setTitleState] = useState<string | null>(null);
@@ -109,9 +110,11 @@ export function CaptureForm() {
       else setDurationMinutes(def);
     }
   }, [policy, durationMinutes]);
+  // The name modal saves while this page is open: apply the server's answer
+  // unless the person already typed their own name for this meeting.
   useEffect(() => {
-    if (prefs && !botName) setBotName(prefs.effectiveBotName ?? prefs.adminDefaultBotName ?? "");
-  }, [prefs]);
+    if (prefs && !botNameEdited) setBotName(prefs.effectiveBotName ?? prefs.adminDefaultBotName ?? "");
+  }, [prefs, botNameEdited]);
   const detected = platformKey(url.trim() || null, url);
   const assistant = botName.trim() || defaultBotName(policy?.botName) || prefs?.effectiveBotName || policy?.botName || "Recording assistant";
 
@@ -139,6 +142,12 @@ export function CaptureForm() {
         result.duplicate ? "An assistant is already set up for this meeting. No second one was sent." : `Request queued for ${botName.trim() || defaultBotName(policy?.botName) || policy?.botName || "the recording assistant"}. ${policy?.liveProcessingEnabled ? "It may need to be admitted by the host." : "Recording will start when processing becomes available."}`,
       );
       playSound("sent");
+      // The new meeting lands in the list beside/below this form: bring it
+      // into view so the queued request is visible without hunting for it.
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const meetings = document.getElementById("history-heading");
+      if (meetings) meetings.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+      else window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
       setUrl("");
       setConsent(false);
       setTitle("");
@@ -220,7 +229,7 @@ export function CaptureForm() {
               <div className="space-y-4 border-t border-border p-4">
                 <div>
                   <label htmlFor="bot-name" className="text-sm font-medium">Assistant name</label>
-                  <input id="bot-name" type="text" value={botName} onChange={(e) => setBotName(e.target.value)} maxLength={100} placeholder={defaultBotName(policy?.botName) ?? policy?.botName ?? "Jooba Notetaker"} autoComplete="off" aria-describedby="meeting-bot-name-help" className={`${field} mt-2 min-h-10`} />
+                  <input id="bot-name" type="text" value={botName} onChange={(e) => { setBotName(e.target.value); setBotNameEdited(true); }} maxLength={100} placeholder={defaultBotName(policy?.botName) ?? policy?.botName ?? "Jooba Notetaker"} autoComplete="off" aria-describedby="meeting-bot-name-help" className={`${field} mt-2 min-h-10`} />
                   <p id="meeting-bot-name-help" className="mt-2 text-xs text-muted">The name people see when it joins. Leave blank to use {defaultBotName(policy?.botName) ?? policy?.botName ?? "the default"}.</p>
                 </div>
                 <div>

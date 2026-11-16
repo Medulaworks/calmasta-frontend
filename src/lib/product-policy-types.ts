@@ -43,6 +43,7 @@ export interface ProductPolicyValues {
   };
   operations: {
     processingEnabled: boolean;
+    liveProcessingEnabled: boolean;
     environmentPaused: boolean;
     telemetryEnabled: boolean;
     traceSampleRatio: number;
@@ -59,6 +60,7 @@ export interface EffectiveProductPolicy {
   version: number;
   values: ProductPolicyValues;
   updatedAt: string | null;
+  liveProcessing?: { requested: boolean; api: { enabled: boolean; version: number | null; errorCode: string | null } | null };
   adoption: {
     healthy: boolean;
     apiVersion: string | null;
@@ -170,6 +172,7 @@ export const fixtureEffectivePolicy: EffectiveProductPolicy = {
     },
     operations: {
       processingEnabled: false,
+      liveProcessingEnabled: false,
       environmentPaused: false,
       telemetryEnabled: false,
       traceSampleRatio: 0.1,

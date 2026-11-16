@@ -88,7 +88,30 @@ export function AdminUnavailable({ title = "Not available yet", children }: { ti
 
 /** The standard loading / error / forbidden states for a staff page. */
 export function ResourceBoundary<T>({ resource, children }: { resource: Resource<T>; children: (data: T) => React.ReactNode }) {
-  const { data, loading, error, reload } = resource;
+  const { data, loading, fetching, error, reload } = resource;
+  if (data) {
+    // A lost session or revoked access replaces stale staff data. Anything else
+    // (for example a 503 while the API restarts after an activation) keeps the
+    // last good screen with a slim refreshing signal instead of flashing the
+    // full-page error.
+    const authError = error instanceof ApiError && (error.status === 401 || error.status === 403);
+    if (!authError) {
+      // One stable wrapper in every state. Swapping the wrapper itself would
+      // unmount the page (and any open dialog with half-typed values) on
+      // every poll; only the contents inside switch.
+      return (
+        <div aria-busy={fetching || undefined}>
+          {children(data)}
+          {error && !fetching && (
+            <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+              <span>Couldn&rsquo;t refresh just now &mdash; showing the last saved status.</span>
+              <Button variant="ghost" size="sm" onClick={reload}>Try again</Button>
+            </div>
+          )}
+        </div>
+      );
+    }
+  }
   if (error) {
     if (error instanceof ApiError && error.code === "feature_unavailable") return <AdminUnavailable />;
     const forbidden = error instanceof ApiError && error.status === 403;

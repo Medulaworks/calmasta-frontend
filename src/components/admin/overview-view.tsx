@@ -14,7 +14,6 @@ import { fmtMoney } from "@/lib/admin-money";
 import { formatMinutes } from "@/lib/status";
 import type { Overview } from "@/lib/admin-types";
 import { taskName } from "@/lib/admin-words";
-import { HealthStrip } from "./health-view";
 import { PeriodPicker } from "./period-picker";
 import { ClickRow, DetailsDialog, MenuTd, RowMenu, RowOpen } from "./row-menu";
 import { ActionDialog, DataTable, Metric, Notice, ResourceBoundary, Td, Th, useResource } from "./ui";
@@ -83,10 +82,8 @@ export function OverviewView() {
           const no = o as unknown as NewOverview;
           return (
             <div className="space-y-5">
-              <HealthStrip />
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 <Metric label="Users" value={n(no.users)} />
-                <Metric label="Workspaces" value={n(no.workspaces)} />
                 <Metric label="Active captures" value={n(no.activeCaptures)} />
                 <Metric label="Active users" value={no.activeUsers === null ? "–" : n(no.activeUsers)} hint={no.activeUsers === null ? (no.activeUsersReason ?? "Not available yet") : undefined} />
               </div>
@@ -101,7 +98,6 @@ export function OverviewView() {
                 <Metric label="Meetings" value="0" hint="All finished" />
                 <Metric label="Recordings" value="0" />
                 <Metric label="Hours processed" value="0h" />
-                <Metric label="Workspaces" value={n(no.workspaces)} />
                 <Metric label="Processing cost" value="$0" />
               </div>
               <section className="space-y-3">
@@ -128,7 +124,6 @@ export function OverviewView() {
         ];
         return (
           <div className="space-y-5">
-            <HealthStrip />
             {o.banner && <Notice tone={o.banner.level}>{o.banner.text} {o.paused && <Link href="/admin/usage" className="font-medium underline">Open Usage and cost to resume</Link>}</Notice>}
 
             <div className="space-y-3">

@@ -45,11 +45,14 @@ const testLimit = (id: string) => id === "mail" ? "Checks SMTP connection and au
 const key = () => crypto.randomUUID().replace(/-/g, "").slice(0, 16).padEnd(8, "0");
 
 export function IntegrationsView() {
-  const res = useResource<Profiles>("/api/admin/integration-profiles", 5000);
-  const toasts = useToasts("integrations");
   const [editing, setEditing] = useState<Profile | null>(null);
   const [activating, setActivating] = useState<Profile | null>(null);
   const [historyId, setHistoryId] = useState<string | null>(null);
+  // No background poll while a dialog is open: it would churn the page under
+  // half-typed values. Saving or closing reloads explicitly.
+  const modalOpen = editing !== null || activating !== null || historyId !== null;
+  const res = useResource<Profiles>("/api/admin/integration-profiles", modalOpen ? false : 5000);
+  const toasts = useToasts("integrations");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const toggleCard = (id: string) => setExpanded(current => {
     const next = new Set(current);

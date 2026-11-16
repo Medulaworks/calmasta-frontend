@@ -11,6 +11,7 @@ import type { AdminSetting, AdminSettings } from "@/lib/admin-types";
 import { formatSetting, fromDisplay, toDisplay, unitLabel } from "@/lib/admin-units";
 import { ApiError } from "@/lib/upload-client";
 import { ActionDialog, Notice, ResourceBoundary, useResource } from "./ui";
+import { RecordingSettings } from "./product-settings-form";
 
 type Data = Json<AdminSettings>;
 type Setting = Json<AdminSetting>;
@@ -28,7 +29,7 @@ const shown = (s: Setting, v: Value) => (typeof v === "number" ? formatSetting(s
 
 export function SettingsView() {
   const res = useResource<Data>("/api/admin/settings");
-  return <ResourceBoundary resource={res}>{(d) => <Editor key={d.version} data={d} reload={res.reload} />}</ResourceBoundary>;
+  return <div className="space-y-5"><RecordingSettings /><ResourceBoundary resource={res}>{(d) => <Editor key={d.version} data={d} reload={res.reload} />}</ResourceBoundary></div>;
 }
 
 type NewSettings = { version: number; processingPaused: boolean; updatedAt: string | null; scope: string; adoption: string; editableKeys: string[]; recordingLimitsOverride?: unknown; bootstrapSettingsEditable: boolean };

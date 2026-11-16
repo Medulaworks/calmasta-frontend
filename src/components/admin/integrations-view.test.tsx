@@ -66,6 +66,10 @@ it("activates the staged version only through a separate confirmation", async ()
   expect(mocks.patch).not.toHaveBeenCalled();
 });
 
+it("pauses the background poll while the replace dialog is open", () => {
+  view(item);
+  expect(mocks.resource).toHaveBeenCalledWith("/api/admin/integration-profiles", false);
+});
 it("polls application status and exposes per-service adoption and history", () => {
   const response = { ...data, items: [{ ...item, effectiveStatus: "applying", adoption: { services: [{ service: "calmasta-api", state: "applied" }, { service: "calmasta-worker", state: "applying" }] } }] };
   const tree = view(null, null, response as unknown as typeof data, null, new Set([item.id]));
