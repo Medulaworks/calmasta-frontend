@@ -1,5 +1,13 @@
 # DASHBOARD consumption
 
+## 2026-11-16 — development baseline aligned, verified and unused worktree removed
+
+- **What was done (files + behavior):** FE-L01/FE-L02/FE-U01/F02: both repositories now use development/aligned-2026-11-16, combining existing feature/pending work with deployed main. Fixed merged runtime/probe inventory in docs/runbooks/policy-consumer-inventory.json. Applied reviewed dev-only 054–059; preserved accounting/policy. Removed unused extra worktree after private backup/hash/ancestry/process checks; retained both active roots, refs and stash. Local slice IMPLEMENTED.
+- **Proof (command + result + revision):** Backend 229a205: isolated 515/515/build/OpenAPI 155 PASS; frontend b6049f3: 487/487/types/focused lint/Next build PASS. Actual dev API 3009 plan/usage/detail 200 and private audio/video Range 206; migration/accounting fingerprints unchanged. Fresh review found no important blockers. Exact commands/source/environment limits: sibling calmasta-api/docs/implementation/evidence/2026-11-16-development-baseline-alignment.md. Local verification PASSED.
+- **What is NOT done:** No production/staging deployment/migration, billing settlement, new paid dispatch, quota/cap change, commerce enablement or browser automation. Server owns approved production artifact recovery and 32-job signed-receipt reconciliation; holds stay intact. Private backup is outside Git and includes preserved review artifacts; no secrets committed.
+- **Next action (task ID + files):** B03/U03/G01 — await server return packet for approved production recovery/reconciliation; use aligned development branches for further work and verify any future promotion independently. Broader module criteria remain WORK_PLAN.md.
+
+
 ## 2026-11-16 — production rollout returned and remote revisions verified
 
 - **What was done (files + behavior):** FE-L01/FE-L02/FE-U01 scoped expired-upload projection, safe video diagnostics, renewable private playback and truthful timeline/reserved-quota copy are reported deployed in production. Recorded server return packet; implementation IMPLEMENTED for scoped fixes, failed-video recovery/billing still IN_PROGRESS. Evidence: sibling calmasta-api/docs/implementation/evidence/2026-11-16-production-recording-rollout.md.

@@ -480,3 +480,9 @@ Next action: OTEL-09/OPERATIONS — operator provisions fixture capture/cookie a
 - **Proof (command + result + revision):** Frontend24b1133 is remote main; server401tests/types/lint/build and live link issuance/Range206; backend12c6a75 on main; details in sibling production evidence.
 - **What is NOT done:** Local browser-expiry verification, failed-video recovery, billing settlement and updated dev/staging deployment evidence.
 - **Next action (task ID + files):** FE-L02/FE-U01/B03 — verify post-repair playback/usage after owner waiver decision and verified billing receipts.
+
+## 2026-11-16 — merged development baseline verified
+- **What was done (files + behavior):** FE-L01/02/U01: preserved pending admin/commerce/sharing/roster work and merged deployed main fixes on development/aligned-2026-11-16.
+- **Proof (command + result + revision):** b6049f3:487/487/types/focusedlint/Nextbuild PASS; backend229a205:515/515, dev schema059 and authenticated plan/usage200/media206; no important review blockers.
+- **What is NOT done:** Main/staging promotion, production recovery/settlement, real browser-expiry proof or live provider dispatch.
+- **Next action (task ID + files):** FE-L02/FE-U01/B03 — use aligned dev baseline; await server production recovery/billing return packet.
