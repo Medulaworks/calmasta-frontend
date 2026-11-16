@@ -1,11 +1,10 @@
-import { AdminHeader } from "@/components/admin/section-tabs";
+import { SettingsPageLayout } from "@/components/admin/section-tabs";
 import { SettingsView } from "@/components/admin/settings-view";
 
 export default function Page() {
   return (
-    <div className="space-y-5">
-      <AdminHeader title="Limits and switches" />
+    <SettingsPageLayout title="Limits and switches">
       <SettingsView />
-    </div>
+    </SettingsPageLayout>
   );
 }

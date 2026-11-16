@@ -51,22 +51,25 @@ function Editor({ data, reload }: { data: Data; reload: () => void }) {
     const ns = data as unknown as NewSettings;
     return (
       <div className="space-y-5">
-        <p className="text-sm text-muted">Version {ns.version} · scope {ns.scope} · adoption {ns.adoption} {ns.updatedAt ? `· updated ${fmtUtc(ns.updatedAt)}` : ""}</p>
+        <p className="text-sm text-muted">Version {ns.version} {ns.updatedAt ? `· last updated ${fmtUtc(ns.updatedAt)}` : ""}</p>
         {!can.allowed && <Notice>{can.reason}</Notice>}
         {conflict && <Notice tone="warning"><span className="flex flex-wrap items-center justify-between gap-3">Version conflict — refetch before another deliberate edit.<Button onClick={() => { setConflict(false); reload(); }}>Reload settings</Button></span></Notice>}
-        <Card><CardHeader title="Processing pause (shared database)" />
+        <Card><CardHeader title="Pause new work" description="Emergency switch for the whole platform" />
           <div className="space-y-3 p-5 text-sm">
-            <label className="inline-flex items-center gap-2"><input type="checkbox" checked={paused} disabled={!can.allowed || !ns.editableKeys.includes("processingPaused")} onChange={(e) => setPaused(e.target.checked)} className="size-4" /> Paused</label>
-            <p className="text-xs text-muted">Deliberate operator pause, not a quota change. Reads/callbacks/cancel/settlement remain available.</p>
+            <label className="inline-flex items-center gap-2"><input type="checkbox" checked={paused} disabled={!can.allowed || !ns.editableKeys.includes("processingPaused")} onChange={(e) => setPaused(e.target.checked)} className="size-4" /> Temporarily pause new recordings and meetings</label>
+            <div className="space-y-1 text-xs leading-relaxed text-muted">
+              <p>When this is on, the platform stops starting anything new — no new recordings, meetings, or processing jobs. Use it only when you need a safe, quick pause, for example during an incident or to avoid unexpected charges.</p>
+              <p>Everything already created stays available to view, download, and manage. Nothing is deleted and billing does not change. Turn it off to resume instantly.</p>
+            </div>
           </div>
         </Card>
         {can.allowed && paused !== ns.processingPaused && (
-          <ActionDialog title={paused ? "Pause processing?" : "Resume processing?"} description={`Version ${ns.version} → ${ns.version + 1}. Shared DB policy.`} confirmLabel={paused ? "Pause" : "Resume"} onClose={() => setPaused(ns.processingPaused)} onSubmit={async (v) => {
+          <ActionDialog title={paused ? "Pause new work?" : "Resume new work?"} description={paused ? "This will stop all new recordings and meetings from starting. Existing files and library content stay available. You can resume at any time." : "This will allow new recordings and meetings to start again."} confirmLabel={paused ? "Pause new work" : "Resume new work"} onClose={() => setPaused(ns.processingPaused)} onSubmit={async (v) => {
             try { await adminPatch("/api/admin/settings", { version: ns.version, processingPaused: paused, reason: v.reason }, { "Idempotency-Key": crypto.randomUUID().replace(/-/g, "").slice(0, 16).padEnd(8, "0") }); toasts.push({ tone: "success", message: "Settings saved." }); reload(); } catch (err) { if (err instanceof ApiError && (err as unknown as { code?: string }).code === "settings_version_conflict") setConflict(true); throw err; }
           }} />
         )}
         <Button variant="primary" disabled={!can.allowed || paused === ns.processingPaused} onClick={() => setReviewing(true)}>Review and save…</Button>
-        {reviewing && <ActionDialog title="Save?" description={`processingPaused ${String(ns.processingPaused)} → ${String(paused)}`} confirmLabel="Save" onClose={() => setReviewing(false)} onSubmit={async (v) => {
+        {reviewing && <ActionDialog title="Save change?" description={paused ? "You are about to pause all new work. Existing content will remain available." : "You are about to resume new work."} confirmLabel="Save" onClose={() => setReviewing(false)} onSubmit={async (v) => {
           try { await adminPatch("/api/admin/settings", { version: ns.version, processingPaused: paused, reason: v.reason }, { "Idempotency-Key": crypto.randomUUID().replace(/-/g, "").slice(0, 16).padEnd(8, "0") }); toasts.push({ tone: "success", message: "Saved." }); reload(); } catch (err) { if (err instanceof ApiError && (err as unknown as { code?: string }).code === "settings_version_conflict") setConflict(true); throw err; }
         }} />}
         <ToastStack items={toasts.items} onDismiss={toasts.dismiss} />

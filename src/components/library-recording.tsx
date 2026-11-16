@@ -44,7 +44,7 @@ type Ext = {
   participants?: Array<{ name: string; role?: string }>;
   metadata?: Record<string, unknown>;
   createdAt: string;
-  events?: Array<{ status: string; detail: string | null; at: string }>;
+  events?: Array<{ status: string; detail: string | null; at: string | null; observedAt?: string }>;
 };
 
 /** The breadcrumb, with the title the rest of the app shows (a real one, or "Meeting on 29 Oct, 10:15"). */
@@ -108,6 +108,8 @@ function RecordingHeader({ capture, ext, status, isMeeting, meetingUrl, duration
 }
 
 const EVENT_LABELS: Record<string, { title: string; desc: string; Icon: typeof Clock }> = {
+  requested: { title: "Requested", desc: "Recording request created", Icon: Clock },
+  transcription_ready: { title: "Transcript ready", desc: "Transcript available for insights", Icon: FileText },
   queued: { title: "Queued", desc: "Added to the processing queue", Icon: Clock },
   video_ready: { title: "Video ready", desc: "Recording secured and ready", Icon: Video },
   transcript_ready: { title: "Transcript ready", desc: "Transcript available for insights", Icon: FileText },
@@ -150,19 +152,21 @@ function RecordingAside({ capture, ext, isMeeting, meetingUrl, duration }: Commo
       {ext.events?.length ? (
         <Card>
           <div className="border-b border-border px-5 py-3"><h2 className="text-base font-semibold">Timeline</h2></div>
+          {ext.events.length === 1 && ext.events[0].status === "requested" && capture.state !== "requested" && <p className="px-5 pt-4 text-xs text-muted">Earlier processing events were not recorded. Current status: {captureStatus(capture).label}.</p>}
           <ol aria-label="Timeline" className="p-5">
-            {ext.events.slice(0, 8).map((ev, i, all) => {
+            {ext.events.slice(-8).map((ev, i, all) => {
               const meta = EVENT_LABELS[ev.status] ?? { title: ev.status.replace(/_/g, " "), desc: ev.detail ?? "", Icon: Clock };
               const last = i === all.length - 1;
+              const ready = ["video_ready", "audio_ready", "transcript_ready", "transcription_ready", "title_ready", "insight_ready"].includes(ev.status);
               return (
                 <li key={i} className="relative flex gap-4 pb-5 last:pb-0">
                   {!last && <span aria-hidden className="absolute left-4 top-9 h-[calc(100%-2rem)] w-px bg-border" />}
-                  <span aria-hidden className={`relative z-10 grid size-8 shrink-0 place-items-center rounded-full ${last ? "bg-success text-white" : "border border-border bg-background text-muted"}`}>
-                    {last ? <Check className="size-4" strokeWidth={3} /> : <meta.Icon className="size-4" />}
+                  <span aria-hidden className={`relative z-10 grid size-8 shrink-0 place-items-center rounded-full ${ready ? "bg-success text-white" : "border border-border bg-background text-muted"}`}>
+                    {ready ? <Check className="size-4" strokeWidth={3} /> : <meta.Icon className="size-4" />}
                   </span>
                   <span className="min-w-0 flex-1 pt-0.5">
                     <span className="block text-sm font-medium capitalize">{meta.title}</span>
-                    <span className="block text-xs text-muted tabular-nums">{ev.at ? formatDateTime(ev.at, timeZone) : ""}</span>
+                    <span className="block text-xs text-muted tabular-nums">{ev.at ? formatDateTime(ev.at, timeZone) : ev.observedAt ? `Observed ${formatDateTime(ev.observedAt, timeZone)}` : "Time not recorded"}</span>
                     {(meta.desc || (ev.detail && !EVENT_LABELS[ev.status])) && <span className="mt-1 block text-xs text-muted">{meta.desc}{ev.detail && !EVENT_LABELS[ev.status] ? `: ${ev.detail}` : ""}</span>}
                   </span>
                 </li>
@@ -254,6 +258,15 @@ export function LibraryRecording({ id }: { id: string }) {
     const timer = setInterval(refresh, 3000);
     return () => clearInterval(timer);
   }, [active, refresh]);
+  // Completed captures stop lifecycle polling, but their private video links still expire.
+  useEffect(() => {
+    const expiresAt = capture?.video?.expiresAt;
+    if (active || capture?.id !== id || !expiresAt) return;
+    const expiry = Date.parse(expiresAt);
+    if (!Number.isFinite(expiry)) return;
+    const timer = setTimeout(refresh, Math.max(30_000, expiry - Date.now() - 30_000));
+    return () => clearTimeout(timer);
+  }, [active, capture?.id, capture?.video?.expiresAt, id, refresh, revision]);
   async function act(retry: boolean) {
     setBusy(true);
     setError(null);
@@ -301,7 +314,7 @@ export function LibraryRecording({ id }: { id: string }) {
           <div className="grid items-start gap-5 lg:grid-cols-3">
             {/* The content: the audio, then what was said. */}
             <div className="min-w-0 space-y-5 lg:col-span-2">
-              {isMeeting && capture.recordVideo && <MeetingVideo cap={capture} />}
+              {isMeeting && capture.recordVideo && <MeetingVideo key={capture.id} cap={capture} />}
               <div id="recording-audio">
                 <PrivateAudio key={capture.id} id={capture.id} onAudioChange={onAudioChange} />
               </div>

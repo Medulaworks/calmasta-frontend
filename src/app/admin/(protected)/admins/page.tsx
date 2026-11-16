@@ -1,5 +1,5 @@
-import { AdminsView } from "@/components/admin/admins-view";
 import { AdminHeader } from "@/components/admin/section-tabs";
+import { AdminsView } from "@/components/admin/admins-view";
 
 export default function Page() {
   return (

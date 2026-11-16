@@ -395,3 +395,82 @@ Next action: OTEL-09/OPERATIONS — operator provisions fixture capture/cookie a
 
 - **Next action (task ID + files):** FE-CP-02–10 backend owner implements CP-01–12 contracts and updates OPENAPI revision; frontend enables live policy/preview, stop, cost and sharing by capability behind same BFF routes, then separately authorized hosted verification. Files: src/lib/capture-admin-types.ts, src/components/admin/*, src/components/sharing/*, src/app/share/[token]/page.tsx, src/app/shared-notes/[grantId]/page.tsx, src/components/capture/bot-name-preference-dialog.tsx.
 
+
+- **What was done (files + behavior):** FE-ADM01: src/components/admin/admin-shell.tsx now checks /api/admin/me through adminGet instead of the customer /api/me session; 401 redirects, 403 denies access, and service errors remain retryable. Added admin-shell.test.tsx. Implementation IMPLEMENTED; overall verification PARTIALLY_TESTED per [criteria](WORK_PLAN.md).
+- **Proof (command + result + revision):** 826cdcb + local diff: pnpm exec vitest run src/components/admin/admin-shell.test.tsx (4/4 passed; regression observed failing before fix), scoped ESLint, pnpm typecheck and git diff --check passed. Synthetic session checks only.
+- **What is NOT done:** Browser/live login acceptance, commit, push and deployment; backend runtime unchanged.
+- **Next action (task ID + files):** FE-ADM01 — retry local /admin/auth/login and confirm admin-shell.tsx retains the dashboard with the isolated admin session; hosted acceptance remains open.
+
+- **What was done (files + behavior):** FE-ADM01: admin-shell.tsx loads /api/admin/capabilities before mounting pages and clears permissions on exit/logout/failure; admin-capabilities.ts preserves HTTP status and prevents aborted loads repopulating cache. admins-view.tsx removes the permissive unloaded fallback. admin-shell.test.tsx covers bootstrap/failure/cache cleanup. Implementation IMPLEMENTED; verification PARTIALLY_TESTED per [criteria](WORK_PLAN.md).
+- **Proof (command + result + revision):** 826cdcb + local diff: pnpm exec vitest run src/components/admin/admin-shell.test.tsx src/lib/capability-guards.test.ts src/lib/admin-import.test.ts passed 16/16 (new bootstrap regressions failed before fix); scoped ESLint, pnpm typecheck and git diff --check passed.
+- **What is NOT done:** Browser/hosted acceptance and publication; no processingPaused change or processing resumed. Settings value remains backend-authoritative.
+- **Next action (task ID + files):** FE-ADM01 — refresh /admin/settings to load current server permissions; admin-shell.tsx/settings-view.tsx hosted acceptance remains open.
+
+- **What was done (files + behavior):** FE-ADM01/CP-03: integrations-view.tsx now consumes replacementEnabled/version/activeVersion/updatedAt from the existing scoped profile API; fixes false missing-key warning, stages with server version, adds explicit activation confirmation and Microsoft OAuth fields, removes nonexistent check route and inaccurate adoption receipts. Added integrations-view.test.tsx. Existing valid ignored backend encryption key preserved; no rotation. Implementation IMPLEMENTED; overall verification PARTIALLY_TESTED per [criteria](WORK_PLAN.md).
+- **Proof (command + result + revision):** Frontend 826cdcb + local diff: pnpm exec vitest run src/components/admin/integrations-view.test.tsx passed 4/4 after observed red; scoped ESLint, pnpm typecheck and git diff --check passed. Backend node --env-file-if-exists=.env validated secretKey(process.env) returns a key; only boolean printed; git check-ignore .env passed.
+- **What is NOT done:** Browser/hosted acceptance, actual credential save/activation/restart, provider calls, DB changes or publication. No key generation needed because local configuration already contains a valid encryption root; existing encrypted profiles remain readable.
+- **Next action (task ID + files):** FE-ADM01/CP-03 — refresh /admin/integrations to consume corrected integrations-view.tsx; actual credential replacement and process adoption remain explicit operator actions.
+
+- **What was done (files + behavior):** FE-ADM02/CP-03: integrations-view.tsx polls fresh service adoption every5seconds, reports pending/blocked/missing services, and adds paginated change history with administrator, UTC time, action, version, reason and changed field names. ui.tsx supports optional query polling. Confirmation/success copy distinguishes activation from completed application. Implementation IMPLEMENTED; verification PARTIALLY_TESTED per [criteria](WORK_PLAN.md).
+- **Proof (command + result + revision):** Frontend826cdcb + scoped diff: Vitest integrations-view/admin-shell14/14 passed; scoped ESLint, pnpm typecheck and git diff --check passed. Backend disposable-PG and supervised-process fixtures30/30 plus build/OpenAPI148 passed; independent review findings fixed/rechecked. No browser/provider proof.
+- **What is NOT done:** Shared migration052, initial runtime adoption/restart and hosted deployment await operator approval; no paid worker started, credentials changed or processing policy altered.
+- **Next action (task ID + files):** FE-ADM02/CP-03 — authorize initial rollout per backend meeting-admin-rollout.md, then verify integrations-view.tsx reports actual API/worker application and scoped history; subsequent activations restart managed running services automatically.
+
+- **What was done (files + behavior):** FE-ADM02/CP-03: user authorized initial shared migration/restart. Backend052 applied; supervised local API restored and selected version applied. History data exists for the page. Prepared scoped source patches and server-agent instructions outside repositories; styling/navigation edits from concurrent work preserved. Implementation IMPLEMENTED; overall verification PARTIALLY_TESTED per [criteria](WORK_PLAN.md).
+- **Proof (command + result + revision):** Frontend826cdcb/backenda634e0c + tested scoped diffs: migration checksum verified; existing profiles/runtime policy unchanged; local health/ready200; fresh API managed/applied, worker not_running. Two history events carry actor/time. Both release patches reverse-check against current source; previous14frontend/30backend checks unchanged, git diff --check passed.
+- **What is NOT done:** No absent worker started, browser/live provider probe, hosted deployment, commit or push. Current environment cannot report both services applied until the worker runs with updated code.
+- **Next action (task ID + files):** FE-ADM02/CP-03 — hosted agent uses release archive and SERVER_AGENT_PROMPT.md, deploys source and restarts existing API/worker/frontend through normal release procedure; verify fresh service adoption and history page.
+
+- **What was done (files + behavior):** FE-ADM02: integrations-view.tsx renders history inside the selected service card instead of below all nine services; trigger toggles Change history/Hide history and exposes expanded/control state. Existing actor/time pagination and failure retry preserved. Implementation IMPLEMENTED; overall verification PARTIALLY_TESTED per [criteria](WORK_PLAN.md).
+- **Proof (command + result + revision):** 826cdcb + scoped local diff: pnpm exec vitest run src/components/admin/integrations-view.test.tsx passed8/8 after new placement/toggle regression failed against prior implementation; scoped ESLint, pnpm typecheck and git diff --check passed.
+- **What is NOT done:** Browser verification and hosted deployment; no backend, database, credential or processing changes. Concurrent style/navigation changes preserved.
+- **Next action (task ID + files):** FE-ADM02 — refresh /admin/integrations and open history within its service card; hosted agent should use the refreshed scoped release archive for integrations-view.tsx/tests.
+
+- **What was done (files + behavior):** FE-ADM02: integrations-view.tsx opens shared Dialog with a responsive history table showing time, administrator, action, version, changed fields and reason. Removed inline expansion and duplicate Hide/Close controls; retained shared Escape/backdrop/focus behavior, loading/empty/error/retry and older-page loading. Stable close callback prevents background status polls resetting modal focus. Implementation IMPLEMENTED; overall verification PARTIALLY_TESTED per [criteria](WORK_PLAN.md).
+- **Proof (command + result + revision):** 826cdcb + scoped diff: integrations-view.test.tsx9/9 passed after modal/table regressions failed against inline implementation; scoped ESLint, pnpm typecheck and git diff --check passed. Existing shared Dialog/DataTable behavior reused.
+- **What is NOT done:** Browser visual/keyboard verification or hosted deployment; no backend, DB, credentials or processing changes. Concurrent UI changes preserved.
+- **Next action (task ID + files):** FE-ADM02 — refresh /admin/integrations and open Change history modal; hosted agent uses refreshed release archive for integrations-view.tsx/tests.
+
+- **What was done (files + behavior):** FE-ADM02: integrations-view.tsx adds a soft accent background/border and stronger hover background to the compact History button, preserving its icon, modal action and concurrent layout edits. Implementation IMPLEMENTED; overall verification PARTIALLY_TESTED per [criteria](WORK_PLAN.md).
+- **Proof (command + result + revision):** 826cdcb + scoped local class change: pnpm exec eslint src/components/admin/integrations-view.tsx and git diff --check passed. No new test for this styling-only adjustment.
+- **What is NOT done:** Browser visual verification or hosted publication; existing release archive is not refreshed by this small style adjustment.
+- **Next action (task ID + files):** FE-ADM02 — refresh /admin/integrations to see the tinted History button; include this scoped styling in the next frontend release.
+
+- **What was done (files + behavior):** FE-ADM02: integrations-view.tsx starts each service card collapsed and retains title, smaller tinted History button, last update, status and pending badge in summary. Accessible title/chevron controls independently reveal versions, connectivity, service adoption and mutation controls; History remains a separate modal action. Implementation IMPLEMENTED; overall verification PARTIALLY_TESTED per [criteria](WORK_PLAN.md).
+- **Proof (command + result + revision):** 826cdcb + scoped local diff: integrations-view.test.tsx11/11 passed after collapse/independence regressions failed before implementation; scoped ESLint, pnpm typecheck and git diff --check passed. Existing modal test adjusted for icon-only leaves and verifies History does not toggle the card.
+- **What is NOT done:** Browser visual/keyboard verification and hosted deployment; no backend, database, credential or processing changes. Concurrent styling/navigation edits preserved.
+- **Next action (task ID + files):** FE-ADM02 — refresh /admin/integrations for collapsed summaries; hosted agent uses refreshed scoped release archive for integrations-view.tsx/tests.
+
+- **What was done (files + behavior):** FE-ADM02/CP-03: supported Email/OpenRouter/Woo expanded cards now offer Test applied credentials, identify the API-applied version and exclude newer drafts. Added busy/double-click guards, fixed safe outcome messages, stale-result display and test outcomes in modal history. Tests disclose no email delivery, generation or payments and distinguish worker adoption/full workflows. Implementation IMPLEMENTED; overall verification PARTIALLY_TESTED per [criteria](WORK_PLAN.md).
+- **Proof (command + result + revision):** Frontend826cdcb + scoped diff: integrations-view.test.tsx14/14, scoped ESLint, pnpm typecheck and git diff --check passed after new credential-test UI regressions failed before implementation. Backend30/30 disposable PG/local SMTP fixture checks plus build/OpenAPI149 passed; review findings fixed/rechecked.
+- **What is NOT done:** No browser or live provider tests, credential change, DB migration or hosted deployment. Current configured credentials are tested only when an authorized admin explicitly clicks the button.
+- **Next action (task ID + files):** FE-ADM02/CP-03 — refresh /admin/integrations and expand Email/OpenRouter/Woo; apply/activate first when required. Hosted agent uses refreshed scoped archive for frontend/backend endpoint and metadata changes.
+
+- **What was done (files + behavior):** User requested all running Node services stopped. Sent SIGTERM to six Node application/development processes, including frontend and API watchers; preserved Codex/ChatGPT internal tool processes. No source/configuration/database changes.
+- **Proof (command + result + revision):** Process inventory and bounded graceful shutdown: six signalled, zero forced kills, zero remaining Node application processes; lsof shows no listeners on3006/3009. Existing working-tree revisions unchanged.
+- **What is NOT done:** No application service restarted, provider call, database mutation, commit or deployment; internal automation tools intentionally remain running.
+- **Next action (task ID + files):** F02/FE-ADM02 — start only the desired app with its existing package.json dev script when requested; all application dev servers are currently stopped.
+
+## 2026-11-15 — WooCommerce frontend FE-WOO-01..04 (woo-entitlements-v1)
+- **What was done (files + behavior):** Implemented FE-WOO-01..04 against contract b8c6752: commerce client corrections + tests, capability-aware billing flow, authenticated return polling, plan/credit projection display; added commerce BFF allowlist and /api/plan proxy.
+- **Proof (command + result + revision):** pnpm exec vitest run 478/478 across 69 files; tsc --noEmit clean; pnpm run build 79 routes; 826cdcb + working tree, uncommitted.
+- **What is NOT done:** Hosted/sandbox acceptance, /billing/status page, live purchases/refunds, commits/deploys.
+- **Next action (task ID + files):** SRV-WOO — hosted acceptance of billing/return routes against sandbox backend.
+
+## 2026-11-16 — recording/video/quota fixes
+- **What was done (files + behavior):** FE-L01/02/U01: timeline/held-allowance/storage copy and private video renewal/retry/seek/playback continuity; IMPLEMENTED locally.
+- **Proof (command + result + revision):** 826cdcb+diff: Vitest 5 files 30/30 + types/lint PASS; focused RED→GREEN and review corrections; backend 36/36/Range 206 only in dev config.
+- **What is NOT done:** Hosted/provider/browser acceptance, failed-video recovery, billing settlement and deployment; unrelated changes preserved; no shared writes/paid calls.
+- **Next action (task ID + files):** FE-L02/FE-U01/B03 — ../calmasta-api/docs/implementation/HOSTED_RECORDING_VIDEO_QUOTA_FIX_PROMPT.md per actual environment.
+
+## 2026-11-16 — deploy packet prepared
+- **What was done (files + behavior):** FE-L02/FE-U01 banner uses native null handling, excluding unrelated commerce edits from sibling backend release ZIP.
+- **Proof (command + result + revision):** 826cdcb+task diff: banner 2/2/lint PASS; both source patches pass base application checks; prior 30-test scope unchanged.
+- **What is NOT done:** Production release and billing apply; operator/Recall credentials absent in local workspace.
+- **Next action (task ID + files):** FE-L02/FE-U01/B03 — server verifies targets and uses sibling backend releases/2026-11-16-recording-video-quota.zip.
+
+## 2026-11-16 — production recording frontend deployed
+- **What was done (files + behavior):** Server reports FE-L01/02/U01 private-link/timeline/reserved-banner fixes deployed; scoped implementation IMPLEMENTED.
+- **Proof (command + result + revision):** Frontend24b1133 is remote main; server401tests/types/lint/build and live link issuance/Range206; backend12c6a75 on main; details in sibling production evidence.
+- **What is NOT done:** Local browser-expiry verification, failed-video recovery, billing settlement and updated dev/staging deployment evidence.
+- **Next action (task ID + files):** FE-L02/FE-U01/B03 — verify post-repair playback/usage after owner waiver decision and verified billing receipts.

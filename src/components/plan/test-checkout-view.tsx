@@ -35,12 +35,13 @@ export function TestCheckoutView() {
   let title = "";
   let detail = "";
   let price = "";
-  if (plan && chosen) {
-    const monthly = chosen === "business" ? plan.pricing.businessMonthly : plan.pricing.proMonthly;
-    const per = period === "annual" ? annualPrice(monthly, plan.pricing.annualDiscountPct) : monthly;
+  if (plan && chosen && plan.pricing) {
+    const pricing = plan.pricing;
+    const monthly = chosen === "business" ? pricing.businessMonthly : pricing.proMonthly;
+    const per = period === "annual" ? annualPrice(monthly, pricing.annualDiscountPct) : monthly;
     title = `${PLAN_LABEL[chosen]}, ${period === "annual" ? "billed yearly" : "billed monthly"}`;
-    detail = `${formatMinutes(chosen === "business" ? plan.businessAllowanceMinutes : plan.proAllowanceMinutes)} of processing each month`;
-    price = period === "annual" ? `${formatPrice(plan.pricing.currency, per)} per month, ${formatPrice(plan.pricing.currency, Math.round(per * 12 * 100) / 100)} billed yearly` : `${formatPrice(plan.pricing.currency, per)} per month`;
+    detail = `${formatMinutes((chosen === "business" ? plan.businessAllowanceMinutes : plan.proAllowanceMinutes) ?? 0)} of processing each month`;
+    price = period === "annual" ? `${formatPrice(pricing.currency, per)} per month, ${formatPrice(pricing.currency, Math.round(per * 12 * 100) / 100)} billed yearly` : `${formatPrice(pricing.currency, per)} per month`;
   } else if (plan && pack) {
     const k = plan.packs.find((x) => x.sku === pack);
     if (k) {

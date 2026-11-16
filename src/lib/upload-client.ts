@@ -63,6 +63,7 @@ export interface CaptureView {
   /** none: not asked for. requested/processing: on its way. ready. failed (see videoFailure). unavailable: removed, as the privacy settings say. */
   videoStatus: "none" | "requested" | "processing" | "ready" | "failed" | "unavailable";
   videoFailure: string | null;
+  videoPlaybackFailure?: "video_expired" | "storage_unavailable" | "video_unavailable" | null;
   cancelRequestedAt?:string|null;
   maxDurationSeconds?:number|null;
 }

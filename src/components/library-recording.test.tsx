@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { LibraryRecording } from "./library-recording";
+import { MeetingVideo } from "./meeting-video";
 import { PrivateAudio } from "./private-audio";
 import { MeetingInsights } from "./meeting-insights";
 import { TranscriptEditor } from "./transcript-editor";
@@ -29,7 +30,14 @@ vi.mock("react", async (original) => {
       if (!(slot in hooks.values)) hooks.values[slot] = { current: initial };
       return hooks.values[slot];
     },
-    useCallback: (callback: unknown, deps: readonly unknown[]) => hooks.active ? callback : react.useCallback(callback as () => void, deps),
+    useCallback: (callback: unknown, deps: readonly unknown[]) => {
+      if (!hooks.active) return react.useCallback(callback as () => void, deps);
+      const slot = hooks.index++;
+      if (!hooks.deps[slot] || deps.some((value, i) => !Object.is(value, hooks.deps[slot]?.[i]))) {
+        hooks.deps[slot] = deps; hooks.values[slot] = callback;
+      }
+      return hooks.values[slot];
+    },
     useEffect: (effect: () => void | (() => void), deps?: readonly unknown[]) => {
       if (!hooks.active) return react.useEffect(effect, deps);
       const slot = hooks.index++;
@@ -79,8 +87,8 @@ function markup(node: ReactNode) {
 }
 beforeEach(() => { vi.stubGlobal("fetch", vi.fn().mockImplementation(() => Promise.resolve(Response.json(detail())))); });
 afterEach(() => { hooks.cleanup.forEach(cleanup => cleanup?.()); hooks.values = []; hooks.deps = []; hooks.pending = []; hooks.cleanup = []; hooks.subscriptions.splice(0).forEach(unsubscribe => unsubscribe()); hooks.client = null; clients.splice(0).forEach(client => client.clear()); vi.unstubAllGlobals(); vi.useRealTimers(); });
-async function mount(source = "meeting") {
-  vi.mocked(fetch).mockImplementation(() => Promise.resolve(Response.json(detail(source))));
+async function mount(source = "meeting", extra: Record<string, unknown> = {}) {
+  vi.mocked(fetch).mockImplementation(() => Promise.resolve(Response.json({ ...detail(source), ...extra })));
   run(() => LibraryRecording({ id })); await effects();
   await vi.waitFor(() => expect(find(run(() => LibraryRecording({ id })), TranscriptEditor)).toBeDefined());
   return run(() => LibraryRecording({ id }));
@@ -181,4 +189,46 @@ it("groups transcript and insights in tabs, defaults to insights, and keeps both
  vi.mocked(fetch).mockImplementation(()=>Promise.resolve(Response.json({...detail(),id:"another-meeting"})));
  run(()=>LibraryRecording({id:"another-meeting"}));await effects();
  await vi.waitFor(()=>expect(find<ComponentProps<typeof Tabs>>(run(()=>LibraryRecording({id:"another-meeting"})),Tabs)?.props.active).toBe("recording-another-meeting-insights"));
+});
+
+it("a legacy requested-only timeline explains missing history without suggesting an unfinished completed recording", async () => {
+ const tree=await mount("meeting",{events:[{status:"requested",detail:null,at:"2026-11-04T00:00:00Z"}]});
+ expect(markup(tree)).toContain("Earlier processing events were not recorded. Current status: Ready.");
+});
+it("completed recordings renew their expiring video link without restarting capture polling", async () => {
+ vi.useFakeTimers();
+ const tree=await mount("meeting",{recordVideo:true,videoStatus:"ready",video:{url:"/private-video",expiresAt:new Date(Date.now()+60000).toISOString(),contentType:"video/mp4",sizeBytes:100}});
+ expect(tree).toBeDefined();await effects();
+ const before=vi.mocked(fetch).mock.calls.length;
+ await vi.advanceTimersByTimeAsync(31000);run(()=>LibraryRecording({id}));await effects();
+ expect(vi.mocked(fetch).mock.calls.length).toBeGreaterThan(before);
+ expect(vi.mocked(fetch).mock.calls.every(([,init])=>(init?.method??"GET")==="GET")).toBe(true);
+});
+
+it("video link renewal preserves the playback position and never recursively reloads a broken source",()=>{
+ const cap={recordVideo:true,videoStatus:"ready" as const,videoFailure:null,status:"completed",video:{url:"/first",contentType:"video/mp4",sizeBytes:100}};
+ let video=find<ComponentProps<"video">>(run(()=>MeetingVideo({cap})),"video")!;
+ expect(video.props.onError).toBeUndefined();
+ video.props.onTimeUpdate?.({currentTarget:{currentTime:42,readyState:2}} as never);
+ video=find<ComponentProps<"video">>(run(()=>MeetingVideo({cap:{...cap,video:{...cap.video,url:"/renewed"}}})),"video")!;
+ const media={currentTime:0,duration:100};video.props.onLoadedMetadata?.({currentTarget:media} as never);expect(media.currentTime).toBe(42);
+});
+
+it("video-link renewal retries after a transient read failure with a stable refresh callback",async()=>{
+ vi.useFakeTimers();await mount("meeting",{recordVideo:true,videoStatus:"ready",video:{url:"/first",expiresAt:new Date(Date.now()+60000).toISOString(),contentType:"video/mp4",sizeBytes:100}});await effects();
+ vi.mocked(fetch).mockRejectedValueOnce(new Error("Temporary read failure"));
+ await vi.advanceTimersByTimeAsync(31000);run(()=>LibraryRecording({id}));await effects();run(()=>LibraryRecording({id}));await effects();
+ const failed=vi.mocked(fetch).mock.calls.length;
+ await vi.advanceTimersByTimeAsync(31000);run(()=>LibraryRecording({id}));await effects();
+ expect(vi.mocked(fetch).mock.calls.length).toBeGreaterThan(failed);
+});
+it("video renewal resumes playing intent but respects an explicit user pause",()=>{
+ const cap={recordVideo:true,videoStatus:"ready" as const,videoFailure:null,status:"completed",video:{url:"/first",contentType:"video/mp4",sizeBytes:100}};
+ let video=find<ComponentProps<"video">>(run(()=>MeetingVideo({cap})),"video")!;
+ video.props.onPlay?.({} as never);video.props.onPause?.({currentTarget:{readyState:0}} as never);
+ video=find<ComponentProps<"video">>(run(()=>MeetingVideo({cap:{...cap,video:{...cap.video,url:"/second"}}})),"video")!;
+ const media={currentTime:0,duration:100,play:vi.fn().mockResolvedValue(undefined)};
+ video.props.onLoadedMetadata?.({currentTarget:media} as never);expect(media.play).toHaveBeenCalledOnce();
+ video.props.onPause?.({currentTarget:{readyState:2}} as never);
+ video.props.onLoadedMetadata?.({currentTarget:media} as never);expect(media.play).toHaveBeenCalledOnce();
 });

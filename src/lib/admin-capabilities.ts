@@ -1,3 +1,5 @@
+import { ApiError } from "./upload-client";
+
 export type AdminCapability = "user_edit_profile" | "user_suspend" | "user_revoke_sessions" | "user_send_mail" | "user_staff_role" | "staff_manage" | "settings_edit" | "integration_replace" | "integration_check" | "export_audit" | "job_retry" | "webhook_replay" | "commerce_edit" | "deletion_execute" | "cost_read" | "capture_read" | "capture_stop" | "global_budget_edit";
 export interface CapabilityState { allowed: boolean; reason: string | null }
 export interface CapabilitiesResponse { capabilities: Record<AdminCapability, CapabilityState>; permissionVersion: string; scope: string }
@@ -17,11 +19,12 @@ export function requireCapability(action: AdminCapability): CapabilityState {
   return state;
 }
 export async function loadCapabilities(signal?: AbortSignal): Promise<CapabilitiesResponse> {
-  const res = await fetch("/api/admin/capabilities", { cache: "no-store", signal });
-  if (!res.ok) throw new Error("capabilities_unavailable");
+  const res = await fetch("/api/admin/capabilities", { cache: "no-store", credentials: "same-origin", signal });
+  if (!res.ok) throw new ApiError(res.status, "Could not check admin permissions.", "capabilities_unavailable");
   const data = (await res.json()) as CapabilitiesResponse;
   // Validate no secret leakage — capabilities must not carry provider keys.
   if (typeof data !== "object" || data === null || !("capabilities" in data)) throw new Error("malformed_capabilities");
+  signal?.throwIfAborted();
   cache = data;
   return data;
 }

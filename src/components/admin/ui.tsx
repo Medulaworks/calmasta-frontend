@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -18,10 +19,11 @@ export interface Resource<T> {
 }
 
 /** Loads a staff endpoint. Keeps the old data on screen while reloading so tables don't flash. */
-export function useResource<T>(url: string | null): Resource<T> {
+export function useResource<T>(url: string | null, refetchInterval?: number | false): Resource<T> {
   const q = useQuery({
     ...adminQuery<T>(url ?? "__none__"),
     enabled: !!url,
+    refetchInterval,
   });
   const data = url ? (q.data as T | undefined) ?? null : null;
   const error = url ? (q.error as Error | null) : null;
@@ -178,13 +180,29 @@ export function ActionDialog({
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [visible, setVisible] = useState<Record<string, boolean>>({});
   const first = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+  // Stable callback: an inline ref would detach/re-attach on every keystroke.
+  const setFirst = useCallback((el: HTMLInputElement | HTMLTextAreaElement | null) => {
+    first.current = el;
+  }, []);
+  // Latest handlers without re-subscribing: focusing or closing on a parent
+  // re-render (e.g. the 5s adoption poll) would yank focus out of the field
+  // being typed in, so the key handler below subscribes only on mount.
+  const closeRef = useRef(onClose);
+  const busyRef = useRef(busy);
+  useEffect(() => {
+    closeRef.current = onClose;
+    busyRef.current = busy;
+  });
   useEffect(() => {
     first.current?.focus();
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && !busy && onClose();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !busyRef.current) closeRef.current();
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [busy, onClose]);
+  }, []);
 
   const submit = useCallback(async () => {
     setBusy(true);
@@ -226,12 +244,33 @@ export function ActionDialog({
               >
                 {f.options.map((o) => <option key={o}>{o}</option>)}
               </select>
+            ) : f.secret ? (
+              <div className="relative mt-2">
+                <input
+                  ref={i === 0 ? setFirst : undefined}
+                  type={visible[f.name] ? "text" : "password"}
+                  autoComplete={f.autoComplete ?? "new-password"}
+                  spellCheck={false}
+                  required={f.required !== false}
+                  value={values[f.name]}
+                  onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))}
+                  className="block w-full rounded-lg border border-border bg-background px-3 py-2 pr-10"
+                />
+                <button
+                  type="button"
+                  aria-label={visible[f.name] ? `Hide ${f.label}` : `Show ${f.label}`}
+                  aria-pressed={visible[f.name] ? "true" : "false"}
+                  onClick={() => setVisible((v) => ({ ...v, [f.name]: !v[f.name] }))}
+                  className="absolute inset-y-0 right-0 grid w-9 place-items-center rounded-r-lg text-muted hover:text-foreground"
+                >
+                  {visible[f.name] ? <EyeOff aria-hidden className="size-4" /> : <Eye aria-hidden className="size-4" />}
+                </button>
+              </div>
             ) : (
               <input
-                ref={i === 0 ? (el) => { first.current = el; } : undefined}
-                type={f.secret ? "password" : f.type ?? "text"}
-                autoComplete={f.autoComplete ?? (f.secret ? "new-password" : undefined)}
-                spellCheck={f.secret ? false : undefined}
+                ref={i === 0 ? setFirst : undefined}
+                type={f.type ?? "text"}
+                autoComplete={f.autoComplete}
                 min={f.min}
                 max={f.max}
                 required={f.required !== false}
@@ -246,7 +285,7 @@ export function ActionDialog({
         <label className="block text-sm">
           <span className="font-medium">Reason</span>
           <textarea
-            ref={fields.length === 0 ? (el) => { first.current = el; } : undefined}
+            ref={fields.length === 0 ? setFirst : undefined}
             required
             minLength={8}
             maxLength={500}
@@ -288,12 +327,20 @@ export function SimpleDialog({
   const form = useRef<HTMLFormElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const closeRef = useRef(onClose);
+  const busyRef = useRef(busy);
+  useEffect(() => {
+    closeRef.current = onClose;
+    busyRef.current = busy;
+  });
   useEffect(() => {
     (form.current?.querySelector<HTMLElement>("input, textarea") ?? form.current?.querySelector<HTMLElement>("button[type=submit]"))?.focus();
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && !busy && onClose();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !busyRef.current) closeRef.current();
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [busy, onClose]);
+  }, []);
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" onMouseDown={(e) => e.target === e.currentTarget && !busy && onClose()}>

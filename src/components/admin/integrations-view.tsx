@@ -1,81 +1,215 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import { ChevronDown, Clock3, History } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { type Json, adminPatch, adminPost, fmtUtc } from "@/lib/admin-client";
+import { Dialog } from "@/components/ui/dialog";
+import { adminPatch, adminPost, fmtUtc } from "@/lib/admin-client";
+import { ApiError } from "@/lib/upload-client";
 import { capability } from "@/lib/admin-capabilities";
-import type { Integration } from "@/lib/admin-types";
-import { ActionDialog, Notice, ResourceBoundary, useResource } from "./ui";
+import { ActionDialog, Notice, ResourceBoundary, useResource, usePaged, DataTable, Th, Td } from "./ui";
 import { ToastStack, useToasts } from "@/components/ui/toast";
 
-type Item = Json<Integration>;
-type NewItem = { id: string; configured: boolean; storedVersion: number; effectiveVersion: number; effectiveStatus: string; providerConnectivity: string; lastConfigurationCheckAt: string | null };
-type NewResp = { items: NewItem[]; secretReplacementEnabled: boolean };
+const TITLE_MAP: Record<string, string> = {
+  recall: "Recall",
+  assemblyai: "AssemblyAI",
+  openrouter: "OpenRouter",
+  woo: "WooCommerce",
+  mail: "Email",
+  oauth_google: "Google Sign-in",
+  oauth_microsoft: "Microsoft Sign-in",
+  calendar_google: "Google Calendar",
+  calendar_microsoft: "Microsoft Calendar",
+};
+const toTitle = (id: string) => TITLE_MAP[id] ?? id.split(/[_-]/).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+const toStatusLabel = (s: string) => s.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+
+type AdoptionService = { service: string; state: string; managed?: boolean; errorCode?: string | null };
+type CredentialCheckResult = { status: "pending" | "passed" | "failed" | "superseded"; code: string; version: number; checkedAt?: string | null; isCurrent?: boolean; scope?: string };
+type CredentialTest = { supported: boolean; scope: string; kind: string; appliedVersion: number | null; canTest: boolean; reason: string | null; latest: CredentialCheckResult | null };
+type Profile = { id: string; configured: boolean; version: number; activeVersion: number | null; updatedAt: string | null; effectiveStatus: string; providerConnectivity: string; adoption?: { services?: AdoptionService[] }; credentialTest?: CredentialTest };
+type Profiles = { runtimeAvailable?: boolean; environment: string; replacementEnabled: boolean; items: Profile[] };
+const TEST_MESSAGES: Record<string, string> = {
+  smtp_authentication_verified: "SMTP connection and authentication succeeded. No email was sent.",
+  smtp_connection_verified: "SMTP connection succeeded. No SMTP login is configured, so authentication was not tested.",
+  api_access_verified: "Read-only API access succeeded.", authentication_failed: "Authentication was rejected. Check the applied credentials.",
+  access_denied: "These credentials do not have access to this API.", provider_unavailable: "The provider is unavailable. Try again later.",
+  invalid_provider_response: "The provider returned an unexpected response.", check_timed_out: "The check timed out after five seconds.",
+  connection_failed: "Could not connect using the applied configuration.", configuration_missing: "The applied configuration is incomplete.",
+  applied_version_changed: "The version changed during this check. Test again after application finishes.", test_pending: "This test has not finished. Try again in 30 seconds.",
+  applied_version_required: "Wait until the active version is applied to the API before testing.", integration_test_rate_limited: "Wait 30 seconds before starting another test for this service.",
+};
+const testLimit = (id: string) => id === "mail" ? "Checks SMTP connection and authentication without sending an email. Sender acceptance and inbox delivery are not tested." : id === "openrouter" ? "Checks API key authentication only. Does not generate content or verify model access and available credit." : "Checks read-only WooCommerce API access. Does not create a payment or verify checkout, subscriptions or webhook signing.";
 const key = () => crypto.randomUUID().replace(/-/g, "").slice(0, 16).padEnd(8, "0");
 
 export function IntegrationsView() {
-  const res = useResource<Item[] & NewResp>("/api/admin/integration-profiles");
+  const res = useResource<Profiles>("/api/admin/integration-profiles", 5000);
   const toasts = useToasts("integrations");
-  const [editing, setEditing] = useState<NewItem | null>(null);
+  const [editing, setEditing] = useState<Profile | null>(null);
+  const [activating, setActivating] = useState<Profile | null>(null);
+  const [historyId, setHistoryId] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const toggleCard = (id: string) => setExpanded(current => {
+    const next = new Set(current);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+  const closeHistory = useCallback(() => setHistoryId(null), []);
   const replace = capability("integration_replace");
   const check = capability("integration_check");
+  const [testing, setTesting] = useState<Set<string>>(new Set());
+  const busyTests = useRef(new Set<string>());
+  const testCredentials = async (profile: Profile) => {
+    const appliedVersion = profile.credentialTest?.appliedVersion;
+    if (!check.allowed || !profile.credentialTest?.canTest || !appliedVersion || busyTests.current.has(profile.id)) return;
+    busyTests.current.add(profile.id);setTesting(current => new Set(current).add(profile.id));
+    try {
+      const result = await adminPost<CredentialCheckResult>(`/api/admin/integration-profiles/${profile.id}/test`, { expectedVersion: appliedVersion, reason: `Test applied ${toTitle(profile.id)} credentials` }, { "Idempotency-Key": key() });
+      const tone = result.status === "passed" && result.version === appliedVersion ? "success" : result.status === "pending" ? "info" : result.status === "superseded" ? "warning" : "danger";
+      toasts.push({ tone, message: `${toTitle(profile.id)} applied v${result.version}: ${TEST_MESSAGES[result.code] ?? "The credential check did not complete."}` });
+      res.reload();
+    } catch (error) {
+      toasts.push({ tone: "danger", message: error instanceof ApiError && error.code && TEST_MESSAGES[error.code] ? TEST_MESSAGES[error.code] : "Could not run the credential check. Please try again." });
+    } finally {
+      busyTests.current.delete(profile.id);setTesting(current => { const next = new Set(current);next.delete(profile.id);return next; });
+    }
+  };
 
   return (
     <ResourceBoundary resource={res}>
-      {(data: Item[] & Partial<NewResp>) => {
-        const isNew = Array.isArray((data as NewResp).items);
-        if (isNew) {
-          const nd = data as unknown as NewResp;
+      {(nd: Profiles) => {
           return (
             <div className="space-y-5">
-              {!nd.secretReplacementEnabled && <Notice tone="warning">Secret replacement disabled — ADMIN_SECRET_ENCRYPTION_KEY not configured. Requires operator restart for adoption.</Notice>}
+              {!nd.replacementEnabled && <Notice tone="warning">Credential replacement is unavailable. The server needs a valid ADMIN_SECRET_ENCRYPTION_KEY.</Notice>}
+              {nd.runtimeAvailable === false && <Notice tone="warning">Automatic application needs the server migration and updated API and worker processes. Contact your operator to finish the setup.</Notice>}
               {!replace.allowed && <Notice>{replace.reason}</Notice>}
-              <p className="text-xs text-muted">IDs: openrouter / recall / assemblyai / woo / smtp / google / calendar — never display credential values. Effective adoption requires restart.</p>
-              <div className="grid gap-3 md:grid-cols-2">
-                {nd.items.map((i) => (
-                  <Card key={i.id}>
-                    <div className="space-y-3 p-4 text-sm">
-                      <p className="font-medium">{i.id}</p>
-                      <p className="text-xs text-muted">{i.configured ? "Configured" : "Not configured"} · stored v{i.storedVersion} / effective v{i.effectiveVersion} · {i.effectiveStatus}</p>
-                      <p className="text-xs text-muted">Connectivity {i.providerConnectivity} · last check {i.lastConfigurationCheckAt ? fmtUtc(i.lastConfigurationCheckAt) : "–"}</p>
-                      <div className="flex gap-2">
-                        <Button disabled={!check.allowed} title={check.reason ?? undefined} onClick={async () => { try { await adminPost(`/api/admin/integration-profiles/${i.id}/check`, { reason: "Check integration" }, { "Idempotency-Key": key() }); toasts.push({ tone: "success", message: "Check: configuration_presence, not live provider verification." }); res.reload(); } catch (e) { toasts.push({ tone: "danger", message: e instanceof Error ? e.message : "Check failed" }); } }}>Test</Button>
-                        <Button disabled={!replace.allowed || !nd.secretReplacementEnabled} title={replace.reason ?? undefined} onClick={() => setEditing(i)}>Replace secret…</Button>
+              <p className="text-[11px] leading-relaxed text-muted">Environment <span className="font-medium text-foreground/70">{nd.environment}</span> · activation applies automatically with a graceful restart · refreshes every 5s · applied credential checks available on supported services.</p>
+              <div className="grid items-start gap-3 md:grid-cols-2">
+                {nd.items.map((i) => {
+                  const open = expanded.has(i.id);
+                  const pending = ["restart_required", "activation_pending", "applying", "awaiting_services"].includes(i.effectiveStatus);
+                  const status = !i.configured ? "Not configured" : i.activeVersion === null ? "Staged" : toStatusLabel(i.effectiveStatus);
+                  return <Card key={i.id} className="overflow-hidden">
+                    <div className="space-y-2.5 px-4 py-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <h3 className="min-w-0 flex-1">
+                          <button type="button" id={`integration-toggle-${i.id}`} aria-expanded={open} aria-controls={`integration-details-${i.id}`} onClick={() => toggleCard(i.id)} className="flex w-full items-center gap-2 rounded-md text-left text-[13px] font-semibold tracking-tight outline-none focus-visible:ring-2 focus-visible:ring-accent/40">
+                            <ChevronDown aria-hidden className={`size-3.5 shrink-0 text-muted transition-transform motion-reduce:transition-none ${open ? "rotate-180" : ""}`} />
+                            <span className="truncate">{toTitle(i.id)}</span>
+                          </button>
+                        </h3>
+                        <Button variant="ghost" size="sm" aria-haspopup="dialog" onClick={() => setHistoryId(i.id)} className="min-h-6! shrink-0 gap-1 border border-accent/15 bg-accent/10 px-2 text-[10px] font-medium text-accent! hover:bg-accent/15!">
+                          <History aria-hidden className="size-3" /> History
+                        </Button>
                       </div>
-                      {i.effectiveStatus === "restart_required" && <Badge tone="warning">restart_required — clear input after acknowledgement, no client persistence</Badge>}
+                      <p className="flex items-center gap-1.5 text-[11px] text-muted"><Clock3 aria-hidden className="size-3 shrink-0 opacity-60" />Last updated {i.updatedAt ? fmtUtc(i.updatedAt) : "—"}</p>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <Badge tone={i.effectiveStatus === "applied" ? "success" : i.effectiveStatus === "application_blocked" ? "warning" : "neutral"}>{status}</Badge>
+                        {pending && <Badge tone="warning">Application pending</Badge>}
+                      </div>
                     </div>
-                  </Card>
-                ))}
+                    {open && <div id={`integration-details-${i.id}`} role="region" aria-labelledby={`integration-toggle-${i.id}`} className="flex flex-col gap-3 border-t border-border/60 px-4 py-3">
+                      <div className="space-y-1 text-[11px] leading-relaxed text-muted">
+                        <p>{i.configured ? "Saved configuration" : "Not configured"} · <span className="tabular-nums">v{i.version}</span> saved / {i.activeVersion === null ? "not live" : <span className="tabular-nums">v{i.activeVersion} live</span>}</p>
+                        <p>Full workflow {toStatusLabel(i.providerConnectivity)}</p>
+                        {i.adoption?.services?.length ? <ul className="space-y-0.5" aria-label="Application status">
+                          {i.adoption.services.map(s => <li key={s.service} className="flex gap-1.5">
+                            <span className="font-medium text-foreground/60">{s.service === "calmasta-api" ? "API" : "Worker"}</span>
+                            <span>{s.state === "not_running" ? "awaiting service" : s.state === "applied" ? "applied" : s.state === "blocked" ? "blocked" : "applying"}{s.errorCode === "profile_validation_failed" ? " — validation failed, kept previous" : s.errorCode === "supervisor_required" ? " — needs updated startup" : ""}</span>
+                          </li>)}
+                        </ul> : null}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        <Button size="sm" disabled={!replace.allowed || !nd.replacementEnabled} title={replace.reason ?? undefined} onClick={() => setEditing(i)} className="text-xs">Replace credentials</Button>
+                        <Button size="sm" disabled={!replace.allowed || !nd.replacementEnabled || i.version === 0 || i.activeVersion === i.version} onClick={() => setActivating(i)} className="text-xs">Activate</Button>
+                      </div>
+                      {i.credentialTest?.supported && <div className="space-y-2 border-t border-border/60 pt-3">
+                        <p className="text-[11px] leading-relaxed text-muted">{i.credentialTest.appliedVersion ? `Tests API applied v${i.credentialTest.appliedVersion}.` : "No version is applied to this API yet."} {i.version !== i.activeVersion && `Draft v${i.version} is not tested.`} Worker adoption is separate.</p>
+                        <p className="text-[11px] leading-relaxed text-muted">{testLimit(i.id)}</p>
+                        <Button size="sm" className="text-xs" disabled={!check.allowed || !i.credentialTest.canTest || testing.has(i.id)} onClick={() => testCredentials(i)}>{testing.has(i.id) ? "Testing applied credentials…" : "Test applied credentials"}</Button>
+                        {!i.credentialTest.canTest && <p className="text-[11px] text-muted">Wait for the active version to be applied to the API.</p>}
+                        {!check.allowed && <p className="text-[11px] text-muted">An owner must run credential checks.</p>}
+                        {i.credentialTest.latest && <div className="space-y-1 text-[11px]" role="status">
+                          <div className="flex flex-wrap items-center gap-1.5"><Badge tone={!i.credentialTest.latest.isCurrent ? "warning" : i.credentialTest.latest.status === "passed" ? "success" : i.credentialTest.latest.status === "failed" ? "danger" : "info"}>{!i.credentialTest.latest.isCurrent ? "Older version" : toStatusLabel(i.credentialTest.latest.status)}</Badge><span className="text-muted">{`Tested API v${i.credentialTest.latest.version} · ${fmtUtc(i.credentialTest.latest.checkedAt)}`}</span></div>
+                          <p className="text-muted">{!i.credentialTest.latest.isCurrent ? "This result does not validate the current applied version." : TEST_MESSAGES[i.credentialTest.latest.code] ?? "No final result available."}</p>
+                        </div>}
+                      </div>}
+                    </div>}
+                  </Card>;
+                })}
               </div>
               {editing && (() => {
-                const fieldMap: Record<string, Array<{ name: string; label: string; secret?: boolean; placeholder?: string }>> = {
+                const origin = typeof window !== "undefined" && window.location?.origin ? window.location.origin : "";
+                const defaultRedirectUri = origin ? `${origin}/api/auth/callback` : undefined;
+                const fieldMap: Record<string, Array<{ name: string; label: string; secret?: boolean; placeholder?: string; defaultValue?: string }>> = {
                   recall: [{ name: "apiKey", label: "API Key", secret: true }, { name: "webhookSecret", label: "Webhook Secret", secret: true }, { name: "region", label: "Region", placeholder: "us-west-2" }],
                   assemblyai: [{ name: "apiKey", label: "API Key", secret: true }, { name: "webhookSecret", label: "Webhook Secret", secret: true }, { name: "region", label: "Region", placeholder: "us" }],
                   openrouter: [{ name: "apiKey", label: "API Key", secret: true }],
                   woo: [{ name: "storeUrl", label: "Store URL (https://...)" }, { name: "consumerKey", label: "Consumer Key", secret: true }, { name: "consumerSecret", label: "Consumer Secret", secret: true }, { name: "webhookSecret", label: "Webhook Secret", secret: true }, { name: "mode", label: "Mode (sandbox/production)" }],
                   mail: [{ name: "host", label: "SMTP Host" }, { name: "port", label: "SMTP Port" }, { name: "secure", label: "Secure (true/false)" }, { name: "user", label: "SMTP User" }, { name: "pass", label: "SMTP Pass", secret: true }, { name: "from", label: "From Email" }],
-                  oauth_google: [{ name: "clientId", label: "Google Client ID" }, { name: "clientSecret", label: "Client Secret", secret: true }, { name: "redirectUri", label: "Redirect URI" }],
+                  oauth_google: [{ name: "clientId", label: "Google Client ID" }, { name: "clientSecret", label: "Client Secret", secret: true }, { name: "redirectUri", label: "Redirect URI", defaultValue: defaultRedirectUri, placeholder: defaultRedirectUri || "https://your-domain.com/api/auth/callback" }],
+                  oauth_microsoft: [{ name: "clientId", label: "Microsoft Client ID" }, { name: "clientSecret", label: "Client Secret", secret: true }, { name: "redirectUri", label: "Redirect URI", defaultValue: defaultRedirectUri, placeholder: defaultRedirectUri || "https://your-domain.com/api/auth/callback" }],
                   calendar_google: [{ name: "clientId", label: "Google Client ID" }, { name: "clientSecret", label: "Client Secret", secret: true }],
                   calendar_microsoft: [{ name: "clientId", label: "Microsoft Client ID" }, { name: "clientSecret", label: "Client Secret", secret: true }],
                 };
                 const extra = fieldMap[editing.id] ?? [{ name: "value", label: "Value", secret: true }];
                 return (
-                  <ActionDialog title={`Replace ${editing.id}`} description="Write-only encrypted replacement with optimistic version. Disabled without server encryption key. Blank = unchanged, empty = clear." confirmLabel="Replace" fields={[...extra, { name: "version", label: "Version", type: "number", defaultValue: String(editing.storedVersion) }]} onClose={() => setEditing(null)} onSubmit={async (v) => {
+                  <ActionDialog title={`Replace ${toTitle(editing.id)}`} description={`Save version ${editing.version + 1} without activating it. Credentials are encrypted and never shown again. Leave a field blank to keep its saved value; new profiles require all mandatory fields.`} confirmLabel="Save staged version" fields={extra.map(f => ({ ...f, required: false, hint: f.placeholder ? `Example: ${f.placeholder}` : undefined }))} onClose={() => setEditing(null)} onSubmit={async (v) => {
                     const changes: Record<string, string> = {};
                     for (const f of extra) if (v[f.name] !== undefined && String(v[f.name]).trim() !== "") changes[f.name] = String(v[f.name]).trim();
-                    await adminPatch(`/api/admin/integration-profiles/${editing.id}`, { expectedVersion: Number(v.version), changes, clearFields: [], reason: v.reason }, { "Idempotency-Key": key() });
-                    toasts.push({ tone: "success", message: "Stored — restart_required." }); setEditing(null); res.reload();
+                    await adminPatch(`/api/admin/integration-profiles/${editing.id}`, { expectedVersion: editing.version, changes, clearFields: [], reason: v.reason }, { "Idempotency-Key": key() });
+                    toasts.push({ tone: "success", message: "Staged credentials saved. Activate the version when ready to apply it automatically." }); setEditing(null); res.reload();
                   }} />
                 );
               })()}
+              {activating && <ActionDialog title={`Activate ${toTitle(activating.id)} version ${activating.version}?`} description="Apply this saved version automatically. Each running API and worker finishes its current work, then restarts with the activated credentials. A brief reconnection may occur. Missing or blocked services remain pending. This does not test provider connectivity." confirmLabel="Activate version" onClose={() => setActivating(null)} onSubmit={async (v) => {
+                await adminPost(`/api/admin/integration-profiles/${activating.id}/activate`, { expectedVersion: activating.version, reason: v.reason }, { "Idempotency-Key": key() });
+                toasts.push({ tone: "success", message: "Version activated. Automatic application is pending; watch the API and worker status." }); setActivating(null); res.reload();
+              }} />}
+              {historyId && <IntegrationHistory key={`${historyId}:${nd.items.find(i => i.id === historyId)?.version}:${nd.items.find(i => i.id === historyId)?.activeVersion}`} id={historyId} onClose={closeHistory} />}
               <ToastStack items={toasts.items} onDismiss={toasts.dismiss} />
             </div>
           );
-        }
-        return <div className="space-y-5"><p className="text-sm text-muted">No integrations.</p></div>;
       }}
     </ResourceBoundary>
   );
+}
+
+
+type HistoryItem = { id: string; actorId: string; actorName: string | null; actorEmail: string | null; action: string; version: number | null; reason: string; createdAt: string; changedFields?: string[]; testStatus?: string | null };
+const FIELD_LABELS: Record<string, string> = {
+  apiKey: "API key", webhookSecret: "Webhook secret", clientId: "Client ID", clientSecret: "Client secret", redirectUri: "Redirect URI",
+  storeUrl: "Store URL", consumerKey: "Consumer key", consumerSecret: "Consumer secret", host: "SMTP host", port: "SMTP port",
+  secure: "TLS", user: "SMTP username", pass: "SMTP password", from: "Sender email", region: "Region", mode: "Mode",
+};
+export function IntegrationHistory({ id, onClose }: { id: string; onClose: () => void }) {
+  const history = usePaged<HistoryItem, { items: HistoryItem[]; nextCursor: string | null }>(`/api/admin/integration-profiles/${encodeURIComponent(id)}/history?limit=20`, page => page.items);
+  const failed = history.status === "unavailable" || history.status === "error";
+  return <Dialog title={`Version history — ${toTitle(id)}`} onClose={onClose} width="max-w-6xl">
+    <div className="space-y-4">
+      <p className="text-sm text-muted">Newest changes first. All times are UTC. Credential values stay private.</p>
+      {failed && <Notice>{history.message || "History is unavailable."} <Button onClick={history.reload}>Try again</Button></Notice>}
+      {!failed && <>
+        {history.message && <Notice>{history.message}</Notice>}
+        <DataTable label={`Change history for ${id}`}>
+          <thead><tr>{["Changed at", "Administrator", "Action", "Version", "Fields changed", "Reason"].map(label => <Th key={label}>{label}</Th>)}</tr></thead>
+          <tbody>
+            {history.status === "loading" && <tr><td colSpan={6} className="px-4 py-12 text-center text-muted" role="status">Loading changes…</td></tr>}
+            {history.status === "ready" && history.rows.length === 0 && <tr><td colSpan={6} className="px-4 py-12 text-center text-muted">No recorded changes for this service.</td></tr>}
+            {history.rows.map(event => <tr key={event.id} className="transition-colors hover:bg-surface/40">
+              <Td className="whitespace-nowrap text-xs text-muted">{fmtUtc(event.createdAt)}</Td>
+              <Td className="min-w-40"><p className="font-medium">{event.actorName ?? event.actorEmail ?? event.actorId}</p>{event.actorName && event.actorEmail && <p className="mt-1 break-all text-xs text-muted">{event.actorEmail}</p>}</Td>
+              <Td className="whitespace-nowrap"><Badge tone={event.action === "integration_profile.activate" ? "info" : "neutral"}>{event.action === "integration_profile.activate" ? "Activated" : event.action === "integration_profile.test" ? "Credential test" : "Saved draft"}</Badge>{event.action === "integration_profile.test" && event.testStatus && <span className="ml-1.5 text-xs text-muted">{toStatusLabel(event.testStatus)}</span>}</Td>
+              <Td className="whitespace-nowrap font-medium">{event.version === null ? "—" : `v${event.version}`}</Td>
+              <Td className="min-w-36 text-xs text-muted">{event.changedFields?.length ? event.changedFields.map(field => FIELD_LABELS[field] ?? field).join(", ") : "—"}</Td>
+              <Td className="min-w-48 max-w-xs break-words">{event.reason}</Td>
+            </tr>)}
+          </tbody>
+        </DataTable>
+        {history.rows.length > 0 && <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-muted">{history.rows.length} {history.rows.length === 1 ? "change" : "changes"} shown</p>{history.hasMore && <Button disabled={history.more} onClick={() => { void history.loadMore(); }}>Load older changes</Button>}</div>}
+      </>}
+    </div>
+  </Dialog>;
 }

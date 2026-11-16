@@ -4,7 +4,7 @@ import { dashboardPath } from "@/lib/app-routes";
 
 import { Sparkles, Zap } from "lucide-react";
 import Link from "next/link";
-import { DUMMY_PLAN, type DeletionView, type PlanSummary, formatDate } from "@/lib/plan-client";
+import { DUMMY_PLAN, type DeletionView, type PlanSummary, formatDate, formatNullableMinutes, orZero } from "@/lib/plan-client";
 import { PLAN_LABEL, isPaidPlan } from "@/lib/plan-types";
 import { formatMinutes } from "@/lib/status";
 
@@ -44,8 +44,8 @@ export function bannersFor(plan: PlanSummary | null, deletion: DeletionView | nu
   } else if (plan.plan.status === "pending_activation") {
     out.push({ id: "pending", level: "info", text: "We're waiting for the store to confirm your payment. Your plan starts as soon as it does.", href: "/dashboard/plan/confirming", cta: "Check status" });
   }
-  if (plan.exhausted) out.push({ id: "exhausted", level: "warning", text: "You've used this month's allowance, so new recordings can't be processed. Everything you have stays available.", href: "/dashboard/plan", cta: "Buy hours or upgrade" });
-  else if (plan.allowanceMinutes > 0 && plan.remainingMinutes <= plan.allowanceMinutes * 0.2) out.push({ id: "low", level: "info", text: `${formatMinutes(plan.remainingMinutes)} left this month.`, href: "/dashboard/plan", cta: "See usage" });
+  if (plan.exhausted) out.push({ id: "exhausted", level: "warning", text: (plan.reservedMinutes ?? 0) > 0 ? "Your allowance is used or reserved for recordings awaiting processing or billing confirmation. New recordings need available time. See usage for the breakdown." : "You've used this month's allowance, so new recordings can't be processed. Your saved work remains subject to its retention period.", href: "/dashboard/plan", cta: "Buy hours or upgrade" });
+  else if (orZero(plan.allowanceMinutes) > 0 && orZero(plan.remainingMinutes) <= orZero(plan.allowanceMinutes) * 0.2) out.push({ id: "low", level: "info", text: `${formatNullableMinutes(plan.remainingMinutes)} left this month.`, href: "/dashboard/plan", cta: "See usage" });
   return out;
 }
 
@@ -75,8 +75,8 @@ function healthOf(plan: PlanSummary): Health {
   if (plan.plan.status === "grace") return "grace";
   if (plan.plan.status === "pending_activation") return "pending";
   if (plan.exhausted) return "out";
-  const total = plan.allowanceMinutes + plan.purchasedMinutes;
-  return total > 0 && plan.remainingMinutes <= total * 0.2 ? "low" : "ok";
+  const total = orZero(plan.allowanceMinutes) + orZero(plan.purchasedMinutes);
+  return total > 0 && orZero(plan.remainingMinutes) <= total * 0.2 ? "low" : "ok";
 }
 
 const FILL: Record<Health, string> = { ok: "bg-sidebar-active-fg", low: "bg-amber-300", out: "bg-danger-solid", grace: "bg-amber-300", pending: "bg-sidebar-active-fg" };
@@ -104,14 +104,14 @@ export function SidebarPlanCard({ plan }: { plan: PlanSummary | null }) {
   const pro = isPaidPlan(displayPlan.plan.plan);
   const planName = PLAN_LABEL[displayPlan.plan.plan];
   const health = healthOf(displayPlan);
-  const total = displayPlan.allowanceMinutes + displayPlan.purchasedMinutes;
-  const leftPct = total > 0 ? Math.round((displayPlan.remainingMinutes / total) * 100) : 0;
+  const total = orZero(displayPlan.allowanceMinutes) + orZero(displayPlan.purchasedMinutes);
+  const leftPct = total > 0 ? Math.round((orZero(displayPlan.remainingMinutes) / total) * 100) : 0;
   const usedPct = 100 - leftPct;
   const headline =
     health === "out" ? "Allowance used up"
     : health === "grace" ? "Payment needs attention"
     : health === "pending" ? "Waiting for payment"
-    : `${formatMinutes(displayPlan.remainingMinutes)} left`;
+    : `${formatNullableMinutes(displayPlan.remainingMinutes)} left`;
   const cta = health === "out" ? "Buy hours or upgrade" : health === "grace" ? "Fix payment" : health === "pending" ? "Check status" : pro ? "Manage plan" : "Upgrade to Pro";
   const href = health === "pending" ? "/dashboard/plan/confirming" : "/dashboard/plan";
   const label = `${planName} plan, ${headline}${displayPlan.exhausted ? "" : ` of ${formatMinutes(total)}`}. ${cta}.`;
