@@ -486,3 +486,9 @@ Next action: OTEL-09/OPERATIONS — operator provisions fixture capture/cookie a
 - **Proof (command + result + revision):** b6049f3:487/487/types/focusedlint/Nextbuild PASS; backend229a205:515/515, dev schema059 and authenticated plan/usage200/media206; no important review blockers.
 - **What is NOT done:** Main/staging promotion, production recovery/settlement, real browser-expiry proof or live provider dispatch.
 - **Next action (task ID + files):** FE-L02/FE-U01/B03 — use aligned dev baseline; await server production recovery/billing return packet.
+
+## 2026-11-16 — staging promotion pushed, Vercel proof pending
+- **What was done (files + behavior):** Merged aligned dev to staging (bf41080) and pushed Medulaworks + deploy mirror; GitHub verify green.
+- **Proof (command + result + revision):** Run 43910500962 SUCCESS; Vercel reacted 16:43 UTC; domain 200s and OAuth start uses staging callback; backend evidence covers details.
+- **What is NOT done:** Vercel dashboard live-SHA/env proof, backend server proof, authenticated acceptance; docs edits uncommitted.
+- **Next action (task ID + files):** FE-L02/FE-U01/F02 — owner/server-agent proof prompt outstanding before acceptance claims.

@@ -69,6 +69,13 @@
 
 # Frontend agent handoff
 
+## 2026-11-16 — aligned baseline promoted to staging; Vercel/server proof pending
+
+- **What was done (files + behavior):** FE-L01/FE-L02/FE-U01/F02: fast-forwarded staging to development/aligned-2026-11-16 (bf41080) and pushed to Medulaworks plus the josiaharkson deploy mirror (both fast-forward via dual push-URLs). App code identical to the 487/487 baseline. No force-push, no main change.
+- **Proof (command + result + revision):** Workflow 43910500962 verify SUCCESS (tests + build/typecheck; server deploy skipped by design). Vercel app check-runs success on both repos 16:43 UTC; stable domain 200s; OAuth start 303 carries corrected staging callback. Full commands/bodies: sibling calmasta-api/docs/implementation/evidence/2026-11-16-staging-promotion.md.
+- **What is NOT done:** Vercel dashboard proof (which repo tracked, bf41080 live in Production environment, staging env values); backend server-agent SHA/DB/worker proof; authenticated login/admin/plan/usage/recording/signed-link acceptance.
+- **Next action (task ID + files):** FE-L02/FE-U01/F02 — owner/server-agent completes proof prompt; interactive Google consent and admin login remain owner-side.
+
 ## 2026-10-29 — backend documentation consolidation
 
 Backend auth setup now lives in ../calmasta-api/docs/implementation/modules/M1.md; current status lives in its HANDOFF.md. The redundant standalone auth documents and copied bundle were removed. docs/runbooks remains maintained operational guidance.
