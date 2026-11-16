@@ -8,7 +8,12 @@ import { useEffect, useState } from "react";
 import { Eye, EyeOff, LoaderCircle } from "lucide-react";
 import { authErrorMessage } from "@/lib/auth-errors";
 import { codeSignupPayload } from "@/lib/auth-code-flow";
-import { AUTH_FIELD, AUTH_HEADING, AUTH_DESCRIPTION, AUTH_BUTTON } from "@/components/auth-styles";
+import {
+  AUTH_FIELD,
+  AUTH_HEADING,
+  AUTH_DESCRIPTION,
+  AUTH_BUTTON,
+} from "@/components/auth-styles";
 import { AuthLayout } from "@/components/auth-layout";
 import { buttonClass } from "@/components/ui/button";
 
@@ -60,10 +65,15 @@ export function Login({
   useEffect(() => {
     let cancelled = false;
     fetch("/api/auth/error", { cache: "no-store" })
-      .then((res) => res.ok ? res.json() : null)
-      .then((data) => { if (!cancelled && data?.error) setFormError(authErrorMessage(data.error)); })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.error)
+          setFormError(authErrorMessage(data.error));
+      })
       .catch(() => {});
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -80,7 +90,8 @@ export function Login({
 
   // Old links used /auth/login?signup=1 for the create-account screen; it has its own address now.
   useEffect(() => {
-    if (!admin && mode === "signin" && params.get("signup") === "1") router.replace(`/auth/register?returnTo=${encodeURIComponent(returnTo)}`);
+    if (!admin && mode === "signin" && params.get("signup") === "1")
+      router.replace(`/auth/register?returnTo=${encodeURIComponent(returnTo)}`);
   }, [admin, mode, params, returnTo, router]);
 
   // Already signed in? Go straight to where they were headed, taking onboarding into account.
@@ -100,7 +111,8 @@ export function Login({
           } else if (profile && !profile.onboarded) {
             router.replace("/dashboard/welcome");
           } else {
-            const target = returnTo === "/dashboard/welcome" ? defaultReturnTo : returnTo;
+            const target =
+              returnTo === "/dashboard/welcome" ? defaultReturnTo : returnTo;
             router.replace(target);
           }
         } else if (res.status === 401) {
@@ -135,7 +147,13 @@ export function Login({
       const endpoint =
         mode === "signup" ? "/api/auth/register" : "/api/auth/login";
       const payload =
-        mode === "signup" ? codeSignupPayload(email, password, `${firstName.trim()} ${lastName.trim()}`.trim()) : { email, password };
+        mode === "signup"
+          ? codeSignupPayload(
+              email,
+              password,
+              `${firstName.trim()} ${lastName.trim()}`.trim(),
+            )
+          : { email, password };
 
       const res = await fetch(endpoint, {
         method: "POST",
@@ -148,7 +166,9 @@ export function Login({
         if (data.emailVerified === false) {
           router.replace("/auth/verify-email");
         } else if (data.onboarded) {
-          router.replace(returnTo === "/dashboard/welcome" ? defaultReturnTo : returnTo);
+          router.replace(
+            returnTo === "/dashboard/welcome" ? defaultReturnTo : returnTo,
+          );
         } else {
           router.replace("/dashboard/welcome");
         }
@@ -176,142 +196,193 @@ export function Login({
 
   return (
     <AuthLayout>
-          <h1 className={AUTH_HEADING}>
-            {admin ? (
-              <>Sign in to <span className="text-accent">Admin</span>.</>
-            ) : mode === "signin" ? (
-              <>Turn every conversation into <span className="text-accent">finished work</span>.</>
-            ) : (
-              <>Start with your <span className="text-accent">next conversation</span>.</>
-            )}
-          </h1>
-          <p className={AUTH_DESCRIPTION}>
-            {admin
-              ? "Sign in with your staff account to access the administration console."
-              : mode === "signin"
-                ? "Meetings and voice notes become transcripts, briefs and follow-ups. Pick up where you left off."
-                : "Start capturing, transcribing, and organizing your conversations."}
-          </p>
+      <h1 className={AUTH_HEADING}>
+        {admin ? (
+          <>
+            Sign in to <span className="text-accent">Admin</span>.
+          </>
+        ) : mode === "signin" ? (
+          <>
+            Turn every conversation into{" "}
+            <span className="text-accent">finished work</span>.
+          </>
+        ) : (
+          <>
+            Start with your{" "}
+            <span className="text-accent">next conversation</span>.
+          </>
+        )}
+      </h1>
+      <p className={AUTH_DESCRIPTION}>
+        {admin
+          ? "Sign in with your staff account to access the administration console."
+          : mode === "signin"
+            ? "Meetings and voice notes become transcripts, briefs and follow-ups. Pick up where you left off"
+            : "Start capturing, transcribing, and organizing your conversations"}
+      </p>
 
-          {expired && (
-            <p
-              role="status"
-              className="mt-6 rounded-lg border border-border bg-surface px-4 py-3 text-sm">
-              Your session ended, so we signed you out. Signing in again picks
-              up where you left off.
-            </p>
-          )}
+      {expired && (
+        <p
+          role="status"
+          className="mt-6 rounded-lg border border-border bg-surface px-4 py-3 text-sm">
+          Your session ended, so we signed you out. Signing in again picks up
+          where you left off.
+        </p>
+      )}
 
-          {formError && (
-            <p
-              role="alert"
-              className="mt-6 rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
-              {formError}
-            </p>
-          )}
+      {formError && (
+        <p
+          role="alert"
+          className="mt-6 rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+          {formError}
+        </p>
+      )}
 
-          {bootstrapError && (
-            <div
-              role="alert"
-              className="mt-6 space-y-2 rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
-              <p>{bootstrapError}</p>
-              <button
-                type="button"
-                onClick={() => {
-                  setChecking(true);
-                  setBootstrapError(null);
-                  setReloadKey((k) => k + 1);
-                }}
-                className="text-xs font-medium underline hover:no-underline">
-                Retry session check
-              </button>
-            </div>
-          )}
+      {bootstrapError && (
+        <div
+          role="alert"
+          className="mt-6 space-y-2 rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+          <p>{bootstrapError}</p>
+          <button
+            type="button"
+            onClick={() => {
+              setChecking(true);
+              setBootstrapError(null);
+              setReloadKey((k) => k + 1);
+            }}
+            className="text-xs font-medium underline hover:no-underline">
+            Retry session check
+          </button>
+        </div>
+      )}
 
-          <form onSubmit={handleSubmit} className="mt-[clamp(1rem,3.4vh,2rem)] space-y-[clamp(0.75rem,2vh,1.25rem)]">
-            {mode === "signup" && (
-              <div className="grid gap-[clamp(0.75rem,2vh,1.25rem)] sm:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-foreground" htmlFor="first-name">First name</label>
-                  <input id="first-name" type="text" required autoComplete="given-name" maxLength={80} value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Jane" className={AUTH_FIELD} />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-foreground" htmlFor="last-name">Last name</label>
-                  <input id="last-name" type="text" required autoComplete="family-name" maxLength={80} value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Doe" className={AUTH_FIELD} />
-                </div>
-              </div>
-            )}
-
-            {<div>
+      <form
+        onSubmit={handleSubmit}
+        className="mt-[clamp(1rem,3.4vh,2rem)] space-y-[clamp(0.75rem,2vh,1.25rem)]">
+        {mode === "signup" && (
+          <div className="grid gap-[clamp(0.75rem,2vh,1.25rem)] sm:grid-cols-2">
+            <div>
               <label
                 className="mb-2 block text-sm font-medium text-foreground"
-                htmlFor="email">
-                Email Address
+                htmlFor="first-name">
+                First name
               </label>
               <input
-                id="email"
-                type="email"
+                id="first-name"
+                type="text"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
+                autoComplete="given-name"
+                maxLength={80}
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="Jane"
                 className={AUTH_FIELD}
               />
-            </div>}
+            </div>
+            <div>
+              <label
+                className="mb-2 block text-sm font-medium text-foreground"
+                htmlFor="last-name">
+                Last name
+              </label>
+              <input
+                id="last-name"
+                type="text"
+                required
+                autoComplete="family-name"
+                maxLength={80}
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Doe"
+                className={AUTH_FIELD}
+              />
+            </div>
+          </div>
+        )}
 
-            {(
-              <div>
-                <div className="mb-2 flex items-center justify-between">
-                  <label
-                    className="block text-sm font-medium text-foreground"
-                    htmlFor="password">
-                    Password
-                  </label>
-                  {mode === "signin" && (
-                    <Link href={`/auth/forgot-password?${q}`} className="text-xs text-muted hover:underline">
-                      Forgot password?
-                    </Link>
-                  )}
-                </div>
-                <div className="relative">
-                <input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  required
-                  minLength={8}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="At least 8 characters"
-                  className={`${AUTH_FIELD} pr-11`}
-                />
-                <button
-                  type="button"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  aria-pressed={showPassword}
-                  aria-controls="password"
-                  onClick={() => setShowPassword((shown) => !shown)}
-                  className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-lg text-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-primary">
-                  {showPassword ? <EyeOff aria-hidden className="size-4" /> : <Eye aria-hidden className="size-4" />}
-                </button>
-                </div>
-              </div>
-            )}
+        {
+          <div>
+            <label
+              className="mb-2 block text-sm font-medium text-foreground"
+              htmlFor="email">
+              Email Address
+            </label>
+            <input
+              id="email"
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              className={AUTH_FIELD}
+            />
+          </div>
+        }
 
-            <button
-              type="submit"
-              disabled={submitting || checking || connectingGoogle || connectingMicrosoft}
-              className={`${buttonClass("primary", AUTH_BUTTON, "lg")}${
-                submitting || checking || connectingGoogle || connectingMicrosoft
-                  ? " pointer-events-none opacity-60"
-                  : ""
-              }`}>
-              {submitting
-                ? "Processing…"
-                : mode === "signin" ? "Sign in" : "Create account"}
-            </button>
-          </form>
+        {
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <label
+                className="block text-sm font-medium text-foreground"
+                htmlFor="password">
+                Password
+              </label>
+              {mode === "signin" && (
+                <Link
+                  href={`/auth/forgot-password?${q}`}
+                  className="text-xs text-muted hover:underline">
+                  Forgot password?
+                </Link>
+              )}
+            </div>
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                required
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="At least 8 characters"
+                className={`${AUTH_FIELD} pr-11`}
+              />
+              <button
+                type="button"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
+                aria-controls="password"
+                onClick={() => setShowPassword((shown) => !shown)}
+                className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-lg text-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-primary">
+                {showPassword ? (
+                  <EyeOff aria-hidden className="size-4" />
+                ) : (
+                  <Eye aria-hidden className="size-4" />
+                )}
+              </button>
+            </div>
+          </div>
+        }
 
-          {<>
+        <button
+          type="submit"
+          disabled={
+            submitting || checking || connectingGoogle || connectingMicrosoft
+          }
+          className={`${buttonClass("primary", AUTH_BUTTON, "lg")}${
+            submitting || checking || connectingGoogle || connectingMicrosoft
+              ? " pointer-events-none opacity-60"
+              : ""
+          }`}>
+          {submitting
+            ? "Processing…"
+            : mode === "signin"
+              ? "Sign in"
+              : "Create account"}
+        </button>
+      </form>
+
+      {
+        <>
           {/* Social sign-in alternatives */}
           <div className="mt-6">
             <div className="relative flex items-center justify-center">
@@ -323,10 +394,20 @@ export function Login({
             <div className="mt-4 space-y-3">
               <a
                 href={`/api/auth/login?${q}&provider=google`}
-                aria-disabled={checking || submitting || connectingGoogle || connectingMicrosoft}
+                aria-disabled={
+                  checking ||
+                  submitting ||
+                  connectingGoogle ||
+                  connectingMicrosoft
+                }
                 aria-busy={connectingGoogle}
                 onClick={(event) => {
-                  if (checking || submitting || connectingGoogle || connectingMicrosoft) {
+                  if (
+                    checking ||
+                    submitting ||
+                    connectingGoogle ||
+                    connectingMicrosoft
+                  ) {
                     event.preventDefault();
                     return;
                   }
@@ -365,35 +446,76 @@ export function Login({
               <button
                 type="button"
                 aria-busy={connectingMicrosoft}
-                disabled={checking || submitting || connectingGoogle || connectingMicrosoft}
+                disabled={
+                  checking ||
+                  submitting ||
+                  connectingGoogle ||
+                  connectingMicrosoft
+                }
                 onClick={async () => {
-                  if (checking || submitting || connectingGoogle || connectingMicrosoft) return;
+                  if (
+                    checking ||
+                    submitting ||
+                    connectingGoogle ||
+                    connectingMicrosoft
+                  )
+                    return;
                   setConnectingMicrosoft(true);
                   setFormError(null);
                   try {
-                    const res = await fetch(`/api/auth/microsoft/url?returnTo=${encodeURIComponent(returnTo)}`, { method: "POST", cache: "no-store" });
-                    const data = await res.json().catch(() => ({})) as { url?: string; state?: string; error?: string };
-                    if (!res.ok || !data.url || !data.state) throw new Error(data.error || "Microsoft sign-in unavailable");
-                    try { sessionStorage.setItem("microsoft_oauth_state", data.state); } catch {}
-                    try { sessionStorage.setItem("oauth_state", data.state); } catch {}
+                    const res = await fetch(
+                      `/api/auth/microsoft/url?returnTo=${encodeURIComponent(returnTo)}`,
+                      { method: "POST", cache: "no-store" },
+                    );
+                    const data = (await res.json().catch(() => ({}))) as {
+                      url?: string;
+                      state?: string;
+                      error?: string;
+                    };
+                    if (!res.ok || !data.url || !data.state)
+                      throw new Error(
+                        data.error || "Microsoft sign-in unavailable",
+                      );
+                    try {
+                      sessionStorage.setItem(
+                        "microsoft_oauth_state",
+                        data.state,
+                      );
+                    } catch {}
+                    try {
+                      sessionStorage.setItem("oauth_state", data.state);
+                    } catch {}
                     window.location.assign(data.url);
                   } catch (e) {
-                    setFormError(e instanceof Error ? e.message : "Microsoft sign-in is temporarily unavailable. Please try again.");
+                    setFormError(
+                      e instanceof Error
+                        ? e.message
+                        : "Microsoft sign-in is temporarily unavailable. Please try again.",
+                    );
                     setConnectingMicrosoft(false);
                   }
                 }}
                 className={`${buttonClass("secondary", AUTH_BUTTON, "lg")}${checking || submitting || connectingGoogle || connectingMicrosoft ? " pointer-events-none opacity-60" : ""}`}>
                 {connectingMicrosoft ? (
-                  <LoaderCircle aria-hidden="true" className="size-4.5 animate-spin" />
+                  <LoaderCircle
+                    aria-hidden="true"
+                    className="size-4.5 animate-spin"
+                  />
                 ) : (
-                  <svg aria-hidden="true" width="18" height="18" viewBox="0 0 21 21">
+                  <svg
+                    aria-hidden="true"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 21 21">
                     <path fill="#f25022" d="M0 0h10v10H0z" />
                     <path fill="#7fba00" d="M11 0h10v10H11z" />
                     <path fill="#00a4ef" d="M0 11h10v10H0z" />
                     <path fill="#ffb900" d="M11 11h10v10H11z" />
                   </svg>
                 )}
-                {connectingMicrosoft ? "Connecting to Microsoft" : "Continue with Microsoft"}
+                {connectingMicrosoft
+                  ? "Connecting to Microsoft"
+                  : "Continue with Microsoft"}
               </button>
             </div>
           </div>
@@ -403,17 +525,26 @@ export function Login({
               {mode === "signin" ? (
                 <p>
                   Don&apos;t have an account?{" "}
-                  <Link href={`/auth/register?${q}`} className="font-medium text-foreground underline hover:no-underline">Sign up</Link>
+                  <Link
+                    href={`/auth/register?${q}`}
+                    className="font-medium text-foreground underline hover:no-underline">
+                    Sign up
+                  </Link>
                 </p>
               ) : (
                 <p>
                   Already have an account?{" "}
-                  <Link href={`/auth/login?${q}`} className="font-medium text-foreground underline hover:no-underline">Sign in</Link>
+                  <Link
+                    href={`/auth/login?${q}`}
+                    className="font-medium text-foreground underline hover:no-underline">
+                    Sign in
+                  </Link>
                 </p>
               )}
             </div>
           )}
-          </>}
+        </>
+      }
     </AuthLayout>
   );
 }
