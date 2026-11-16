@@ -1,3 +1,26 @@
+## 2026-11-16 — admin settings sticky horizontal tab navigation
+
+- **What was done (files + behavior):** FE-ADM01 IMPLEMENTED directly in frontend repo:
+  1. `settings-view.tsx`: Added `SettingsStickyTabs` horizontal navigation bar pinned to the top (`sticky top-0 z-20`) with tabs for `Recording`, `Sharing`, and `Pause new work`.
+  2. Clicking any tab smoothly scrolls to the corresponding section with proper offset breathing room (`scroll-mt-20`).
+  3. Added scroll-spy tracking: as the admin scrolls up or down, the active tab dynamically highlights the section currently in view.
+  4. `product-settings-form.tsx`: Organized `Recording defaults` (`#settings-recording`) and `Note sharing` (`#settings-sharing`) into dedicated modular cards. Added `#settings-pause` to the emergency pause section in `settings-view.tsx`.
+  5. Added regression test `settings-sticky-tabs.test.tsx`; all modified files pass strict eslint and typecheck.
+- **Proof (command + result + revision):** Vitest 77/77 test files PASS (521/521 tests); `npm run typecheck` (`tsc --noEmit`) PASS; targeted eslint PASS (0 errors, 0 warnings).
+- **What is NOT done:** No backend runtime or API changes needed.
+- **Next action (task ID + files):** User can test the sticky tabs and section scrolling directly on `http://localhost:3006/admin/settings`.
+
+## 2026-11-16 — admin note sharing settings and share modal fix
+
+- **What was done (files + behavior):** FE-ADM01/FE-S01 IMPLEMENTED directly in frontend repo:
+  1. `product-settings-form.tsx`: Added "Note sharing" settings to `/admin/settings` (`sharing.publicLinksEnabled`, `sharing.recipientGrantsEnabled`, `sharing.invitationsEnabled`, `sharing.maxExpiryDays` 1–365). Saves versioned changes through existing product policy API with required audit reason.
+  2. `sharing-types.ts` & `sharing-client.ts`: Normalized backend `GET /captures/:id/sharing` payload (`sharingVersion`, `publications`, `links`, `grants`, `capabilities`). Fixed `createLink`, `createGrant`, `revokeLink`, and `sendGrant` to include required `expectedVersion` and valid reason (`owner_request`), and surfaced generated link URL.
+  3. `share-notes-dialog.tsx`: Enhanced `/dashboard/captures/:id` share notes modal. Fetches available meeting insights so users can select completed summary/recap notes or transcript snapshot. Detects policy capabilities and displays clear notice when sharing is disabled by policy. Disables "Create link" and "Add" recipient until a snapshot is published, and re-fetches fresh sharing state upon publish, link creation, grant addition and revocation.
+  4. Added regression tests in `product-settings-form.test.tsx` and `share-notes-dialog.test.tsx`.
+- **Proof (command + result + revision):** Frontend vitest 76/76 suites PASS (520/520 tests); `npm run typecheck` (`tsc --noEmit`) PASS.
+- **What is NOT done:** Policy activation in database: administrator must visit `http://localhost:3006/admin/settings` to toggle "Allow public links" and "Allow recipient sharing" and save with a reason.
+- **Next action (task ID + files):** Admin visits `http://localhost:3006/admin/settings` to enable note sharing, then verifies sharing on `http://localhost:3006/dashboard/captures/a9fcff65-6c3f-4d6b-b5ea-9c4e47b0c9fd`.
+
 ## 2026-11-09 — production environment correction, probe systemd service/timer preparation & runner heartbeat implementation
 
 Local agent session context: [2026-11-16 summary](../../../calmasta-api/docs/implementation/SESSION_CONTEXT_2026-11-16.md) — completed admin/settings/runtime work, proof, uncommitted changes and remaining scope.

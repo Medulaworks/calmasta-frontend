@@ -102,6 +102,35 @@ it("saves processing changes directly without changing the separate environment 
   expect(reload).toHaveBeenCalledOnce();
 });
 
+it("loads sharing settings and saves sharing changes directly through versioned policy", async () => {
+  const fetcher = vi.fn<typeof fetch>(async () => Response.json({ ...policy, version: 8 }));
+  vi.stubGlobal("fetch", fetcher);
+  expect(input("sharing-public-links-enabled").props.checked).toBe(false);
+  expect(input("sharing-recipient-grants-enabled").props.checked).toBe(false);
+  expect(input("sharing-invitations-enabled").props.checked).toBe(false);
+  expect(input("sharing-max-expiry-days").props.value).toBe("");
+  edit("sharing-public-links-enabled", true);
+  edit("sharing-recipient-grants-enabled", true);
+  edit("sharing-invitations-enabled", true);
+  edit("sharing-max-expiry-days", "30");
+  edit("recording-change-reason", "Enable note sharing and set 30 day max expiry");
+  await click("Save recording settings");
+  expect(fetcher).toHaveBeenCalledOnce();
+  expect(JSON.parse(fetcher.mock.calls[0][1]!.body as string)).toEqual({
+    expectedVersion: 7,
+    changes: {
+      sharing: {
+        publicLinksEnabled: true,
+        recipientGrantsEnabled: true,
+        invitationsEnabled: true,
+        maxExpiryDays: 30,
+      },
+    },
+    reason: "Enable note sharing and set 30 day max expiry",
+  });
+  expect(reload).toHaveBeenCalledOnce();
+});
+
 it("keeps only Save and enables it when a setting changes, before entering a reason", async () => {
   expect(button("Save recording settings").props.disabled).toBe(true);
   edit("recording-processing-enabled", !policy.values.operations.processingEnabled);

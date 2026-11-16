@@ -28,11 +28,29 @@ export interface ShareLink {
   createdAt: string;
 }
 
+export interface SharingCapabilities {
+  publicLinksEnabled: boolean;
+  recipientGrantsEnabled: boolean;
+  invitationsEnabled: boolean;
+  maxExpiryDays: number | null;
+}
+
+export interface SharingOwner {
+  id: string;
+  name: string;
+  email: string;
+}
+
 export interface SharingState {
   version: number;
+  sharingVersion?: number;
+  owner?: SharingOwner;
   publication: SharePublication | null;
+  publications?: SharePublication[];
   grants: ShareGrant[];
   link: ShareLink | null;
+  links?: ShareLink[];
+  capabilities?: SharingCapabilities;
   /** True when a fresh token URL is available in this response only (once-only). */
   linkUrl?: string | null;
   alreadyIssued?: boolean;

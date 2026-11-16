@@ -1,5 +1,17 @@
 # Frontend implementation journal
 
+## 2026-11-16 — admin settings sticky horizontal tab navigation
+- **What was done (files + behavior):** Added `SettingsStickyTabs` to `settings-view.tsx` with smooth scroll targets and scroll-spy active state tracking for `Recording`, `Sharing`, and `Pause new work`. Separated recording and sharing into modular cards in `product-settings-form.tsx`.
+- **Proof (command + result + revision):** Vitest 77/77 test files PASS (521/521 tests); `npm run typecheck` PASS; targeted eslint PASS (0 errors, 0 warnings).
+- **What is NOT done:** No backend runtime or API changes needed.
+- **Next action (task ID + files):** User can test sticky tabs and section scrolling on `http://localhost:3006/admin/settings`.
+
+## 2026-11-16 — admin note sharing settings and share modal fix
+- **What was done (files + behavior):** Added Note sharing settings to `/admin/settings` (`product-settings-form.tsx`). Fixed `share-notes-dialog.tsx`, `sharing-client.ts`, and `sharing-types.ts` to normalize backend sharing state, include required `expectedVersion`/reasons on link/grant mutations, and surface selectable ready insights and policy notices.
+- **Proof (command + result + revision):** Frontend vitest 76/76 test files PASS (520/520 tests); `npm run typecheck` (`tsc --noEmit`) PASS.
+- **What is NOT done:** Database policy activation: admin must visit `/admin/settings` to enable note sharing and save with a reason.
+- **Next action (task ID + files):** User/admin enables note sharing in `/admin/settings` and tests publishing on `/dashboard/captures/a9fcff65-6c3f-4d6b-b5ea-9c4e47b0c9fd`.
+
 ## 2026-11-09 — production environment correction, probe systemd service/timer preparation & runner heartbeat implementation
 - **What was done (files + behavior):** Audited and resolved production API environment reporting (`NODE_ENV=production` in `/home/ubuntu/calmasta-shared/runtime.env`), restored port 3000 `/health` environment to `production`. Prepared `/etc/systemd/system/calmasta-probe.{service,timer}` and secure `/etc/calmasta/probe.env` (0640). Implemented and verified runner heartbeat (`heartbeat.json`) and metric file (`metrics.prom`) in `check-playback.cjs` without leaking secrets. Verified capture `bf1198e9` transcript verbatim matches ready Q&A `06711955`; held job `b8a3a640` and reservation `77588f66` preserved unchanged. Admin bootstrap skipped (owner `admin@myjooba.com` present).
 - **Proof (command + result + revision):** `http://127.0.0.1:3000/health` reports `environment: "production"`; `calmasta-probe.service` manual start generated `/run/calmasta-probe/heartbeat.json` & `/run/calmasta-probe/metrics.prom`; timer status confirmed inactive; `test/playback-probe.test.cjs` 4/4 passed.
