@@ -516,3 +516,15 @@ Next action: OTEL-09/OPERATIONS — operator provisions fixture capture/cookie a
 - **Proof (command + result + revision):** API8d08c4c + FE92ead04 working diffs: frontend36/types/lint; backend unit12/inventory2/disposable dispatch4/expanded workers81 PASS, OpenAPI155; reviews clean. Local staging restarted; ready200, live=false.
 - **What is NOT done:** No provider/live flag/cap/profile/schema/hosted changes; staging Assembly webhook secret needs valid configuration; older hosted workers need rollout; no browser check.
 - **Next action (task ID + files):** FE-ADM01/ADM-09/B01/F02 — complete staging readiness, then deliberately save the live toggle; local supervisors23749/23750/private temp logs retained.
+
+## 2026-11-16 — FE-ADM01 environment-scoped overview
+- **What was done (files + behavior):** overview-view.tsx consumes actual meetings/usage/cost, labels environment/shared/all-time scope, removes unsupported period selector and replaces placeholder zeros with unavailable values.
+- **Proof (command + result + revision):** FE4b1f458 + diff: focused vitest1/1, eslint and tsc --noEmit PASS; APIa4ddbc0 + diff:22/22 disposable-PG admin tests PASS; local staging health/ready200.
+- **What is NOT done:** No browser acceptance, hosted deployment, live-setting or provider change; shared totals remain shared.
+- **Next action (task ID + files):** FE-ADM01/ADM-06 — refresh local overview; hosted overview-view.tsx rollout separately authorized.
+
+## 2026-11-16 — local agent session context
+- **What was done (files + behavior):** Created the shared [session context](../../../calmasta-api/docs/implementation/SESSION_CONTEXT_2026-11-16.md) and linked both repositories' owning trackers/handoffs; summarizes settings, customer filters, live processing, environment counts and resume boundaries.
+- **Proof (command + result + revision):** APIa4ddbc0/frontend4b1f458 + existing diff; current Git branch/status and process metadata inspected; documentation links/content and git diff --check checked. No implementation tests rerun for this documentation task.
+- **What is NOT done:** No runtime/source/policy/data change, commit, deployment or new provider verification; historical checks remain attributed to their original runs.
+- **Next action (task ID + files):** ADM-06/FE-ADM01/F02 — next local agent reads SESSION_CONTEXT_2026-11-16.md and preserves current staging configuration and uncommitted work.

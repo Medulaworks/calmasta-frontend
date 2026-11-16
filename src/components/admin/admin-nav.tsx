@@ -49,8 +49,8 @@ export const SECTIONS = [
     label: "Settings",
     Icon: Settings2,
     tabs: [
-      { href: `${A}/integrations`, label: "Connected services" },
       { href: `${A}/settings`, label: "Limits and switches" },
+      { href: `${A}/integrations`, label: "Connected services" },
     ],
   },
   {
