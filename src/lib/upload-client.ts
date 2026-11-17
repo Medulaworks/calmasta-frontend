@@ -103,6 +103,13 @@ function putWithProgress(url:string,blob:Blob,headers:Record<string,string>,onPr
  xhr.onerror=xhr.ontimeout=xhr.onabort=()=>reject(new ApiError(0,"The upload was interrupted. Check your connection and try again."));xhr.send(blob);
 });}
 export function audioContentType(type:string,filename:string){const base=type.split(";")[0].trim().toLowerCase();const aliases:Record<string,string>={"audio/mp3":"audio/mpeg","audio/x-wav":"audio/wav","audio/x-m4a":"audio/mp4","audio/m4a":"audio/mp4"};if(base)return aliases[base]??base;return ({mp3:"audio/mpeg",wav:"audio/wav",m4a:"audio/mp4",mp4:"audio/mp4",webm:"audio/webm",ogg:"audio/ogg"} as Record<string,string>)[filename.split(".").pop()?.toLowerCase()??""]??"";}
+async function audioBlobContentType(blob:Blob,filename:string){
+ // Renamed M4A files are often reported as MP3. Bind the intent/PUT to the
+ // actual container; the server still checks the full file, streams and hash.
+ const header=new Uint8Array(await blob.slice(0,12).arrayBuffer());
+ if(header.length===12&&String.fromCharCode(...header.subarray(4,8))==="ftyp")return "audio/mp4";
+ return audioContentType(blob.type,filename);
+}
 type UploadIntent={id:string;captureId:string;state:string;upload?:{url:string;headers:Record<string,string>}};
 type Attempt={key:string;completeKey:string;title:string;intent?:UploadIntent;uploaded:boolean;pending?:Promise<string>};
 const uploads=new WeakMap<Blob,Attempt>();
@@ -112,9 +119,10 @@ export async function uploadAudio(input:{blob:Blob;filename:string;title:string;
  if(!attempt){attempt={key:crypto.randomUUID(),completeKey:crypto.randomUUID(),title,uploaded:false};uploads.set(input.blob,attempt);}if(attempt.pending)return attempt.pending;
  const current=attempt;
  current.pending=(async()=>{
-  const policy=await getCapturePolicy();const contentType=audioContentType(input.blob.type,input.filename);
+  const policy=await getCapturePolicy();
   if(!policy.uploadEnabled)throw new Error("Uploading is not enabled for this account yet.");
   if(!input.blob.size||(policy.maxUploadBytes!==null&&input.blob.size>policy.maxUploadBytes))throw new Error("The recording is empty or exceeds the upload size limit.");
+  const contentType=await audioBlobContentType(input.blob,input.filename);
   if(!policy.supportedAudioTypes.includes(contentType))throw new Error("Use MP3, M4A, PCM WAV, WebM or Ogg audio.");
   if(!current.intent){const sha256=await blobSha256(input.blob);current.intent=await api<UploadIntent>("/api/uploads",{method:"POST",headers:{"Content-Type":"application/json","Idempotency-Key":current.key},body:JSON.stringify({contentType,sizeBytes:input.blob.size,sha256,consent:true,...(title?{title}:{})})});}
   if(current.intent.state==="completed")return current.intent.captureId;
