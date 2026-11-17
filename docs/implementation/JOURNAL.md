@@ -540,3 +540,21 @@ Next action: OTEL-09/OPERATIONS — operator provisions fixture capture/cookie a
 - **Proof (command + result + revision):** APIa4ddbc0/frontend4b1f458 + existing diff; current Git branch/status and process metadata inspected; documentation links/content and git diff --check checked. No implementation tests rerun for this documentation task.
 - **What is NOT done:** No runtime/source/policy/data change, commit, deployment or new provider verification; historical checks remain attributed to their original runs.
 - **Next action (task ID + files):** ADM-06/FE-ADM01/F02 — next local agent reads SESSION_CONTEXT_2026-11-16.md and preserves current staging configuration and uncommitted work.
+
+## 2026-11-17 — voice upload and queued state
+- **What was done (files + behavior):** U01/T02/FE-U01/F02: detect renamed M4A container in upload-client; project undispatched uploads as queued; health uses effective environment. User-selected staging persisted and local API/worker restored.
+- **Proof (command + result + revision):** APId68c5c7/FEc994c1c + diff: tsc/lint PASS; media/transcription/health26 cases and library10/10 PASS; frontend29/29 PASS; real file canonical validation734s PASS; local health/ready200 and fresh staging adoption. See API evidence/2026-11-17-voice-upload-and-queued-transcription.md.
+- **What is NOT done:** Existing development requests not moved/dispatched/cancelled; no quota/budget/profile/live-value change, hosted deployment or browser acceptance.
+- **Next action (task ID + files):** U01/T02/FE-U01 — refresh voice page and reselect/reupload into staging; verify new capture progress, retain old development holds for separately scoped recovery.
+
+## 2026-11-17 — FE-C01/FE-L03 transcript import and AI Notes
+- **What was done (files + behavior):** Task2 IMPLEMENTED: transcript-upload component/client/tests, capture/library shared notes, source normalization and exact BFF import bound; imported editor/exports omit media/time/speaker UI. Criteria linked in WORK_PLAN.md; earlier tracker changes preserved.
+- **Proof (command + result + revision):** aaf1f79 + task diff: focused Vitest14files/114tests PASS before final bound change; affected BFF12/12 plus lint/types PASS after max100000-CJK edit fix; scoped ESLint excluding voice-recorder PASS/four pre-existing warnings; voice-recorder existing state-effect lint error reproduced on HEAD; git diff --check PASS. Local checks PASSED, hosted verification PARTIALLY_TESTED.
+- **What is NOT done:** Backend/provider/browser acceptance, shared060 migration, live settings, publication and pre-existing voice-recorder lint defect; retry/draft state is private in-memory only.
+- **Next action (task ID + files):** Task3/FE-C01/FE-L03 — match backend migration060/import/insight contracts; integration plan owns remaining local verification and release prerequisites.
+
+## 2026-11-17 — transcript import and AI Notes integration
+- **What was done (files + behavior):** Implemented consented text import/third card, private library text, non-meeting AI Notes, new-only automatic scheduling/manual existing generation, zero-minute AI spend reservations and old-worker cohort guards; migration060 applied staging only.
+- **Proof (command + result + revision):** APIecd8bf0/FEaaf1f79 + diff: backend75/75 then final affected38/38, frontend114/114 then BFF12/12/export3/3, types/OpenAPI156 PASS. Local health/ready200/import401; guarded staging migration060 applied; review clean. See API evidence/2026-11-17-transcript-import-ai-notes.md.
+- **What is NOT done:** No live generation/provider call/backfill/production rollout/commit; OpenRouter staging profile/bootstrap key absent, so setup remains required; pre-existing frontend lint issue retained.
+- **Next action (task ID + files):** FE-C01/FE-L03/B-INSIGHTS-01 — configure OpenRouter in admin/integrations, use new text/voice/audio card, verify user-submitted AI Notes; preserve060 checksum for later coordinated hosted rollout.

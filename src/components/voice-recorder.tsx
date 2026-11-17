@@ -1,5 +1,6 @@
 "use client";
 
+import { TranscriptUpload } from "@/components/transcript-upload";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { VoiceIllustration } from "@/components/ui/illustrations";
 import { useDisplayTitle } from "@/components/shell/use-display-title";
@@ -311,7 +312,7 @@ export function VoiceRecorder() {
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <section aria-labelledby="record-heading" className="flex flex-col rounded-2xl border border-border p-5">
           <span aria-hidden className="grid h-10 w-10 place-items-center rounded-lg bg-accent/10 text-accent">
             <Mic className="h-5 w-5" />
@@ -377,6 +378,7 @@ export function VoiceRecorder() {
             <input type="file" accept="audio/wav,audio/mpeg,audio/mp4,audio/webm,audio/ogg,.m4a,.mp3,.wav,.webm,.ogg" onChange={onFileChosen} disabled={recording} className="sr-only" />
           </label>
         </section>
+        <TranscriptUpload />
       </div>
 
       {error && (

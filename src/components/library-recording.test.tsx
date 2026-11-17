@@ -6,6 +6,7 @@ import { LibraryRecording } from "./library-recording";
 import { MeetingVideo } from "./meeting-video";
 import { PrivateAudio } from "./private-audio";
 import { MeetingInsights } from "./meeting-insights";
+import { SummaryTemplatePicker } from "./insights/summary-template-picker";
 import { TranscriptEditor } from "./transcript-editor";
 import { Button } from "./ui/button";
 import { Tabs, tabPanelId } from "./ui/tabs";
@@ -100,13 +101,18 @@ it("meeting recording shows the existing recap panel with actual identity/versio
   const html = markup(tree);
   expect(html).toContain("Meeting insights"); expect(html).toContain("Meeting overview"); expect(html).toContain("Transcript editor"); expect(html).toContain("Private audio"); expect(html).toContain("Meeting controls");
 });
-it("uploaded audio has no meeting insight panel or insight requests", async () => {
+it("uploaded audio reuses AI Notes without meeting labels or automatic generation", async () => {
   const tree = await mount("upload");
-  expect(markup(tree)).not.toContain("Meeting insights");
-  expect(find(tree, MeetingInsights)).toBeUndefined(); expect(fetch).toHaveBeenCalledTimes(1);
+  expect(markup(tree)).toContain("AI Notes"); expect(markup(tree)).not.toContain("Meeting insights");
+  expect(find(tree, MeetingInsights)).toBeDefined(); expect(fetch).toHaveBeenCalledTimes(1);
 });
-it("mounting and refreshing the meeting only read data and never dispatch generation", async () => {
-  const tree = await mount(); markup(tree); await effects();
+it("imported text shows AI Notes and editor without an audio player or duration", async () => {
+ const tree = await mount("transcript"); const html = markup(tree);
+ expect(html).toContain("AI Notes"); expect(html).toContain("Transcript editor"); expect(html).toContain("Imported transcript");
+ expect(find(tree, PrivateAudio)).toBeUndefined(); expect(html).not.toContain("Private audio"); expect(html).not.toContain("Length of the recording");
+});
+it.each(["meeting","upload","transcript"])("mounting and refreshing %s only read data and never dispatch generation", async source => {
+  const tree = await mount(source); markup(tree); await effects();
   // Mount the real insight query observer and execute the panel's actual version
   // invalidation effect. This catches generation accidentally added to an effect.
   const panel = find<ComponentProps<typeof MeetingInsights>>(tree, MeetingInsights)!;
@@ -231,4 +237,15 @@ it("video renewal resumes playing intent but respects an explicit user pause",()
  video.props.onLoadedMetadata?.({currentTarget:media} as never);expect(media.play).toHaveBeenCalledOnce();
  video.props.onPause?.({currentTarget:{readyState:2}} as never);
  video.props.onLoadedMetadata?.({currentTarget:media} as never);expect(media.play).toHaveBeenCalledOnce();
+});
+
+it("selecting a non-meeting summary format never requests generation", async () => {
+ const tree=await mount("upload"); const panel=find<ComponentProps<typeof MeetingInsights>>(tree,MeetingInsights)!;
+ hooks.cleanup.forEach(cleanup=>cleanup?.());hooks.cleanup=[];hooks.deps=[];hooks.pending=[];hooks.values=[];
+ const client=new QueryClient();clients.push(client);hooks.client=client;
+ client.setQueryData(qk.meetingInsights(id),{...insights,recap:null,questions:null});
+ vi.mocked(fetch).mockImplementation(()=>Promise.resolve(Response.json({...insights,recap:null,questions:null})));
+ const view=run(()=>MeetingInsights(panel.props));
+ find<ComponentProps<typeof SummaryTemplatePicker>>(view,SummaryTemplatePicker)!.props.onSelect("enhanced");await effects();
+ expect(vi.mocked(fetch).mock.calls.every(([,init])=>(init?.method??"GET")==="GET")).toBe(true);
 });

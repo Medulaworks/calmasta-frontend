@@ -77,7 +77,7 @@ function RecordingHeader({ capture, ext, status, isMeeting, meetingUrl, duration
             <div className="mt-3 flex flex-wrap items-center gap-2">
               {isMeeting && capture.platform && <span className={chip}>{PLATFORM_LABELS[capture.platform] ?? capture.platform}</span>}
               {duration && <span className={chip} title="Length of the recording"><Timer aria-hidden className="size-3.5" /> {duration}</span>}
-              <span className={chip}><CalendarDays aria-hidden className="size-3.5" /> {isMeeting ? "Joined" : "Recorded"} {formatDateTime(ext.createdAt, timeZone)}</span>
+              <span className={chip}><CalendarDays aria-hidden className="size-3.5" /> {isMeeting ? "Joined" : capture.source === "transcript_upload" ? "Imported" : "Recorded"} {formatDateTime(ext.createdAt, timeZone)}</span>
             </div>
           </div>
           <div role={isMeeting ? "group" : undefined} aria-label={isMeeting ? "Meeting controls" : undefined} className="flex flex-wrap items-center gap-2">
@@ -124,9 +124,9 @@ function RecordingAside({ capture, ext, isMeeting, meetingUrl, duration }: Commo
       <Card>
         <div className="border-b border-border px-5 py-3"><h2 className="text-base font-semibold">Details</h2></div>
         <dl className="divide-y divide-border text-sm">
-          <div className="flex items-start gap-3 px-5 py-3"><CalendarDays aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" /><dt className="w-20 shrink-0 text-muted">{isMeeting ? "Joined" : "Recorded"}</dt><dd className="min-w-0 flex-1 font-medium">{formatDateTime(ext.createdAt, timeZone)}</dd></div>
+          <div className="flex items-start gap-3 px-5 py-3"><CalendarDays aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" /><dt className="w-20 shrink-0 text-muted">{isMeeting ? "Joined" : capture.source === "transcript_upload" ? "Imported" : "Recorded"}</dt><dd className="min-w-0 flex-1 font-medium">{formatDateTime(ext.createdAt, timeZone)}</dd></div>
           {isMeeting && <div className="flex items-start gap-3 px-5 py-3"><Bot aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" /><dt className="w-20 shrink-0 text-muted">Assistant</dt><dd className="min-w-0 flex-1 font-medium">{ext.botName ?? "—"}</dd></div>}
-          {!isMeeting && <div className="flex items-start gap-3 px-5 py-3"><Mic aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" /><dt className="w-20 shrink-0 text-muted">Source</dt><dd className="min-w-0 flex-1 font-medium">{capture.source === "voice_recording" ? "Recorded in browser" : "Upload"}</dd></div>}
+          {!isMeeting && <div className="flex items-start gap-3 px-5 py-3"><Mic aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" /><dt className="w-20 shrink-0 text-muted">Source</dt><dd className="min-w-0 flex-1 font-medium">{capture.source === "voice_recording" ? "Recorded in browser" : capture.source === "transcript_upload" ? "Imported transcript" : "Upload"}</dd></div>}
           {duration && <div className="flex items-start gap-3 px-5 py-3"><Timer aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" /><dt className="w-20 shrink-0 text-muted">Length</dt><dd className="min-w-0 flex-1 font-medium tabular-nums">{duration}</dd></div>}
           {meetingUrl && <div className="flex items-start gap-3 px-5 py-3"><ExternalLink aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" /><dt className="w-20 shrink-0 text-muted">Meeting</dt><dd className="min-w-0 flex-1 truncate font-medium"><a href={meetingUrl} target="_blank" rel="noopener noreferrer" title={meetingUrl} className="text-accent hover:underline">{meetingUrl.replace(/^https?:\/\//, "")}</a></dd></div>}
           {isMeeting && (
@@ -298,7 +298,7 @@ export function LibraryRecording({ id }: { id: string }) {
   const isMeeting = capture?.source === "meeting_url";
   const ext = capture as unknown as Ext | null;
   const meetingUrl = ext?.meetingUrl ?? ext?.meeting_url ?? null;
-  const duration = ext?.durationSeconds != null ? formatDuration(ext.durationSeconds) : null;
+  const duration = capture?.source !== "transcript_upload" && ext?.durationSeconds != null ? formatDuration(ext.durationSeconds) : null;
   const retryable = !!capture && isMeeting && ["host_denied", "admission_timeout", "cancelled", "failed"].includes(capture.state);
 
   return (
@@ -315,16 +315,15 @@ export function LibraryRecording({ id }: { id: string }) {
             {/* The content: the audio, then what was said. */}
             <div className="min-w-0 space-y-5 lg:col-span-2">
               {isMeeting && capture.recordVideo && <MeetingVideo key={capture.id} cap={capture} />}
-              <div id="recording-audio">
+              {capture.source !== "transcript_upload" && <div id="recording-audio">
                 <PrivateAudio key={capture.id} id={capture.id} onAudioChange={onAudioChange} />
-              </div>
-              {isMeeting ? (
-                <Card className="overflow-visible">
+              </div>}
+              <Card className="overflow-visible">
                   <div className="sticky top-16 z-10 rounded-t-2xl border-b border-border bg-background px-5 pt-4">
                     <Tabs
                       label="Recording details"
                       items={[
-                        { id: `recording-${capture.id}-insights`, label: "Meeting insights" },
+                        { id: `recording-${capture.id}-insights`, label: isMeeting ? "Meeting insights" : "AI Notes" },
                         { id: `recording-${capture.id}-transcript`, label: "Transcript" },
                       ]}
                       active={`recording-${capture.id}-${selectedContent.captureId === capture.id ? selectedContent.tab : "insights"}`}
@@ -354,6 +353,8 @@ export function LibraryRecording({ id }: { id: string }) {
                     <MeetingInsights
                       key={capture.id}
                       id={capture.id}
+                      isMeeting={isMeeting}
+                      hasTimestamps={capture.source !== "transcript_upload"}
                       transcriptVersion={capture.transcriptVersion}
                       audioAvailable={insightAudio?.captureId === capture.id && capture.id === id}
                       onSeek={(startMs) => {
@@ -361,10 +362,7 @@ export function LibraryRecording({ id }: { id: string }) {
                       }}
                     />
                   </div>
-                </Card>
-              ) : (
-                transcriptEditor
-              )}
+              </Card>
             </div>
 
             <RecordingAside capture={capture} ext={ext} isMeeting={isMeeting} meetingUrl={meetingUrl} duration={duration} />

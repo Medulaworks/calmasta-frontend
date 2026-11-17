@@ -208,12 +208,13 @@ export function CaptureDetail({
   }
 
   const ready = cap.state === "ready_to_review" || cap.state === "completed";
-  const Icon = cap.source === "meeting_url" ? Video : Mic;
+  const importedText = cap.source === "transcript_upload";
+  const Icon = cap.source === "meeting_url" ? Video : importedText ? FileText : Mic;
   const meetingActive =
     cap.source === "meeting_url" && isMeetingActive(cap.status);
   // Land on the transcript once there is one; until then the recording tab shows what is happening.
   const asked = search.get("tab");
-  const tab: TabId = (TABS as readonly string[]).includes(asked ?? "")
+  const tab: TabId = importedText && asked === "recording" ? "transcript" : (TABS as readonly string[]).includes(asked ?? "")
     ? (asked as TabId)
     : ready
       ? "transcript"
@@ -240,7 +241,7 @@ export function CaptureDetail({
                 {status.label}
               </Badge>
               <span>
-                {cap.source === "meeting_url"
+                {importedText ? "Imported transcript" : cap.source === "meeting_url"
                   ? "Meeting"
                   : cap.source === "voice_recording"
                     ? "Recorded in browser"
@@ -270,7 +271,7 @@ export function CaptureDetail({
         {shareOpen && <ShareNotesDialog captureId={id} open={shareOpen} onClose={() => setShareOpen(false)} />}
       </header>
 
-      {(() => {
+      {!importedText && (() => {
         const ext = cap as unknown as {botName?:string|null;meetingUrl?:string|null;meeting_url?:string|null;durationSeconds?:number|null;participants?:Array<{name:string;role?:string}>;metadata?:Record<string,unknown>};
         const meetingUrl = ext.meetingUrl ?? ext.meeting_url ?? null;
         const usage = ext.durationSeconds != null ? formatDuration(ext.durationSeconds) : null;
@@ -335,21 +336,23 @@ export function CaptureDetail({
         </div>
       )}
 
-      {cap.source === "meeting_url" && <MeetingInsights
+      <MeetingInsights
         key={cap.id}
         id={cap.id}
+        isMeeting={cap.source === "meeting_url"}
+        hasTimestamps={!importedText}
         transcriptVersion={cap.transcriptVersion}
-        audioAvailable={!!cap.audio?.url}
+        audioAvailable={!importedText && !!cap.audio?.url}
         onSeek={startMs => {
           setSeekTarget({ captureId: cap.id, startMs });
           router.replace("?tab=recording", { scroll: false });
         }}
-      />}
+      />
 
       <Tabs
         label="Conversation"
         items={[
-          { id: "recording", label: "Recording" },
+          ...(!importedText ? [{ id: "recording", label: "Recording" }] : []),
           { id: "transcript", label: "Transcript" },
           { id: "documents", label: "Documents", count: cap.documents.length },
           {
@@ -411,7 +414,7 @@ export function CaptureDetail({
         </div>
       )}
 
-      {tab === "recording" && cap.source !== "meeting_url" && (
+      {tab === "recording" && cap.source !== "meeting_url" && !importedText && (
         <div
           role="tabpanel"
           id={tabPanelId("recording")}
@@ -424,6 +427,7 @@ export function CaptureDetail({
                 <>
                   {/* Signed URL valid ~5m — detail polling renews it. */}
                   <audio
+                    ref={meetingAudio}
                     controls
                     preload="metadata"
                     src={cap.audio.url}

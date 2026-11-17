@@ -198,9 +198,10 @@ export class AuthService {
       const session = isAdminRoute ? await this.adminSession(request) : await this.session(request);
       if (!session && !isPublicRoute) return isAdminRoute ? this.unauthorizedAdmin() : this.unauthorized();
       const transcriptEdit=request.method==="PATCH"&&segments.length===4&&segments[0]==="library"&&segments[1]==="captures"&&segments[3]==="transcript";
+      const transcriptImport=request.method==="POST"&&segments.length===2&&segments[0]==="captures"&&segments[1]==="transcripts";
       const bodylessInsight = request.method === "POST" && segments.length === 3 && segments[0] === "captures" && ["recap", "questions"].includes(segments[2]);
       if (bodylessInsight) await assertEmptyBody(request);
-      const body = request.method === "GET" || bodylessInsight || request.method === "DELETE" && !request.body ? undefined : await readJson(request,transcriptEdit?262144:16384);
+      const body = request.method === "GET" || bodylessInsight || request.method === "DELETE" && !request.body ? undefined : await readJson(request,transcriptImport||transcriptEdit?1048576:16384);
       const url = new URL(request.url);
       const pathAndQuery = "/" + segments.map(encodeURIComponent).join("/") + url.search;
       bffContext.getStore()!.stage="api_request";

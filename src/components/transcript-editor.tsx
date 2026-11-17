@@ -22,12 +22,13 @@ const AUTOSAVE_MS = 1200;
  * so a save made from a stale copy is refused (never silently overwriting) and the user's text stays on screen.
  */
 export function TranscriptEditor({ cap, statusLabel, active, onChanged, loadCapture = getCapture, saveChanges = saveTranscript }: { cap: CaptureView; statusLabel: string; active: boolean; onChanged: () => void; loadCapture?: typeof getCapture; saveChanges?: typeof saveTranscript }) {
+  const importedText = cap.source === "transcript_upload";
   function exportFile(content: string, name: string, type: string) {
     const url = URL.createObjectURL(new Blob([content], { type }));
     const a = document.createElement("a"); a.href = url; a.download = name; a.click(); URL.revokeObjectURL(url);
   }
   function exportTxt() {
-    const lines = cap.transcript.map((s) => `${formatDuration(s.startMs / 1000)}${s.speakerId ? ` ${cap.speakerNames[s.speakerId] ?? s.speakerId}:` : ""} ${s.text}`).join("\n");
+    const lines = cap.transcript.map((s) => `${importedText ? "" : formatDuration(s.startMs / 1000)}${!importedText && s.speakerId ? ` ${cap.speakerNames[s.speakerId] ?? s.speakerId}:` : ""}${importedText ? "" : " "}${s.text}`).join(importedText ? "" : "\n");
     exportFile(lines, `${cap.title ?? "transcript"}.txt`, "text/plain;charset=utf-8");
   }
   function exportSrt() {
@@ -205,7 +206,7 @@ export function TranscriptEditor({ cap, statusLabel, active, onChanged, loadCapt
         </p>
       )}
 
-      {editing && speakers.length > 0 && (
+      {editing && !importedText && speakers.length > 0 && (
         <Card>
           <CardHeader title="Speakers" />
           <div className="grid gap-3 p-5 sm:grid-cols-2">
@@ -240,7 +241,7 @@ export function TranscriptEditor({ cap, statusLabel, active, onChanged, loadCapt
             ) : hasLines ? (
               <div className="flex items-center gap-2">
                 <Button variant="ghost" onClick={exportTxt} title="Export as text"><Download aria-hidden className="h-4 w-4" /> TXT</Button>
-                <Button variant="ghost" onClick={exportSrt} title="Export as SRT"><Download aria-hidden className="h-4 w-4" /> SRT</Button>
+                {!importedText && <Button variant="ghost" onClick={exportSrt} title="Export as SRT"><Download aria-hidden className="h-4 w-4" /> SRT</Button>}
                 <Button variant="secondary" onClick={() => setEditing(true)}>
                   <Pencil aria-hidden className="h-4 w-4" /> Edit transcript
                 </Button>
@@ -258,12 +259,12 @@ export function TranscriptEditor({ cap, statusLabel, active, onChanged, loadCapt
         <ol className="divide-y divide-border">
           {cap.transcript.map((seg) => (
             <li key={seg.id} id={`seg-${seg.id}`} className={`flex scroll-mt-24 gap-4 px-5 py-3 text-sm ${focusId === seg.id ? "bg-accent/10" : ""}`}>
-              <span className="w-12 shrink-0 pt-1 font-mono text-xs text-muted">{formatDuration(seg.startMs / 1000)}</span>
+              {!importedText && <span className="w-12 shrink-0 pt-1 font-mono text-xs text-muted">{formatDuration(seg.startMs / 1000)}</span>}
               {editing ? (
                 <div className="min-w-0 flex-1">
-                  {seg.speakerId && <span className="mb-1 block text-xs font-medium text-muted">{nameOf(seg.speakerId)}</span>}
+                  {!importedText && seg.speakerId && <span className="mb-1 block text-xs font-medium text-muted">{nameOf(seg.speakerId)}</span>}
                   <textarea
-                    aria-label={`Line at ${formatDuration(seg.startMs / 1000)}${seg.speakerId ? ` by ${nameOf(seg.speakerId)}` : ""}`}
+                    aria-label={importedText ? "Transcript text" : `Line at ${formatDuration(seg.startMs / 1000)}${seg.speakerId ? ` by ${nameOf(seg.speakerId)}` : ""}`}
                     aria-invalid={blank(seg.id) || undefined}
                     value={drafts[seg.id] ?? seg.text}
                     maxLength={10000}
@@ -274,8 +275,8 @@ export function TranscriptEditor({ cap, statusLabel, active, onChanged, loadCapt
                   {blank(seg.id) && <p className="mt-1 text-xs text-danger">A line can&apos;t be empty. Type something, or put the original back.</p>}
                 </div>
               ) : (
-                <p className="min-w-0">
-                  {seg.speakerId && <span className="mr-2 text-xs font-medium text-muted">{nameOf(seg.speakerId)}</span>}
+                <p className="min-w-0 whitespace-pre-wrap break-words">
+                  {!importedText && seg.speakerId && <span className="mr-2 text-xs font-medium text-muted">{nameOf(seg.speakerId)}</span>}
                   {seg.text}
                   {seg.editedByUser && <span className="ml-2 rounded bg-surface px-2 py-1 text-xs text-muted">Edited</span>}
                 </p>
