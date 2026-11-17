@@ -20,7 +20,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
-import { PLATFORM_NAME, PlatformLogo, platformKey } from "@/components/ui/platform-logo";
+import {
+  PLATFORM_NAME,
+  PlatformLogo,
+  platformKey,
+} from "@/components/ui/platform-logo";
 import { useDismiss } from "@/components/ui/use-dismiss";
 import { capturePolicyQuery } from "@/lib/queries";
 import { requestMeetingCapture } from "@/lib/upload-client";
@@ -44,17 +48,28 @@ function LiveMeetingDialog({ onClose }: { onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const submitting = useRef(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<{ duplicate: boolean; name: string } | null>(null);
+  const [done, setDone] = useState<{ duplicate: boolean; name: string } | null>(
+    null,
+  );
   const { data: policy } = useQuery(capturePolicyQuery);
   const detected = platformKey(url.trim() || null, url);
-  const assistant = botName.trim() || defaultBotName(policy?.botName) || policy?.botName || "Recording assistant";
-  const blocker = !url.trim() ? "Add a meeting link to continue." : !consent ? "Confirm you have the right to record to continue." : null;
-  const field = "w-full rounded-xl border border-border bg-background px-4 text-sm shadow-sm placeholder:text-muted focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent-solid/20";
+  const assistant =
+    botName.trim() ||
+    defaultBotName(policy?.botName) ||
+    policy?.botName ||
+    "Recording assistant";
+  const blocker = !url.trim()
+    ? "Add a meeting link to continue."
+    : !consent
+      ? "Confirm you have the right to record to continue."
+      : null;
+  const field =
+    "w-full rounded-xl border border-border bg-background px-4 text-sm shadow-sm placeholder:text-muted focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent-solid/20";
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if(submitting.current)return;
-    submitting.current=true;
+    if (submitting.current) return;
+    submitting.current = true;
     setBusy(true);
     setError(null);
     try {
@@ -64,16 +79,24 @@ function LiveMeetingDialog({ onClose }: { onClose: () => void }) {
         title.trim() || undefined,
         video,
         {
-          botName: botName.trim() || defaultBotName(policy?.botName) || undefined,
-          maxDurationSeconds: Math.min(30 * 60, policy?.maxMeetingDurationSeconds ?? 1800),
+          botName:
+            botName.trim() || defaultBotName(policy?.botName) || undefined,
+          maxDurationSeconds: Math.min(
+            30 * 60,
+            policy?.maxMeetingDurationSeconds ?? 1800,
+          ),
         },
       );
       qc.invalidateQueries({ queryKey: ["captures"] });
       setDone({ duplicate: r.duplicate, name: assistant });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong. Please try again.",
+      );
     } finally {
-      submitting.current=false;
+      submitting.current = false;
       setBusy(false);
     }
   }
@@ -82,9 +105,17 @@ function LiveMeetingDialog({ onClose }: { onClose: () => void }) {
     <Dialog title="Join a meeting" onClose={onClose}>
       {done ? (
         <div className="space-y-5 text-center" role="status">
-          <span aria-hidden className="jb-popin mx-auto grid size-14 place-items-center rounded-full bg-success text-white"><Check className="size-7" strokeWidth={3} /></span>
+          <span
+            aria-hidden
+            className="jb-popin mx-auto grid size-14 place-items-center rounded-full bg-success text-white">
+            <Check className="size-7" strokeWidth={3} />
+          </span>
           <div>
-            <p className="text-lg font-semibold">{done.duplicate ? "An assistant is already set up" : "Assistant on its way"}</p>
+            <p className="text-lg font-semibold">
+              {done.duplicate
+                ? "An assistant is already set up"
+                : "Assistant on its way"}
+            </p>
             <p className="mx-auto mt-2 max-w-sm text-sm text-muted">
               {done.duplicate
                 ? "No second one was sent for this meeting."
@@ -92,17 +123,34 @@ function LiveMeetingDialog({ onClose }: { onClose: () => void }) {
             </p>
           </div>
           <div className="flex flex-wrap justify-center gap-3">
-            <Button variant="primary" onClick={() => { onClose(); router.push("/dashboard/capture"); }}>See it under Meet</Button>
-            <Button variant="ghost" onClick={onClose}>Done</Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                onClose();
+                router.push("/dashboard/capture");
+              }}>
+              See it under Meet
+            </Button>
+            <Button variant="ghost" onClick={onClose}>
+              Done
+            </Button>
           </div>
         </div>
       ) : (
         <form onSubmit={submit} className="space-y-4">
           <div>
-            <label htmlFor="join-link" className="text-sm font-medium">Meeting link</label>
+            <label htmlFor="join-link" className="text-sm font-medium">
+              Meeting link
+            </label>
             <div className="relative mt-2">
-              <span aria-hidden className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2">
-                {detected ? <PlatformLogo platform={detected} size={28} /> : <Link2 className="ml-1 size-4 text-muted" />}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2">
+                {detected ? (
+                  <PlatformLogo platform={detected} size={28} />
+                ) : (
+                  <Link2 className="ml-1 size-4 text-muted" />
+                )}
               </span>
               <input
                 id="join-link"
@@ -117,60 +165,146 @@ function LiveMeetingDialog({ onClose }: { onClose: () => void }) {
                 className={`${field} min-h-12 pl-14`}
               />
             </div>
-            <p id="join-link-help" className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted">
+            <p
+              id="join-link-help"
+              className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted">
               {detected ? (
-                <span className="font-medium text-success">{PLATFORM_NAME[detected]} link detected</span>
+                <span className="font-medium text-success">
+                  {PLATFORM_NAME[detected]} link detected
+                </span>
               ) : url.trim().length > 8 ? (
-                <span>We could not tell which app this link is for. Use a Meet, Teams or Zoom link.</span>
+                <span>
+                  We could not tell which app this link is for. Use a Meet,
+                  Teams or Zoom link.
+                </span>
               ) : (
                 <>
                   <span>Works with</span>
-                  {(["google_meet", "microsoft_teams", "zoom"] as const).map((p) => (
-                    <span key={p} className="inline-flex items-center gap-1.5"><PlatformLogo platform={p} size={20} />{PLATFORM_NAME[p]}</span>
-                  ))}
+                  {(["google_meet", "microsoft_teams", "zoom"] as const).map(
+                    (p) => (
+                      <span
+                        key={p}
+                        className="inline-flex items-center gap-1.5">
+                        <PlatformLogo platform={p} size={20} />
+                        {PLATFORM_NAME[p]}
+                      </span>
+                    ),
+                  )}
                 </>
               )}
             </p>
           </div>
 
           {optionsOpen && (
-            <div id="join-options" className="jb-pop-soft grid gap-4 rounded-xl border border-border p-4 sm:grid-cols-2">
+            <div
+              id="join-options"
+              className="jb-pop-soft grid gap-4 rounded-xl border border-border p-4 sm:grid-cols-2">
               <div>
-                <label htmlFor="join-bot" className="text-sm font-medium">Assistant name</label>
-                <input id="join-bot" value={botName} onChange={(e) => setBotName(e.target.value)} maxLength={100} placeholder={defaultBotName(policy?.botName) ?? policy?.botName ?? "Jooba Notetaker"} autoComplete="off" className={`${field} mt-2 min-h-10`} />
+                <label htmlFor="join-bot" className="text-sm font-medium">
+                  Assistant name
+                </label>
+                <input
+                  id="join-bot"
+                  value={botName}
+                  onChange={(e) => setBotName(e.target.value)}
+                  maxLength={100}
+                  placeholder={
+                    defaultBotName(policy?.botName) ??
+                    policy?.botName ??
+                    "Jooba Notetaker"
+                  }
+                  autoComplete="off"
+                  className={`${field} mt-2 min-h-10`}
+                />
               </div>
               <div>
-                <label htmlFor="join-title" className="text-sm font-medium">Meeting title</label>
-                <input id="join-title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} placeholder="Auto-generated" autoComplete="off" className={`${field} mt-2 min-h-10`} />
+                <label htmlFor="join-title" className="text-sm font-medium">
+                  Meeting title
+                </label>
+                <input
+                  id="join-title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  maxLength={120}
+                  placeholder="Auto-generated"
+                  autoComplete="off"
+                  className={`${field} mt-2 min-h-10`}
+                />
               </div>
-              <label className={`flex items-start gap-3 text-sm sm:col-span-2 ${!policy?.videoEnabled ? "opacity-60" : ""}`}>
-                <input type="checkbox" checked={video} onChange={(e) => setVideo(e.target.checked)} disabled={!policy?.videoEnabled} className="mt-0.5 size-4 shrink-0 accent-[var(--accent-solid)] disabled:cursor-not-allowed" />
-                <span><span className="font-medium">Also record the video</span> <span className="text-muted">{policy?.videoEnabled ? "· private to you, removed on the same schedule as audio" : "· not enabled for this account yet"}</span></span>
+              <label
+                className={`flex items-start gap-3 text-sm sm:col-span-2 ${!policy?.videoEnabled ? "opacity-60" : ""}`}>
+                <input
+                  type="checkbox"
+                  checked={video}
+                  onChange={(e) => setVideo(e.target.checked)}
+                  disabled={!policy?.videoEnabled}
+                  className="mt-0.5 size-4 shrink-0 accent-[var(--accent-solid)] disabled:cursor-not-allowed"
+                />
+                <span>
+                  <span className="font-medium">Also record the video</span>{" "}
+                  <span className="text-muted">
+                    {policy?.videoEnabled
+                      ? "· private to you, removed on the same schedule as audio"
+                      : "· not enabled for this account yet"}
+                  </span>
+                </span>
               </label>
             </div>
           )}
 
           <label className="flex items-start gap-3 rounded-xl bg-surface p-4 text-sm">
-            <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-1 size-4 shrink-0 accent-[var(--accent-solid)]" />
-            <span>I have the right to record this meetingand I will tell its participants. A visible assistant named “{assistant}” will join and may need to be admitted by the host.</span>
+            <input
+              type="checkbox"
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
+              className="mt-1 size-4 shrink-0 accent-[var(--accent-solid)]"
+            />
+            <span>
+              i have the permission torecord this meetingand I will tell its
+              participants. A visible assistant named “{assistant}” will join
+              and may need to be admitted by the host.
+            </span>
           </label>
 
-          {error && <p role="alert" className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">{error}</p>}
+          {error && (
+            <p
+              role="alert"
+              className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+              {error}
+            </p>
+          )}
 
           <div className="space-y-3">
             <div className="flex gap-3">
-              <Button type="button" variant="secondary" size="lg" aria-expanded={optionsOpen} aria-controls="join-options" onClick={() => setOptionsOpen((v) => !v)}>
+              <Button
+                type="button"
+                variant="secondary"
+                size="lg"
+                aria-expanded={optionsOpen}
+                aria-controls="join-options"
+                onClick={() => setOptionsOpen((v) => !v)}>
                 <SlidersHorizontal aria-hidden className="size-4" /> Options
               </Button>
-              <Button type="submit" variant="primary" size="lg" className="flex-1" disabled={busy || !consent || !url.trim()}>
-                <Video aria-hidden className="size-5" /> {busy ? "Sending…" : "Join meeting"}
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                className="flex-1"
+                disabled={busy || !consent || !url.trim()}>
+                <Video aria-hidden className="size-5" />{" "}
+                {busy ? "Sending…" : "Join meeting"}
               </Button>
             </div>
-            <p aria-live="polite" className="min-h-4 text-center text-xs text-muted">{blocker}</p>
+            <p
+              aria-live="polite"
+              className="min-h-4 text-center text-xs text-muted">
+              {blocker}
+            </p>
           </div>
 
           <p className="flex items-center gap-2 text-xs text-muted">
-            <ShieldCheck aria-hidden className="size-4 shrink-0" /> Never bypasses waiting rooms or host controls.
+            <ShieldCheck aria-hidden className="size-4 shrink-0" /> Never
+            bypasses waiting rooms or host controls.
           </p>
         </form>
       )}
@@ -216,10 +350,9 @@ function ScheduleDialog({ onClose }: { onClose: () => void }) {
         </div>
         <p className="text-xs text-muted">
           Google Calendar events show up under Calendar once you connect it.
-          Outlook isn&rsquo;t connected to Jooba yet, so for an Outlook
-          meeting paste its link into{" "}
-          <span className="font-medium">Join a meeting</span> when it
-          starts.
+          Outlook isn&rsquo;t connected to Jooba yet, so for an Outlook meeting
+          paste its link into{" "}
+          <span className="font-medium">Join a meeting</span> when it starts.
         </p>
       </div>
     </Dialog>
@@ -298,23 +431,30 @@ export function CaptureMenu() {
               role="menuitem"
               onClick={() => choose("live")}
               className={item}>
-              <Video aria-hidden className="h-5 w-5 text-muted" /> Join a meeting
+              <Video aria-hidden className="h-5 w-5 text-muted" /> Join a
+              meeting
             </button>
             <button
               type="button"
               role="menuitem"
               onClick={() => choose("schedule")}
               className={item}>
-              <CalendarPlus aria-hidden className="h-5 w-5 text-muted" /> Schedule a meeting
+              <CalendarPlus aria-hidden className="h-5 w-5 text-muted" />{" "}
+              Schedule a meeting
             </button>
             <button
               type="button"
               role="menuitem"
               onClick={() => choose("upload")}
               className={item}>
-              <Mic aria-hidden className="h-5 w-5 text-muted" /> Record your voice
+              <Mic aria-hidden className="h-5 w-5 text-muted" /> Record your
+              voice
             </button>
-            <button type="button" role="menuitem" onClick={() => choose("upload")} className={item}>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => choose("upload")}
+              className={item}>
               <Upload aria-hidden className="h-5 w-5 text-muted" /> Upload audio
             </button>
             <div role="separator" className="my-1 border-t border-border" />

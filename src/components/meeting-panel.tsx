@@ -191,9 +191,9 @@ export function MeetingPanel({
                   className="mt-1 h-4 w-4"
                 />
                 <span className="text-muted">
-                  I have the right to record this meeting and will tell its
-                  participants. The recording assistant may need the host to admit
-                  it again.
+                  i have the permission torecord this meeting and will tell its
+                  participants. The recording assistant may need the host to
+                  admit it again.
                 </span>
               </label>
               <Button

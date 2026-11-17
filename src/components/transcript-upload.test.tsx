@@ -2,6 +2,7 @@ import { isValidElement, type ComponentProps, type ReactElement, type ReactNode 
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { TranscriptUpload } from "./transcript-upload";
 import { Button } from "./ui/button";
+import { Dialog } from "./ui/dialog";
 const h = vi.hoisted(() => ({ index: 0, values: [] as unknown[], push: vi.fn(), invalidate: vi.fn() }));
 vi.mock("react", async original => ({ ...await original<typeof import("react")>(),
  useState: (initial: unknown) => { const slot = h.index++; if (!(slot in h.values)) h.values[slot] = initial; return [h.values[slot], (next: unknown) => { h.values[slot] = typeof next === "function" ? next(h.values[slot]) : next; }]; },
@@ -48,6 +49,26 @@ it("retains pasted text and operation key after an uncertain failure", async () 
  expect(h.push).not.toHaveBeenCalled(); expect(nodes<ComponentProps<"textarea">>(tree(), "textarea")[0].props.value).toBe("Keep my text");
  button("Retry save").props.onClick?.({} as never); await vi.waitFor(() => expect(h.push).toHaveBeenCalledOnce());
  const calls = vi.mocked(fetch).mock.calls; expect(new Headers(calls[0][1]?.headers).get("Idempotency-Key")).toBe(new Headers(calls[1][1]?.headers).get("Idempotency-Key"));
+});
+it("opens the form in a modal instead of expanding the card", () => {
+  expect(nodes(tree(), Dialog).length).toBe(0);
+  open();
+  const after = tree();
+  const dialogs = nodes<ComponentProps<typeof Dialog>>(after, Dialog);
+  expect(dialogs.length).toBe(1);
+  // The form lives inside the dialog; the card itself stays compact.
+  expect(nodes(dialogs[0].props.children, "textarea").length).toBe(1);
+  const card = nodes<{ children?: ReactNode }>(after, "section")[0];
+  expect(nodes(card.props.children, "textarea").length).toBe(0);
+  // Cancel closes the modal and keeps the card as it was.
+  nodes<ComponentProps<typeof Button>>(after, Button).find(item => item.props.children === "Cancel")!.props.onClick?.({} as never);
+  expect(nodes(tree(), Dialog).length).toBe(0);
+});
+it("accepts a dropped txt file into the preview", async () => {
+  open();
+  const zone = nodes<{ onDrop?: (e: never) => void }>(tree(), "label").find(item => typeof item.props.onDrop === "function")!;
+  zone.props.onDrop?.({ preventDefault: () => {}, dataTransfer: { files: [new File(["Dropped\nText"], "drop.txt")] } } as never);
+  await vi.waitFor(() => expect(nodes<ComponentProps<"textarea">>(tree(), "textarea")[0].props.value).toBe("Dropped\nText"));
 });
 it("a rejected file preserves the current paste and never sends a save", async () => {
  open(); paste("Keep this draft");

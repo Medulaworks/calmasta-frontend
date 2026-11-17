@@ -18,7 +18,11 @@ import {
   type MeetingTypeView,
 } from "@/lib/booking-client";
 import { useDeleteMeetingType, useSaveMeetingType } from "@/lib/mutations";
-import { availabilitiesQuery, meetingTypesQuery, pagesQuery } from "@/lib/queries";
+import {
+  availabilitiesQuery,
+  meetingTypesQuery,
+  pagesQuery,
+} from "@/lib/queries";
 
 const blank = (pageId = "", availabilityId = ""): MeetingTypeInput => ({
   pageId,
@@ -40,7 +44,11 @@ export function MeetingTypesTab() {
   const types = typesQ.data ?? null;
   const pages = pagesQ.data ?? [];
   const avails = availsQ.data ?? [];
-  const qError = (typesQ.error as Error | undefined)?.message ?? (pagesQ.error as Error | undefined)?.message ?? (availsQ.error as Error | undefined)?.message ?? null;
+  const qError =
+    (typesQ.error as Error | undefined)?.message ??
+    (pagesQ.error as Error | undefined)?.message ??
+    (availsQ.error as Error | undefined)?.message ??
+    null;
   const saveM = useSaveMeetingType();
   const delM = useDeleteMeetingType();
   const [editing, setEditing] = useState<MeetingTypeView | "new" | null>(null);
@@ -75,7 +83,10 @@ export function MeetingTypesTab() {
     e.preventDefault();
     setLocalError(null);
     try {
-      await saveM.mutateAsync({ input: form, id: editing === "new" || !editing ? undefined : editing.id });
+      await saveM.mutateAsync({
+        input: form,
+        id: editing === "new" || !editing ? undefined : editing.id,
+      });
       setEditing(null);
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : "Could not save.");
@@ -182,11 +193,13 @@ export function MeetingTypesTab() {
                     setForm({ ...form, availabilityId: e.target.value })
                   }
                   className={field}>
-                  {avails.map((a: import("@/lib/booking-client").AvailabilityView) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}
-                    </option>
-                  ))}
+                  {avails.map(
+                    (a: import("@/lib/booking-client").AvailabilityView) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name}
+                      </option>
+                    ),
+                  )}
                 </select>
               </Field>
             </div>
@@ -249,9 +262,9 @@ export function MeetingTypesTab() {
                     Send the recording assistant to these meetings
                   </span>
                   <span className="block text-muted">
-                    It joins as a visible recording assistant
-                    a couple of minutes before the start, and may need to be
-                    admitted. If it can&apos;t join, the booking is unaffected.
+                    It joins as a visible recording assistant a couple of
+                    minutes before the start, and may need to be admitted. If it
+                    can&apos;t join, the booking is unaffected.
                   </span>
                 </span>
               </label>
@@ -271,8 +284,8 @@ export function MeetingTypesTab() {
                         className="mt-1 h-4 w-4"
                       />
                       <span>
-                        I have the right to record these meetings, and I will
-                        tell my guests.
+                        i have the permission torecord these meetings, and I
+                        will tell my guests.
                       </span>
                     </label>
                   )}
@@ -283,12 +296,9 @@ export function MeetingTypesTab() {
                     </p>
                   )}
                   <p className="flex items-start gap-2 text-xs text-muted">
-                    <Video
-                      aria-hidden
-                      className="mt-1 h-4 w-4 shrink-0"
-                    />{" "}
-                    The location above must be a Google Meet, Teams or Zoom link
-                    for the assistant to join.
+                    <Video aria-hidden className="mt-1 h-4 w-4 shrink-0" /> The
+                    location above must be a Google Meet, Teams or Zoom link for
+                    the assistant to join.
                   </p>
                 </div>
               )}
