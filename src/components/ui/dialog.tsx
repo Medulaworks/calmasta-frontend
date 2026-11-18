@@ -12,13 +12,20 @@ export function Dialog({ title, onClose, children, width = "max-w-lg" }: { title
   const titleId = useId();
   const box = useRef<HTMLDivElement>(null);
   const opener = useRef<Element | null>(null);
+  // Latest close without re-subscribing: re-running the effect below for a new
+  // onClose identity would yank focus out of the field being typed in on every
+  // parent re-render.
+  const closeRef = useRef(onClose);
+  useEffect(() => {
+    closeRef.current = onClose;
+  });
 
   useEffect(() => {
     opener.current = document.activeElement;
     const first = box.current?.querySelector<HTMLElement>("input, textarea, select, [data-autofocus]") ?? box.current?.querySelector<HTMLElement>("button");
     first?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") return onClose();
+      if (e.key === "Escape") return closeRef.current();
       if (e.key !== "Tab" || !box.current) return;
       const f = [...box.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')];
       if (f.length === 0) return;
@@ -32,7 +39,8 @@ export function Dialog({ title, onClose, children, width = "max-w-lg" }: { title
       document.removeEventListener("keydown", onKey);
       if (o instanceof HTMLElement) o.focus();
     };
-  }, [onClose]);
+    // Mount-only: focus moves in once and is given back on unmount.
+  }, []);
 
   // Rendered on the page body, outside whatever opened it. A dialog opened from the top bar (which has a blur effect) would
   // otherwise be positioned relative to the bar and not the screen.

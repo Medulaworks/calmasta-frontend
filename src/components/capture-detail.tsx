@@ -88,6 +88,7 @@ export function CaptureDetail({
   const [shareOpen, setShareOpen] = useState(false);
   const template = picked ?? profile?.defaultTemplate ?? TEMPLATE_CHOICES[1].id;
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [mountedNow] = useState(() => Date.now());
   const meetingAudio = useRef<HTMLAudioElement>(null);
   const [seekTarget, setSeekTarget] = useState<{ captureId: string; startMs: number } | null>(null);
   const appliedSeek = useRef<typeof seekTarget>(null);
@@ -303,6 +304,20 @@ export function CaptureDetail({
           className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
           {displayError}
         </p>
+      )}
+      {status.active && mountedNow - new Date(cap.createdAt).getTime() > 15 * 60 * 1000 && (
+        <div
+          role="status"
+          className="flex flex-col gap-2 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning sm:flex-row sm:items-center sm:justify-between">
+          <span>Processing is taking longer than usual. You can wait for it to complete or delete it and try again.</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setConfirmDelete(true)}
+            className="shrink-0 text-warning hover:bg-warning/20">
+            Delete recording
+          </Button>
+        </div>
       )}
       {cap.state === "failed" && cap.failureReason && (
         <p
