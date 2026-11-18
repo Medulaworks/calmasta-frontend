@@ -1,7 +1,7 @@
 import { ApiError } from "./upload-client";
 
 async function adminFetch<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, { cache: "no-store", ...init });
+  const res = await fetch(url, { cache: "no-store", credentials: "same-origin", ...init });
   if (res.status === 204) return undefined as T;
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {

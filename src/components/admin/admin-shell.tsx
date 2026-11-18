@@ -6,16 +6,15 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button, buttonClass } from "@/components/ui/button";
 import { Loading, Skeleton, SkeletonPanel } from "@/components/ui/skeleton";
-import { ProfileError, type ProfileView, getProfile } from "@/lib/profile-client";
+import { adminGet } from "@/lib/admin-client";
+import { clearCapabilities, loadCapabilities } from "@/lib/admin-capabilities";
+import { ApiError } from "@/lib/upload-client";
 import { SECTIONS, sectionFor } from "./admin-nav";
 
-type Check = { state: "checking" } | { state: "failed" } | { state: "ready"; profile: ProfileView };
+type AdminProfile = { name: string | null; email: string };
+type Check = { state: "checking" } | { state: "failed" } | { state: "denied" } | { state: "ready"; profile: AdminProfile };
 
-/**
- * The staff area's own frame, separate from the customer app. Staff status comes from the server (the profile's
- * `isStaff`); this only decides what to SHOW. Every staff endpoint checks again, so hiding the page is not the security.
- * Not signed in goes to the existing Jooba sign-in; signed in but not staff sees a clear "no access" page that names the account.
- */
+/** Uses the isolated admin session; the backend checks staff access on every admin endpoint. */
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -25,27 +24,40 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    getProfile().then(
+    const controller = new AbortController();
+    clearCapabilities();
+    adminGet<AdminProfile>("/api/admin/me").then(async (profile) => {
+      if (cancelled) return;
+      await loadCapabilities(controller.signal);
+      return profile;
+    }).then(
       (profile) => {
-        if (cancelled) return;
+        if (cancelled || !profile) return;
         setCheck({ state: "ready", profile });
       },
       (err) => {
         if (cancelled) return;
-        if (err instanceof ProfileError && err.status === 401) router.replace(`/admin/auth/login?returnTo=${encodeURIComponent(window.location.pathname)}`);
+        clearCapabilities();
+        if (err instanceof ApiError && err.status === 401) router.replace(`/admin/auth/login?returnTo=${encodeURIComponent(window.location.pathname)}`);
+        else if (err instanceof ApiError && err.status === 403) setCheck({ state: "denied" });
         else setCheck({ state: "failed" });
       },
     );
     return () => {
       cancelled = true;
+      controller.abort();
+      clearCapabilities();
     };
   }, [router, attempt]);
 
-  function leaveAdmin() { router.push("/dashboard"); }
+  async function logoutAdmin() {
+    clearCapabilities();
+    try { await fetch("/api/admin/auth/logout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}), credentials: "same-origin" }); } catch {}
+    router.replace("/admin/auth/login");
+  }
 
   const profile = check.state === "ready" ? check.profile : null;
-  const allowed = !!profile?.isStaff;
-  const notStaff = check.state === "ready" && !allowed;
+  const notStaff = check.state === "denied";
 
   if (notStaff || check.state === "failed") {
     return (
@@ -95,7 +107,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           {/* On a phone the same two actions sit in the top bar as icons. */}
           <div className="flex items-center gap-1 md:hidden">
             <a href="/dashboard" target="_blank" rel="noopener noreferrer" aria-label="Open Jooba (opens in a new tab)" title="Open Jooba" className="grid size-9 place-items-center rounded-lg text-muted hover:bg-surface hover:text-foreground"><ExternalLink aria-hidden className="size-[18px]" /></a>
-            <button type="button" onClick={() => leaveAdmin()} aria-label="Back to Jooba" title="Back to Jooba" className="grid size-9 place-items-center rounded-lg text-muted hover:bg-surface hover:text-foreground disabled:opacity-50"><ArrowLeft aria-hidden className="size-[18px]" /></button>
+            <button type="button" onClick={() => { void logoutAdmin(); }} aria-label="Log out" title="Log out" className="grid size-9 place-items-center rounded-lg text-muted hover:bg-surface hover:text-foreground disabled:opacity-50"><ArrowLeft aria-hidden className="size-[18px]" /></button>
           </div>
         </div>
 
@@ -136,8 +148,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               </span>
             </Link>
           )}
-          <button type="button" onClick={() => leaveAdmin()} title="Back to Jooba" className="mt-3 flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-border bg-background text-sm font-medium transition-colors hover:bg-surface disabled:opacity-50">
-            <ArrowLeft aria-hidden className="size-4" /> Back to Jooba
+          <button type="button" onClick={() => { void logoutAdmin(); }} title="Log out" aria-label="Log out" className="mt-3 flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-border bg-background text-sm font-medium transition-colors hover:bg-surface disabled:opacity-50">
+            <ArrowLeft aria-hidden className="size-4" /> Log out
           </button>
         </div>
       </aside>

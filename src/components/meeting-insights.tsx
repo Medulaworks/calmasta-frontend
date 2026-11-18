@@ -18,10 +18,10 @@ import { meetingInsightMutationOptions, meetingPreferencesMutationOptions } from
 import { canRequestInsight, emailStatusMessage, insightErrorMessage, insightMessage } from "../lib/meeting-insights";
 import type { InsightArtifact, InsightKind, MeetingInsights as Insights, QuestionsResult, RecapResult, StructuredRecapResult, MeetingMetadata } from "../lib/meeting-insights-client";
 
-function InsightError({ error }: { error: unknown }) {
+function InsightError({ error,isMeeting=true }: { error: unknown;isMeeting?:boolean }) {
   if (!error) return null;
   return <p role="alert" className="text-sm text-danger">
-    {insightErrorMessage(error)} {error instanceof ApiError && error.status === 401 && <Link href="/auth/login" className="underline">Sign in</Link>}
+    {isMeeting ? insightErrorMessage(error) : insightErrorMessage(error).replaceAll("Meeting insights", "AI Notes").replaceAll("meeting insights", "AI Notes")} {error instanceof ApiError && error.status === 401 && <Link href="/auth/login" className="underline">Sign in</Link>}
   </p>;
 }
 function SummaryList({title,items}:{title:string;items:string[]}) {
@@ -30,7 +30,7 @@ function SummaryList({title,items}:{title:string;items:string[]}) {
     {items.length?<ul className="list-disc space-y-2 pl-5">{items.map((item,index)=><li key={index} className="whitespace-pre-wrap break-words">{item}</li>)}</ul>:<p className="text-muted">None identified.</p>}
   </section>;
 }
-function StructuredRecap({result,meeting}:{result:StructuredRecapResult;meeting?:MeetingMetadata}) {
+function StructuredRecap({result,meeting,isMeeting=true}:{result:StructuredRecapResult;meeting?:MeetingMetadata;isMeeting?:boolean}) {
   const owners=Array.from(new Set(result.actionItems.map(action=>action.owner)));
   const recorded=meeting?new Date(meeting.recordedAt):null;
   return <article className="space-y-5">
@@ -38,7 +38,7 @@ function StructuredRecap({result,meeting}:{result:StructuredRecapResult;meeting?
       <h4 className="text-base font-semibold">{meeting.title}{recorded&&Number.isFinite(recorded.getTime())&&<> — <time dateTime={meeting.recordedAt}>{recorded.toLocaleDateString("en",{month:"long",day:"numeric",year:"numeric",timeZone:"UTC"})}</time></>}</h4>
       <Link href={meeting.recordingPath} className="text-accent underline underline-offset-4">View recording</Link>
     </header>}
-    <section className="space-y-2"><h4 className="font-semibold">Meeting Purpose</h4><p className="whitespace-pre-wrap break-words">{result.meetingPurpose}</p></section>
+    <section className="space-y-2"><h4 className="font-semibold">{isMeeting ? "Meeting Purpose" : "Purpose"}</h4><p className="whitespace-pre-wrap break-words">{result.meetingPurpose}</p></section>
     <SummaryList title="Key Takeaways" items={result.highlights}/>
     <section className="space-y-4">
       <h4 className="font-semibold">Topics</h4>
@@ -58,9 +58,9 @@ function StructuredRecap({result,meeting}:{result:StructuredRecapResult;meeting?
     </section>
   </article>;
 }
-function Recap({ result,meeting }: { result: RecapResult;meeting?:MeetingMetadata }) {
+function Recap({ result,meeting,isMeeting=true }: { result: RecapResult;meeting?:MeetingMetadata;isMeeting?:boolean }) {
   if(result.formatVersion===3)return <TemplateSummaryContent result={result} meeting={meeting}/>;
-  if(result.formatVersion===2)return <StructuredRecap result={result} meeting={meeting}/>;
+  if(result.formatVersion===2)return <StructuredRecap result={result} meeting={meeting} isMeeting={isMeeting}/>;
   return <div className="space-y-4">
     <p className="whitespace-pre-wrap break-words">{result.briefSummary}</p>
     <details className="rounded-lg border border-border p-3">
@@ -73,34 +73,34 @@ function Recap({ result,meeting }: { result: RecapResult;meeting?:MeetingMetadat
     </div>)}
   </div>;
 }
-function Questions({result,audioAvailable,onSeek,preferences,expanded=false}:{result:QuestionsResult;audioAvailable:boolean;onSeek:(ms:number)=>void;preferences?:InsightViewPreferences;expanded?:boolean}){
- return <MeetingQuestions result={result} audioAvailable={audioAvailable} onSeek={onSeek} selfSpeakerIds={preferences?.selfSpeakerIds} speakerOptions={preferences?.speakerOptions} expanded={expanded}/>;
+function Questions({result,audioAvailable,onSeek,preferences,expanded=false,isMeeting=true,hasTimestamps=true}:{result:QuestionsResult;isMeeting?:boolean;hasTimestamps?:boolean;audioAvailable:boolean;onSeek:(ms:number)=>void;preferences?:InsightViewPreferences;expanded?:boolean}){
+ return <MeetingQuestions result={result} audioAvailable={audioAvailable} onSeek={onSeek} selfSpeakerIds={preferences?.selfSpeakerIds} speakerOptions={preferences?.speakerOptions} expanded={expanded} isMeeting={isMeeting} showSpeakers={hasTimestamps}/>;
 }
-function InsightSection({ id, kind, data, readFailed, audioAvailable, onSeek,templateId="enhanced",templateName,showToolbar=false,summaryLoading=false }: {
-  id: string; kind: InsightKind; data: Insights; readFailed: boolean; audioAvailable: boolean; onSeek: (ms: number) => void;templateId?:string;templateName?:string;showToolbar?:boolean;summaryLoading?:boolean;
+function InsightSection({ id, kind, data, readFailed, audioAvailable, onSeek,templateId="enhanced",templateName,showToolbar=false,summaryLoading=false,isMeeting=true,hasTimestamps=true }: {
+  id: string; kind: InsightKind; data: Insights; readFailed: boolean; audioAvailable: boolean; onSeek: (ms: number) => void;templateId?:string;templateName?:string;showToolbar?:boolean;summaryLoading?:boolean;isMeeting?:boolean;hasTimestamps?:boolean;
 }) {
   const qc = useQueryClient();
   const request = useMutation(meetingInsightMutationOptions(qc, id, kind,templateId));
   const artifact = data[kind];
   const canRequest = !readFailed && !summaryLoading && (kind!=="recap"||templateId==="enhanced"||data.summaryTemplatesEnabled) && canRequestInsight(data, kind);
-  const label = kind === "questions"&&data.autoQuestionsEnabled&&artifact?.state==="ready"&&artifact.transcriptVersion===data.transcriptVersion&&!(artifact.result as QuestionsResult)?.formatVersion?"Add answers":kind === "recap"
+  const label = !isMeeting ? (kind === "recap" ? "Generate AI Notes" : "Extract questions") : kind === "questions"&&data.autoQuestionsEnabled&&artifact?.state==="ready"&&artifact.transcriptVersion===data.transcriptVersion&&!(artifact.result as QuestionsResult)?.formatVersion?"Add answers":kind === "recap"
     ? artifact?.isStale ? "Generate current recap" : (artifact?.state === "blocked" || (artifact?.state === "failed" && artifact.failureReason === "insight_dispatch_blocked")) ? "Retry recap admission" : templateId!=="enhanced"?`Generate ${templateName??"summary"}`:"Generate recap"
     : artifact?.isStale ? "Extract questions from current transcript" : (artifact?.state === "blocked" || (artifact?.state === "failed" && artifact.failureReason === "insight_dispatch_blocked")) ? "Retry question admission" : "Extract meeting questions";
-  return <section className="space-y-3" aria-label={kind === "recap" ? "Meeting recap" : "Meeting questions"}>
-    <h3 className="text-base font-semibold">{kind === "recap" ? "Meeting recap" : "Meeting questions"}</h3>
-    {showToolbar&&<SummaryToolbar result={kind==="recap"?(artifact?.result as RecapResult|null)??null:null} meeting={data.meeting} questions={kind==="questions"?(artifact?.result as QuestionsResult|null)??null:data.templates?.find(t=>t.id===templateId)?.appendQuestionAnswers&&data.questions?.state==="ready"&&!data.questions.isStale?data.questions.result:null} templateId={kind==="questions"?"q-and-a":templateId} questionsOnly={kind==="questions"} disabled={readFailed||summaryLoading||artifact?.state!=="ready"||!!artifact?.isStale}/>}
-    {(summaryLoading||artifact?.state==="queued"||artifact?.state==="running")&&<div role="status" aria-label={`Generating ${templateName??"insights"}`} className="space-y-3 rounded-lg bg-surface p-4"><p className="text-sm text-muted">Generating {templateName??"meeting insights"}…</p>{[100,85,92].map((width,i)=><div key={i} aria-hidden className="h-3 rounded bg-border motion-safe:animate-pulse" style={{width:`${width}%`}}/>)}</div>}
+  return <section className="space-y-3" aria-label={kind === "recap" ? isMeeting ? "Meeting recap" : "AI Notes" : isMeeting ? "Meeting questions" : "Transcript questions"}>
+    <h3 className="text-base font-semibold">{kind === "recap" ? isMeeting ? "Meeting recap" : "AI Notes" : isMeeting ? "Meeting questions" : "Transcript questions"}</h3>
+    {showToolbar&&<SummaryToolbar hasTimestamps={hasTimestamps} isMeeting={isMeeting} result={kind==="recap"?(artifact?.result as RecapResult|null)??null:null} meeting={data.meeting} questions={kind==="questions"?(artifact?.result as QuestionsResult|null)??null:data.templates?.find(t=>t.id===templateId)?.appendQuestionAnswers&&data.questions?.state==="ready"&&!data.questions.isStale?data.questions.result:null} templateId={kind==="questions"?"q-and-a":templateId} questionsOnly={kind==="questions"} disabled={readFailed||summaryLoading||artifact?.state!=="ready"||!!artifact?.isStale}/>}
+    {(summaryLoading||artifact?.state==="queued"||artifact?.state==="running")&&<div role="status" aria-label={`Generating ${templateName??"insights"}`} className="space-y-3 rounded-lg bg-surface p-4"><p className="text-sm text-muted">Generating {templateName??(isMeeting?"meeting insights":"AI Notes")}…</p>{[100,85,92].map((width,i)=><div key={i} aria-hidden className="h-3 rounded bg-border motion-safe:animate-pulse" style={{width:`${width}%`}}/>)}</div>}
     {artifact?.isStale && <p className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm">Based on an older transcript or summary format. Review this content against the current transcript.</p>}
     {artifact ? <>
-      <p role="status" className="text-muted">{insightMessage(artifact)}</p>
+      <p role="status" className="text-muted">{isMeeting?insightMessage(artifact):insightMessage(artifact).replaceAll("Meeting insights","AI Notes").replaceAll("meeting insights","AI Notes").replaceAll("current recap","current AI Notes")}</p>
       {artifact.state === "ready" && artifact.result && (kind === "recap"
-        ? <Recap result={(artifact as InsightArtifact<RecapResult>).result!} meeting={data.meeting} />
-        : <Questions result={(artifact as InsightArtifact<QuestionsResult>).result!} audioAvailable={audioAvailable} onSeek={onSeek} preferences={data.viewPreferences} expanded={showToolbar} />)}
+        ? <Recap result={(artifact as InsightArtifact<RecapResult>).result!} meeting={isMeeting ? data.meeting : undefined} isMeeting={isMeeting} />
+        : <Questions result={(artifact as InsightArtifact<QuestionsResult>).result!} audioAvailable={audioAvailable} onSeek={onSeek} preferences={data.viewPreferences} expanded={showToolbar} isMeeting={isMeeting} hasTimestamps={hasTimestamps} />)}
       {artifact.state === "ready" && !artifact.result && <p className="text-muted">Refresh insights to load the result.</p>}
-      {kind === "recap" && emailStatusMessage[artifact.emailStatus] && <p className="text-xs text-muted">{emailStatusMessage[artifact.emailStatus]}</p>}
-    </> : <p className="text-muted">{kind === "recap" ? "No recap has been requested for this meeting." : "Extract questions when you need them."}</p>}
-    {kind==="recap"&&artifact?.state==="ready"&&data.templates?.find(t=>t.id===templateId)?.appendQuestionAnswers&&<section className="space-y-3 border-t border-border pt-5"><h4 className="font-semibold">Q&A</h4>{data.questions?.state==="ready"&&data.questions.result&&!data.questions.isStale?<Questions result={data.questions.result} audioAvailable={audioAvailable} onSeek={onSeek} preferences={data.viewPreferences} expanded/>:<p className="text-muted">{data.questions?.state==="queued"||data.questions?.state==="running"?"Questions and answers are generating…":"Use the questions panel to extract current questions and answers."}</p>}</section>}
-    <InsightError error={request.error} />
+      {isMeeting && kind === "recap" && emailStatusMessage[artifact.emailStatus] && <p className="text-xs text-muted">{emailStatusMessage[artifact.emailStatus]}</p>}
+    </> : <p className="text-muted">{kind === "recap" ? (isMeeting ? "No recap has been requested for this meeting." : "No AI Notes have been requested for this transcript.") : "Extract questions when you need them."}</p>}
+    {kind==="recap"&&artifact?.state==="ready"&&data.templates?.find(t=>t.id===templateId)?.appendQuestionAnswers&&<section className="space-y-3 border-t border-border pt-5"><h4 className="font-semibold">Q&A</h4>{data.questions?.state==="ready"&&data.questions.result&&!data.questions.isStale?<Questions result={data.questions.result} audioAvailable={audioAvailable} onSeek={onSeek} preferences={data.viewPreferences} expanded isMeeting={isMeeting} hasTimestamps={hasTimestamps}/>:<p className="text-muted">{data.questions?.state==="queued"||data.questions?.state==="running"?"Questions and answers are generating…":"Use the questions panel to extract current questions and answers."}</p>}</section>}
+    <InsightError isMeeting={isMeeting} error={request.error} />
     {canRequest && <Button disabled={request.isPending} onClick={() => request.mutate()}>{request.isPending ? "Requesting…" : label}</Button>}
   </section>;
 }
@@ -124,7 +124,7 @@ function EmailPreference() {
     <p className="text-xs text-muted">Opt-in applies to future recap completions across your meetings. Email contains a private app link, with no meeting content or attachments, and goes only to the verified owner. Enabling it does not resend previous recaps.</p>
   </section>;
 }
-export function MeetingInsights({id,transcriptVersion,audioAvailable,onSeek}:{id:string;transcriptVersion:number|null;audioAvailable:boolean;onSeek:(ms:number)=>void}){
+export function MeetingInsights({id,transcriptVersion,audioAvailable,onSeek,isMeeting=true,hasTimestamps=true}:{id:string;transcriptVersion:number|null;audioAvailable:boolean;onSeek:(ms:number)=>void;isMeeting?:boolean;hasTimestamps?:boolean}){
  const qc=useQueryClient();
  const [selection,setSelection]=useState({captureId:id,templateId:"enhanced"});
  const [busy,setBusy]=useState<Record<string,boolean>>({}),[failures,setFailures]=useState<Record<string,string>>({});
@@ -147,6 +147,7 @@ export function MeetingInsights({id,transcriptVersion,audioAvailable,onSeek}:{id
  const chosen=catalogue.find(t=>t.id===templateId),questionsOnly=chosen?.sourceKind==="questions"||templateId==="q-and-a";
  async function selectTemplate(next:string){
   setSelection({captureId:id,templateId:next});updateInsightUrl({tab:"insights",template:next});if(data?.summaryTemplatesEnabled)saveView.mutate({selectedTemplateId:next});
+  if(!isMeeting)return;
   const key=`${id}:${next}`;setBusy(state=>({...state,[key]:true}));setFailures(state=>({...state,[key]:""}));
   try{
    const view=await qc.fetchQuery(meetingInsightsQuery(id,next)),artifact=view.summary?.templateId===next?view.summary.artifact:next==="enhanced"?view.recap:null;
@@ -157,13 +158,13 @@ export function MeetingInsights({id,transcriptVersion,audioAvailable,onSeek}:{id
    }
   }catch(error){setFailures(state=>({...state,[key]:insightErrorMessage(error)}));}finally{setBusy(state=>({...state,[key]:false}));}
  }
- return <section aria-label="Meeting insights" className="space-y-5 text-sm">
+ return <section aria-label={isMeeting ? "Meeting insights" : "AI Notes"} className="space-y-5 text-sm">
  <div className="flex flex-wrap items-start justify-between gap-3">
  <p className="flex max-w-2xl items-start gap-2 text-xs leading-relaxed text-muted">{data&&<><Info aria-hidden className="mt-0.5 size-3.5 shrink-0"/>AI-generated insights may contain mistakes. Review them against the transcript before using them. Next steps are not added to your actions automatically.</>}</p>
  <Button size="sm" variant="secondary" disabled={query.isFetching} onClick={()=>{void query.refetch();if(data?.summaryTemplatesEnabled)void questionQuery.refetch();}}><RefreshCw aria-hidden className={`size-4 ${query.isFetching?"animate-spin motion-reduce:animate-none":""}`}/>Refresh insights</Button>
  </div>
- {query.isPending&&<Loading label="Loading meeting insights" className="space-y-4"><div className="grid gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]"><div className="space-y-4 rounded-2xl border border-border p-5"><div className="flex items-center gap-2"><Skeleton className="h-5 w-5 rounded-md" /><Skeleton className="h-5 w-28" /></div><SkeletonLines lines={2} /><Skeleton className="h-24 w-full rounded-lg" /><SkeletonLines lines={3} /></div><div className="space-y-4 rounded-2xl border border-border bg-surface/40 p-5"><Skeleton className="h-5 w-24" /><SkeletonLines lines={3} /><Skeleton className="h-20 w-full rounded-lg" /></div></div></Loading>}<InsightError error={query.error}/>
- {data&&!data.enabled&&<p role="status" className="text-muted">Meeting insights are currently unavailable. Your recording and transcript remain usable.</p>}
+ {query.isPending&&<Loading label={isMeeting ? "Loading meeting insights" : "Loading AI Notes"} className="space-y-4"><div className="grid gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]"><div className="space-y-4 rounded-2xl border border-border p-5"><div className="flex items-center gap-2"><Skeleton className="h-5 w-5 rounded-md" /><Skeleton className="h-5 w-28" /></div><SkeletonLines lines={2} /><Skeleton className="h-24 w-full rounded-lg" /><SkeletonLines lines={3} /></div><div className="space-y-4 rounded-2xl border border-border bg-surface/40 p-5"><Skeleton className="h-5 w-24" /><SkeletonLines lines={3} /><Skeleton className="h-20 w-full rounded-lg" /></div></div></Loading>}<InsightError isMeeting={isMeeting} error={query.error}/>
+ {data&&!data.enabled&&<p role="status" className="text-muted">{isMeeting ? "Meeting insights are currently unavailable. Your recording and transcript remain usable." : "AI Notes are currently unavailable. Your transcript remains usable."}</p>}
  {data?.enabled&&!data.liveProcessingEnabled&&<p role="status" className="text-muted">Insight processing is paused. Queued work cannot run until the service owner enables processing.</p>}
  {data?.enabled&&!data.transcriptReady&&((data.transcriptVersion ?? transcriptVersion) !== null ? <p role="status" className="text-muted">No speech was detected in this recording.</p> : <p className="text-muted">Waiting for the current transcript before requesting insights.</p>)}
  {data&&<>
@@ -171,12 +172,12 @@ export function MeetingInsights({id,transcriptVersion,audioAvailable,onSeek}:{id
  <div className="min-w-0 space-y-5">
  <div className="flex flex-wrap items-center justify-between gap-3"><SummaryTemplatePicker templates={catalogue} value={templateId} onSelect={next=>void selectTemplate(next)}/>{data.activeRecap&&data.activeRecap.templateId!==templateId&&<p role="status" className="text-xs text-muted">{catalogue.find(t=>t.id===data.activeRecap?.templateId)?.label??"Another summary"} is processing.</p>}</div>
  {failures[token]&&<p role="alert" className="rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">{failures[token]}</p>}
- {leftData&&<InsightSection key={`summary:${id}:${templateId}:${currentVersion}`} id={id} kind={questionsOnly?"questions":"recap"} data={leftData} readFailed={query.isError} audioAvailable={audioAvailable} onSeek={onSeek} templateId={templateId} templateName={chosen?.label} showToolbar summaryLoading={!!busy[token]}/>}
+ {leftData&&<InsightSection key={`summary:${id}:${templateId}:${currentVersion}`} id={id} kind={questionsOnly?"questions":"recap"} data={leftData} readFailed={query.isError} audioAvailable={audioAvailable} onSeek={onSeek} templateId={templateId} templateName={chosen?.label} showToolbar summaryLoading={!!busy[token]} isMeeting={isMeeting} hasTimestamps={hasTimestamps}/>}
  </div>
  <aside className="min-w-0 space-y-4 border-t border-border pt-5 xl:border-l xl:border-t-0 xl:pl-6 xl:pt-0" aria-label="Detected questions">
- <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-base font-semibold">Questions</h3><SummaryToolbar result={null} meeting={data.meeting} questions={data.questions?.result??null} templateId="questions" questionsOnly disabled={questionQuery.isError||data.questions?.state!=="ready"||!!data.questions?.isStale}/></div>
- {data.viewPreferences?.enabled&&data.viewPreferences.speakerOptions.length>0&&<details className="rounded-md border border-border p-3"><summary className="cursor-pointer text-xs font-medium">Mark my speaker(s)</summary><p className="mt-2 text-xs text-muted">Choose your speaker labels to group your questions separately. This does not edit the transcript.</p><div className="mt-2 space-y-2">{data.viewPreferences.speakerOptions.map(s=><label key={s.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={data.viewPreferences!.selfSpeakerIds.includes(s.id)} disabled={saveView.isPending} onChange={e=>saveView.mutate({selfSpeakerIds:e.target.checked?[...data.viewPreferences!.selfSpeakerIds,s.id]:data.viewPreferences!.selfSpeakerIds.filter(id=>id!==s.id)})}/>{s.label}</label>)}</div></details>}
- <InsightError error={questionQuery.error??saveView.error}/><InsightSection key={`questions:${id}:${currentVersion}`} id={id} kind="questions" data={data} readFailed={questionQuery.isError||query.isError} audioAvailable={audioAvailable} onSeek={onSeek}/>
+ <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-base font-semibold">Questions</h3><SummaryToolbar hasTimestamps={hasTimestamps} isMeeting={isMeeting} result={null} meeting={data.meeting} questions={data.questions?.result??null} templateId="questions" questionsOnly disabled={questionQuery.isError||data.questions?.state!=="ready"||!!data.questions?.isStale}/></div>
+ {hasTimestamps&&data.viewPreferences?.enabled&&data.viewPreferences.speakerOptions.length>0&&<details className="rounded-md border border-border p-3"><summary className="cursor-pointer text-xs font-medium">Mark my speaker(s)</summary><p className="mt-2 text-xs text-muted">Choose your speaker labels to group your questions separately. This does not edit the transcript.</p><div className="mt-2 space-y-2">{data.viewPreferences.speakerOptions.map(s=><label key={s.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={data.viewPreferences!.selfSpeakerIds.includes(s.id)} disabled={saveView.isPending} onChange={e=>saveView.mutate({selfSpeakerIds:e.target.checked?[...data.viewPreferences!.selfSpeakerIds,s.id]:data.viewPreferences!.selfSpeakerIds.filter(id=>id!==s.id)})}/>{s.label}</label>)}</div></details>}
+ <InsightError isMeeting={isMeeting} error={questionQuery.error??saveView.error}/><InsightSection key={`questions:${id}:${currentVersion}`} id={id} kind="questions" data={data} readFailed={questionQuery.isError||query.isError} audioAvailable={audioAvailable} onSeek={onSeek} isMeeting={isMeeting} hasTimestamps={hasTimestamps}/>
  </aside></div></>}
- <EmailPreference/></section>;
+ {isMeeting&&<EmailPreference/>}</section>;
 }

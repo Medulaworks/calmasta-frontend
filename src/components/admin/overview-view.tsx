@@ -14,14 +14,16 @@ import { fmtMoney } from "@/lib/admin-money";
 import { formatMinutes } from "@/lib/status";
 import type { Overview } from "@/lib/admin-types";
 import { taskName } from "@/lib/admin-words";
-import { HealthStrip } from "./health-view";
 import { PeriodPicker } from "./period-picker";
 import { ClickRow, DetailsDialog, MenuTd, RowMenu, RowOpen } from "./row-menu";
 import { ActionDialog, DataTable, Metric, Notice, ResourceBoundary, Td, Th, useResource } from "./ui";
 
 type Data = Json<Overview>;
 type Job = Data["problems"][number];
-type NewOverview = { users: number; workspaces: number; activeCaptures: number; jobs: Array<{ kind: string; state: string; count: number }>; activeUsers: number | null; activeUsersReason: string | null };
+type NewOverview = { users: number; workspaces: number; activeCaptures: number; jobs: Array<{ kind: string; state: string; count: number }>; activeUsers: number | null; activeUsersReason: string | null;
+  environment?: string; meetings?: { total: number; failed: number }; minutes?: number;
+  cost?: { settledMicros: string; reservedMicros: string } | null;
+};
 
 const n = (v: number | null | undefined) => (v === null || v === undefined ? "–" : v.toLocaleString("en"));
 const NA = "Not available yet";
@@ -83,26 +85,21 @@ export function OverviewView() {
           const no = o as unknown as NewOverview;
           return (
             <div className="space-y-5">
-              <HealthStrip />
+              {no.environment && <p className="text-sm text-muted">Meeting, active capture and job totals are for {no.environment}. Account, usage and spend totals cover this database.</p>}
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 <Metric label="Users" value={n(no.users)} />
-                <Metric label="Workspaces" value={n(no.workspaces)} />
                 <Metric label="Active captures" value={n(no.activeCaptures)} />
                 <Metric label="Active users" value={no.activeUsers === null ? "–" : n(no.activeUsers)} hint={no.activeUsers === null ? (no.activeUsersReason ?? "Not available yet") : undefined} />
               </div>
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm text-muted">{spanText(period)}</p>
-                <PeriodPicker period={period} onChange={(p) => router.replace(`/admin${periodQuery(p)}`, { scroll: false })} />
-              </div>
+              <p className="text-sm text-muted">All-time totals. Active captures show the current state; active users cover the last 7 days.</p>
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 <Metric label="Users" value={n(no.users)} hint="Total" />
-                <Metric label="Paid subscribers" value="0" hint="Pro 0 · Business 0" />
-                <Metric label="Money made" value="$0" hint="Not available yet" />
-                <Metric label="Meetings" value="0" hint="All finished" />
-                <Metric label="Recordings" value="0" />
-                <Metric label="Hours processed" value="0h" />
-                <Metric label="Workspaces" value={n(no.workspaces)} />
-                <Metric label="Processing cost" value="$0" />
+                <Metric label="Paid subscribers" value="–" hint={NA} />
+                <Metric label="Money made" value="–" hint={NA} />
+                <Metric label="Meetings" value={n(no.meetings?.total)} hint={no.meetings ? `${n(no.meetings.failed)} failed` : NA} />
+                <Metric label="Recordings" value="–" hint={NA} />
+                <Metric label="Hours processed" value={no.minutes == null ? "–" : formatMinutes(no.minutes)} hint="Shared database usage" />
+                <Metric label="Processing cost" value={no.cost ? fmtMoney(Number(no.cost.settledMicros) / 10000) : "–"} hint={no.cost ? "Settled · shared database" : NA} />
               </div>
               <section className="space-y-3">
                 <h2 className="text-sm font-semibold">Problems to fix</h2>
@@ -128,7 +125,6 @@ export function OverviewView() {
         ];
         return (
           <div className="space-y-5">
-            <HealthStrip />
             {o.banner && <Notice tone={o.banner.level}>{o.banner.text} {o.paused && <Link href="/admin/usage" className="font-medium underline">Open Usage and cost to resume</Link>}</Notice>}
 
             <div className="space-y-3">

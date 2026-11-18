@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, tabId, tabPanelId } from "@/components/ui/tabs";
 import { ActionsPanel } from "@/components/actions-panel";
+import { ShareNotesDialog } from "@/components/sharing/share-notes-dialog";
 import { MeetingVideo } from "./meeting-video";
 import { MeetingPanel } from "@/components/meeting-panel";
 import { TranscriptEditor } from "@/components/transcript-editor";
@@ -84,8 +85,10 @@ export function CaptureDetail({
   const [audioSeconds, setAudioSeconds] = useState<number | null>(null);
   // The template the user picked, else the one that suits their role, else a sensible general one.
   const [picked, setTemplate] = useState<string | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
   const template = picked ?? profile?.defaultTemplate ?? TEMPLATE_CHOICES[1].id;
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [mountedNow] = useState(() => Date.now());
   const meetingAudio = useRef<HTMLAudioElement>(null);
   const [seekTarget, setSeekTarget] = useState<{ captureId: string; startMs: number } | null>(null);
   const appliedSeek = useRef<typeof seekTarget>(null);
@@ -206,12 +209,13 @@ export function CaptureDetail({
   }
 
   const ready = cap.state === "ready_to_review" || cap.state === "completed";
-  const Icon = cap.source === "meeting_url" ? Video : Mic;
+  const importedText = cap.source === "transcript_upload";
+  const Icon = cap.source === "meeting_url" ? Video : importedText ? FileText : Mic;
   const meetingActive =
     cap.source === "meeting_url" && isMeetingActive(cap.status);
   // Land on the transcript once there is one; until then the recording tab shows what is happening.
   const asked = search.get("tab");
-  const tab: TabId = (TABS as readonly string[]).includes(asked ?? "")
+  const tab: TabId = importedText && asked === "recording" ? "transcript" : (TABS as readonly string[]).includes(asked ?? "")
     ? (asked as TabId)
     : ready
       ? "transcript"
@@ -238,7 +242,7 @@ export function CaptureDetail({
                 {status.label}
               </Badge>
               <span>
-                {cap.source === "meeting_url"
+                {importedText ? "Imported transcript" : cap.source === "meeting_url"
                   ? "Meeting"
                   : cap.source === "voice_recording"
                     ? "Recorded in browser"
@@ -252,6 +256,7 @@ export function CaptureDetail({
           </div>
         </div>
         <div className="flex gap-2">
+          <Button variant="ghost" onClick={() => setShareOpen(true)}>Share notes</Button>
           {meetingActive && (
             <Button onClick={() => void cancelMeeting()} disabled={cancelMutation.isPending}>Cancel capture</Button>
           )}
@@ -264,9 +269,10 @@ export function CaptureDetail({
             </Button>
           )}
         </div>
+        {shareOpen && <ShareNotesDialog captureId={id} open={shareOpen} onClose={() => setShareOpen(false)} />}
       </header>
 
-      {(() => {
+      {!importedText && (() => {
         const ext = cap as unknown as {botName?:string|null;meetingUrl?:string|null;meeting_url?:string|null;durationSeconds?:number|null;participants?:Array<{name:string;role?:string}>;metadata?:Record<string,unknown>};
         const meetingUrl = ext.meetingUrl ?? ext.meeting_url ?? null;
         const usage = ext.durationSeconds != null ? formatDuration(ext.durationSeconds) : null;
@@ -298,6 +304,20 @@ export function CaptureDetail({
           className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
           {displayError}
         </p>
+      )}
+      {status.active && mountedNow - new Date(cap.createdAt).getTime() > 15 * 60 * 1000 && (
+        <div
+          role="status"
+          className="flex flex-col gap-2 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning sm:flex-row sm:items-center sm:justify-between">
+          <span>Processing is taking longer than usual. You can wait for it to complete or delete it and try again.</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setConfirmDelete(true)}
+            className="shrink-0 text-warning hover:bg-warning/20">
+            Delete recording
+          </Button>
+        </div>
       )}
       {cap.state === "failed" && cap.failureReason && (
         <p
@@ -331,21 +351,23 @@ export function CaptureDetail({
         </div>
       )}
 
-      {cap.source === "meeting_url" && <MeetingInsights
+      <MeetingInsights
         key={cap.id}
         id={cap.id}
+        isMeeting={cap.source === "meeting_url"}
+        hasTimestamps={!importedText}
         transcriptVersion={cap.transcriptVersion}
-        audioAvailable={!!cap.audio?.url}
+        audioAvailable={!importedText && !!cap.audio?.url}
         onSeek={startMs => {
           setSeekTarget({ captureId: cap.id, startMs });
           router.replace("?tab=recording", { scroll: false });
         }}
-      />}
+      />
 
       <Tabs
         label="Conversation"
         items={[
-          { id: "recording", label: "Recording" },
+          ...(!importedText ? [{ id: "recording", label: "Recording" }] : []),
           { id: "transcript", label: "Transcript" },
           { id: "documents", label: "Documents", count: cap.documents.length },
           {
@@ -407,7 +429,7 @@ export function CaptureDetail({
         </div>
       )}
 
-      {tab === "recording" && cap.source !== "meeting_url" && (
+      {tab === "recording" && cap.source !== "meeting_url" && !importedText && (
         <div
           role="tabpanel"
           id={tabPanelId("recording")}
@@ -420,6 +442,7 @@ export function CaptureDetail({
                 <>
                   {/* Signed URL valid ~5m — detail polling renews it. */}
                   <audio
+                    ref={meetingAudio}
                     controls
                     preload="metadata"
                     src={cap.audio.url}

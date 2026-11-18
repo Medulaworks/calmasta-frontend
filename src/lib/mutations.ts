@@ -34,6 +34,10 @@ import {
 import { markNotificationsRead } from "./notifications-client";
 import { adminPost } from "./admin-client";
 import { qk } from "./queries";
+import { updatePolicy, previewPolicy, previewGlobalBudget, updateGlobalBudget } from "./product-policy-client";
+import { stopCapture } from "./capture-admin-client";
+import { createPublication, createLink, revokeLink, createGrant, revokeGrant, sendGrant } from "./sharing-client";
+import { patchCapturePreferences } from "./capture-preferences-client";
 
 export function useSaveProfile() {
   const qc = useQueryClient();
@@ -83,8 +87,8 @@ export function useUploadAudio() {
 export function useRequestMeeting() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (vars: { url: string; consent: boolean; title?: string; botName?: string; video: boolean; seconds: number }) =>
-      requestMeetingCapture(vars.url, vars.consent, vars.title, vars.video, { maxDurationSeconds: vars.seconds, botName: vars.botName }),
+    mutationFn: (vars: { url: string; consent: boolean; title?: string; titleMode?: "auto" | "manual"; botName?: string; video: boolean; seconds: number }) =>
+      requestMeetingCapture(vars.url, vars.consent, vars.title, vars.video, { maxDurationSeconds: vars.seconds, botName: vars.botName, titleMode: vars.titleMode }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["captures"] });
       qc.invalidateQueries({ queryKey: qk.usage() });
@@ -289,12 +293,99 @@ export function useMarkNotificationsRead() {
   });
 }
 
-// admin
+// admin — FE-CP-01: stable Idempotency-Key per mutation, 409 preserves draft, 503 shows unavailable
 export function useAdminPost() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ url, body }: { url: string; body: unknown }) => adminPost(url, body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin"] }),
+  });
+}
+
+export function useUpdatePolicy() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { expectedVersion: number; changes: Parameters<typeof updatePolicy>[1]; reason: string; key?: string }) =>
+      updatePolicy(vars.expectedVersion, vars.changes, vars.reason, vars.key ?? crypto.randomUUID()),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.productPolicy() }),
+  });
+}
+export function usePreviewPolicy() {
+  return useMutation({
+    mutationFn: (vars: { expectedVersion: number; changes: Parameters<typeof previewPolicy>[1] }) => previewPolicy(vars.expectedVersion, vars.changes),
+  });
+}
+export function useUpdateGlobalBudget() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { expectedVersion: number; limitMicros: string; reason: string; key?: string }) =>
+      updateGlobalBudget(vars.expectedVersion, vars.limitMicros, vars.reason, vars.key ?? crypto.randomUUID()),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.productPolicy() }),
+  });
+}
+export function usePreviewGlobalBudget() {
+  return useMutation({
+    mutationFn: (vars: { expectedVersion: number; limitMicros: string }) => previewGlobalBudget(vars.expectedVersion, vars.limitMicros),
+  });
+}
+export function useStopCaptureAdmin() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; expectedVersion: number; reason: string; key?: string }) =>
+      stopCapture(vars.id, { expectedVersion: vars.expectedVersion, reason: vars.reason }, vars.key ?? crypto.randomUUID()),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "captures"] }),
+  });
+}
+export function useCreatePublicationM() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { captureId: string; body: Parameters<typeof createPublication>[1]; key?: string }) =>
+      createPublication(vars.captureId, vars.body, vars.key ?? crypto.randomUUID()),
+    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: qk.sharing(vars.captureId) }),
+  });
+}
+export function useCreateLinkM() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { captureId: string; body: Parameters<typeof createLink>[1]; key?: string }) =>
+      createLink(vars.captureId, vars.body, vars.key ?? crypto.randomUUID()),
+    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: qk.sharing(vars.captureId) }),
+  });
+}
+export function useRevokeLinkM() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { captureId: string; linkId: string; body: Parameters<typeof revokeLink>[2] }) => revokeLink(vars.captureId, vars.linkId, vars.body),
+    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: qk.sharing(vars.captureId) }),
+  });
+}
+export function useCreateGrantM() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { captureId: string; body: Parameters<typeof createGrant>[1]; key?: string }) =>
+      createGrant(vars.captureId, vars.body, vars.key ?? crypto.randomUUID()),
+    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: qk.sharing(vars.captureId) }),
+  });
+}
+export function useRevokeGrantM() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { captureId: string; grantId: string; body: Parameters<typeof revokeGrant>[2] }) =>
+      revokeGrant(vars.captureId, vars.grantId, vars.body),
+    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: qk.sharing(vars.captureId) }),
+  });
+}
+export function useSendGrantM() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { captureId: string; grantId: string }) => sendGrant(vars.captureId, vars.grantId),
+  });
+}
+export function usePatchCapturePreferencesM() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Parameters<typeof patchCapturePreferences>[0]) => patchCapturePreferences(body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.capturePreferences() }),
   });
 }
 

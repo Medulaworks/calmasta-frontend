@@ -11,6 +11,16 @@ class UploadXHR{
 }
 afterEach(()=>{vi.unstubAllGlobals();fetcher.mockReset();UploadXHR.calls=[];UploadXHR.status=200;});
 function setup(){vi.stubGlobal("fetch",fetcher);vi.stubGlobal("XMLHttpRequest",UploadXHR);}
+it("uploads an MP4 audio container labelled as MP3 using its actual format and unchanged bytes",async()=>{
+ setup();const bytes=new Uint8Array([0,0,0,24,102,116,121,112,77,52,65,32,0,0,0,0,77,52,65,32,105,115,111,109]);
+ fetcher.mockImplementation(async(url:string,init?:RequestInit)=>{
+  if(url.endsWith("policy"))return json(policy);
+  if(url==="/api/uploads"){expect(JSON.parse(init!.body as string)).toMatchObject({contentType:"audio/mp4",sizeBytes:bytes.length,sha256:createHash("sha256").update(bytes).digest("hex")});return json({id:"m4a-upload",captureId:"m4a-capture",state:"awaiting_upload",upload:{url:"https://r2.invalid/put",headers:{"Content-Type":"audio/mp4","Content-Length":String(bytes.length)}}});}
+  return json({captureId:"m4a-capture"});
+ });
+ await expect(uploadAudio({blob:new Blob([bytes],{type:"audio/mpeg"}),filename:"audio - Copy.mp3",title:"",source:"audio_upload",consent:true},()=>{})).resolves.toBe("m4a-capture");
+ expect(UploadXHR.calls[0].headers["Content-Type"]).toBe("audio/mp4");
+});
 it("uploads hashed bytes with signed headers and uses upload ID for idempotent completion",async()=>{
  setup();let intents=0,completes=0;const input={blob:new Blob(["hello"],{type:"audio/webm;codecs=opus"}),filename:"recording.webm",title:"Review",source:"voice_recording" as const,consent:true};
  fetcher.mockImplementation(async(url:string,init?:RequestInit)=>{if(url==="/api/uploads/policy")return json(policy);if(url==="/api/uploads"){intents++;const body=JSON.parse(init!.body as string);expect(body).toEqual({contentType:"audio/webm",sizeBytes:5,sha256:createHash("sha256").update("hello").digest("hex"),consent:true,title:"Review"});expect(new Headers(init?.headers).get("Idempotency-Key")).toBeTruthy();return json({id:"upload-id",captureId:"capture-id",state:"awaiting_upload",upload:{url:"https://r2.invalid/put",headers:{"Content-Type":"audio/webm","Content-Length":"5","If-None-Match":"*","x-amz-checksum-sha256":"signed-checksum"}}});}expect(url).toBe("/api/uploads/upload-id/complete");completes++;expect(new Headers(init?.headers).get("Idempotency-Key")).toBeTruthy();if(completes===1)throw new TypeError("connection lost");return json({captureId:"capture-id"});});
@@ -29,7 +39,7 @@ it("meeting requests and retries bind renewed consent, duration and stable opera
  setup();fetcher.mockImplementation(async(url:string)=>url.endsWith("policy")?json(policy):json({id:"meeting",state:"queued"}));
  await expect(requestMeetingCapture("https://meet.google.com/abc-defg-hij",false)).rejects.toThrow();expect(fetcher).not.toHaveBeenCalled();
  await requestMeetingCapture("https://meet.google.com/abc-defg-hij",true,"Planning",false,{maxDurationSeconds:60,idempotencyKey:"meeting-key"});
- const create=fetcher.mock.calls.find(([url])=>url==="/api/captures/meetings")!;expect(JSON.parse(create[1].body)).toEqual({meetingUrl:"https://meet.google.com/abc-defg-hij",maxDurationSeconds:60,consent:true,title:"Planning"});expect(new Headers(create[1].headers).get("Idempotency-Key")).toBe("meeting-key");
+ const create=fetcher.mock.calls.find(([url])=>url==="/api/captures/meetings")!;expect(JSON.parse(create[1].body)).toEqual({meetingUrl:"https://meet.google.com/abc-defg-hij",maxDurationSeconds:60,consent:true,title:"Planning",titleMode:"manual"});expect(new Headers(create[1].headers).get("Idempotency-Key")).toBe("meeting-key");
  await retryMeeting("old",true);await retryMeeting("old",true);const retries=fetcher.mock.calls.filter(([url])=>url.endsWith("/retry"));expect(JSON.parse(retries[0][1].body)).toEqual({consent:true});expect(new Headers(retries[0][1].headers).get("Idempotency-Key")).toBe(new Headers(retries[1][1].headers).get("Idempotency-Key"));
  await expect(requestMeetingCapture("https://meet.google.com/abc-defg-hij",true,undefined,true)).rejects.toThrow();
 });

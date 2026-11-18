@@ -17,7 +17,7 @@ import { type Dashboard } from "@/lib/dashboard-types";
 import { TEMPLATE_CHOICES } from "@/lib/documents-client";
 import { dashboardQuery } from "@/lib/queries";
 import { getProfile, saveProfile } from "@/lib/profile-client";
-import { DUMMY_PLAN, fetchPlan, formatDate } from "@/lib/plan-client";
+import { DUMMY_PLAN, fetchPlan, formatDate, formatNullableMinutes, orZero } from "@/lib/plan-client";
 import { PLAN_LABEL, isPaidPlan } from "@/lib/plan-types";
 import { ROLES } from "@/lib/roles";
 import { formatMinutes } from "@/lib/status";
@@ -245,8 +245,8 @@ export function ProfileView() {
   const name = profile.name?.trim() || profile.email;
   const role = ROLES.find((r) => r.id === profile.role)?.label;
   const plan = planData ?? null;
-  const total = plan ? plan.allowanceMinutes + plan.purchasedMinutes : 0;
-  const usedPct = plan && total > 0 ? Math.min(100, Math.round((Math.max(0, total - plan.remainingMinutes) / total) * 100)) : 0;
+  const total = plan ? orZero(plan.allowanceMinutes) + orZero(plan.purchasedMinutes) : 0;
+  const usedPct = plan && total > 0 ? Math.min(100, Math.round((Math.max(0, total - orZero(plan.remainingMinutes)) / total) * 100)) : 0;
   const paid = plan ? isPaidPlan(plan.plan.plan) : false;
 
   const tiles = [
@@ -299,7 +299,7 @@ export function ProfileView() {
                 <div className="flex flex-wrap items-end justify-between gap-3">
                   <div>
                     <p className="text-sm text-muted">{PLAN_LABEL[plan.plan.plan]} plan</p>
-                    <p className="mt-1 text-3xl font-semibold tracking-tight tabular-nums">{plan.exhausted ? "Used up" : formatMinutes(plan.remainingMinutes)} <span className="text-sm font-normal text-muted">{plan.exhausted ? "" : `left of ${formatMinutes(total)}`}</span></p>
+                    <p className="mt-1 text-3xl font-semibold tracking-tight tabular-nums">{plan.exhausted ? "Used up" : formatNullableMinutes(plan.remainingMinutes)} <span className="text-sm font-normal text-muted">{plan.exhausted ? "" : `left of ${formatMinutes(total)}`}</span></p>
                   </div>
                   <ButtonLink href="/dashboard/plan" variant={paid ? "secondary" : "primary"}>{paid ? "Manage plan" : "Upgrade to Pro"}</ButtonLink>
                 </div>

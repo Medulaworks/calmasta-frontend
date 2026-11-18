@@ -38,7 +38,7 @@ import {
   ThemeSwatches,
 } from "@/components/theme/theme-picker";
 import { Avatar } from "@/components/ui/avatar";
-import { DUMMY_PLAN, type PlanSummary, formatDate } from "@/lib/plan-client";
+import { DUMMY_PLAN, type PlanSummary, formatDate, formatNullableMinutes, orZero } from "@/lib/plan-client";
 import { PLAN_LABEL, isPaidPlan } from "@/lib/plan-types";
 import { type NotificationItem } from "@/lib/notifications-client";
 import { useMarkNotificationsRead } from "@/lib/mutations";
@@ -241,11 +241,13 @@ function PlanCard({
     );
   }
   const pro = isPaidPlan(displayPlan.plan.plan);
+  const allowance = orZero(displayPlan.allowanceMinutes);
+  const bought = orZero(displayPlan.purchasedMinutes);
   const pct =
-    displayPlan.allowanceMinutes > 0
+    allowance > 0
       ? Math.min(
           100,
-          Math.round((displayPlan.usedMinutes / displayPlan.allowanceMinutes) * 100),
+          Math.round((displayPlan.usedMinutes / allowance) * 100),
         )
       : 100;
   const status =
@@ -277,20 +279,20 @@ function PlanCard({
           </span>
         </div>
         <div className="mt-4">
-          <Bar pct={pct} exhausted={displayPlan.exhausted} />
+          <Bar pct={pct} exhausted={displayPlan.exhausted ?? false} />
           <p className="mt-2 text-sm">
             <span className="font-medium tabular-nums">
-              {formatMinutes(displayPlan.remainingMinutes)} left
+              {formatNullableMinutes(displayPlan.remainingMinutes)} left
             </span>
             <span className="text-muted">
               {" "}
-              of {formatMinutes(displayPlan.allowanceMinutes + displayPlan.purchasedMinutes)}
+              of {formatMinutes(allowance + bought)}
             </span>
           </p>
           <p className="mt-1 text-xs text-muted">
             Resets {formatDate(displayPlan.resetsAt, displayPlan.timezone)}
-            {displayPlan.purchasedMinutes > 0
-              ? ` · includes ${formatMinutes(displayPlan.purchasedMinutes)} bought`
+            {bought > 0
+              ? ` · includes ${formatMinutes(bought)} bought`
               : ""}
           </p>
         </div>

@@ -6,3 +6,9 @@ it("exports selected structured sections and evidence without internal accountin
  expect(text).toContain("## Budget");expect(text).toContain("Nested detail");expect(text).toContain("Alex: Review");expect(text).toContain("https://app.example/dashboard/captures/m#recording-audio");expect(text).not.toContain("reservedCost");
  expect(insightFilename("../Planning:/","sales-bant","txt")).not.toMatch(/[/:]/);
 });
+
+it("exports imported AI Notes and Q&A without invented timestamps or speakers",()=>{
+ const questions={coverage:"ai_extraction_not_guaranteed_exhaustive" as const,formatVersion:2 as const,questions:[{text:"What next?",sources:[{segmentId:"text",startMs:0,endMs:0,speakerId:null}],answers:[{text:"Review the draft",sources:[{segmentId:"text",startMs:0,endMs:0,speakerId:null}]}]}]};
+ const text=formatInsightExport(null,undefined,questions,"txt","",{hasTimestamps:false,isMeeting:false});
+ expect(text).toContain("What next?");expect(text).toContain("Review the draft");expect(text).not.toContain("0:00");expect(text).not.toContain("Speaker:");
+});

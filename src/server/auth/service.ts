@@ -110,8 +110,9 @@ export class AuthService {
   }
   return this.setCookie(res,this.config.transactionCookie,"",0);
  }
- private async session(req:Request){
-  const id=readCookie(req,this.config.sessionCookie);if(!id)return null;
+ private async session(req:Request,admin=false){
+  const cookieName=admin&&this.config.adminSessionCookie?this.config.adminSessionCookie:this.config.sessionCookie;
+  const id=readCookie(req,cookieName);if(!id)return null;
   return this.store.session(hashId(id),async previous=>{
    if(previous.accessExpiresAt>Date.now()+30000)return previous;if(!previous.refreshToken)return null;
    const context=bffContext.getStore();if(context)context.stage="session_refresh";
@@ -119,6 +120,7 @@ export class AuthService {
    const tokens=await res.json();return {...previous,accessToken:tokens.accessToken,refreshToken:tokens.refreshToken,accessExpiresAt:Date.now()+tokens.expiresIn*1000};
   });
  }
+ private async adminSession(req:Request){return this.session(req,true);}
  private async profile(session:SessionData):Promise<Profile>{
   const res=await this.api(session,"/account/me");if(!res.ok){if(res.status===401)console.warn(JSON.stringify({event:"profile_session_rejected",endpoint:"/account/me",reason:"access_token_rejected"}));throw new HttpError(res.status===401?401:502,"Account is unavailable");}const p=await res.json() as Profile;
   if(p.userId!==session.subject)throw new HttpError(401,"Account identity mismatch");return p;
@@ -189,22 +191,24 @@ export class AuthService {
     try {
       if (!["GET", "POST", "PATCH", "PUT", "DELETE"].includes(request.method)) throw new HttpError(405, "Method not allowed");
       if (request.method !== "GET") this.checkOrigin(request);
-      const allowed = new Set(["uploads", "jobs", "usage", "account", "dashboard", "captures", "documents", "library", "calendar", "booking", "plan", "admin", "notifications", "public"]);
+      const allowed = new Set(["uploads", "jobs", "usage", "account", "dashboard", "captures", "documents", "library", "calendar", "booking", "commerce", "plan", "admin", "notifications", "public", "shared-notes"]);
       if (!allowed.has(segments[0]) || segments.some(s => !/^[A-Za-z0-9_-]+$/.test(s))) throw new HttpError(404, "API route not found");
       const isPublicRoute = segments[0] === "public";
-      const session = await this.session(request);
-      if (!session && !isPublicRoute) return this.unauthorized();
+      const isAdminRoute = segments[0] === "admin";
+      const session = isAdminRoute ? await this.adminSession(request) : await this.session(request);
+      if (!session && !isPublicRoute) return isAdminRoute ? this.unauthorizedAdmin() : this.unauthorized();
       const transcriptEdit=request.method==="PATCH"&&segments.length===4&&segments[0]==="library"&&segments[1]==="captures"&&segments[3]==="transcript";
+      const transcriptImport=request.method==="POST"&&segments.length===2&&segments[0]==="captures"&&segments[1]==="transcripts";
       const bodylessInsight = request.method === "POST" && segments.length === 3 && segments[0] === "captures" && ["recap", "questions"].includes(segments[2]);
       if (bodylessInsight) await assertEmptyBody(request);
-      const body = request.method === "GET" || bodylessInsight || request.method === "DELETE" && !request.body ? undefined : await readJson(request,transcriptEdit?262144:16384);
+      const body = request.method === "GET" || bodylessInsight || request.method === "DELETE" && !request.body ? undefined : await readJson(request,transcriptImport||transcriptEdit?1048576:16384);
       const url = new URL(request.url);
       const pathAndQuery = "/" + segments.map(encodeURIComponent).join("/") + url.search;
       bffContext.getStore()!.stage="api_request";
       const upstream = isPublicRoute
         ? await this.upstream(pathAndQuery, request.method, body, undefined, request.headers.get("idempotency-key") ?? undefined)
         : await this.api(session!, pathAndQuery, request.method, body, request.headers.get("idempotency-key") ?? undefined);
-      if (upstream.status === 401) return this.unauthorized();
+      if (upstream.status === 401) return isAdminRoute ? this.unauthorizedAdmin() : this.unauthorized();
       if (upstream.status === 204) return new Response(null, { status: 204, headers });
       bffContext.getStore()!.stage="api_response";
       const result = await upstream.json();
@@ -242,25 +246,29 @@ export class AuthService {
    const res=await this.upstream("/admin/auth/login","POST",{email:body.email,password:body.password},undefined,undefined,this.clientIp(req));
    if(!res.ok){const data=await res.json().catch(()=>({}));const code=typeof data.code==="string"?data.code:undefined;const corr=res.headers.get("x-correlation-id")??undefined;return json({code:code??"authentication_failed",correlationId:corr},res.status);}
    const data=await res.json() as Credentials & {principal?:unknown};
-   return this.establishSession(req,data);
+   // Admin uses isolated cookie so dashboard session is untouched
+   const value:SessionData={subject:data.user.id,accessToken:data.accessToken,refreshToken:data.refreshToken,accessExpiresAt:Date.now()+data.expiresIn*1000,email:data.user.email,emailVerified:data.user.emailVerified,identityName:data.user.name};
+   const profile=await this.profile(value);const id=opaqueId();await this.store.putSession(hashId(id),value,Date.now()+30*86400000);
+   return this.setCookie(json({ok:true,onboarded:profile.onboarded,emailVerified:profile.emailVerified}),this.config.adminSessionCookie!,id,30*86400);
   }catch(e){return this.error(e);}
  }
  async adminLogout(req:Request){
   try{
    this.checkOrigin(req);
-   const session=await this.session(req);if(!session)return this.unauthorized();
+   const session=await this.adminSession(req);if(!session)return this.unauthorizedAdmin();
    const res=await this.upstream("/admin/auth/logout","POST",{},session,undefined,this.clientIp(req));
    if(!res.ok&&res.status!==401){const data=await res.json().catch(()=>({}));return json({code:data.code??"logout_failed",correlationId:res.headers.get("x-correlation-id")??undefined},res.status);}
-   const id=readCookie(req,this.config.sessionCookie);if(id)await this.store.revoke(hashId(id),false);
-   const out=json({ok:true});return this.setCookie(out,this.config.sessionCookie,"",0);
+   const id=readCookie(req,this.config.adminSessionCookie!);if(id)await this.store.revoke(hashId(id),false);
+   const out=json({ok:true});return this.setCookie(out,this.config.adminSessionCookie!,"",0);
   }catch(e){return this.error(e);}
  }
+ private unauthorizedAdmin(){return this.setCookie(json({error:"Your admin session expired. Please sign in again."},401),this.config.adminSessionCookie!,"",0);}
  async adminMe(req:Request){
   try{
    if(req.method!=="GET")throw new HttpError(405,"Method not allowed");
-   const session=await this.session(req);if(!session)return this.unauthorized();
+   const session=await this.adminSession(req);if(!session)return this.unauthorizedAdmin();
    const res=await this.upstream("/admin/me","GET",undefined,session,undefined,this.clientIp(req));
-   if(res.status===401)return this.unauthorized();
+   if(res.status===401)return this.unauthorizedAdmin();
    const data=await res.json().catch(()=>({}));if(!res.ok)return json({code:data.code??"request_failed",correlationId:res.headers.get("x-correlation-id")??undefined},res.status);
    return json({id:data.id,name:data.name,email:data.email,email_verified:data.email_verified,emailVerified:data.emailVerified??data.email_verified,role:data.role,permissions:data.permissions});
   }catch(e){return this.error(e);}
@@ -268,9 +276,9 @@ export class AuthService {
  async adminCapabilities(req:Request){
   try{
    if(req.method!=="GET")throw new HttpError(405,"Method not allowed");
-   const session=await this.session(req);if(!session)return this.unauthorized();
+   const session=await this.adminSession(req);if(!session)return this.unauthorizedAdmin();
    const res=await this.upstream("/admin/capabilities","GET",undefined,session,undefined,this.clientIp(req));
-   if(res.status===401)return this.unauthorized();
+   if(res.status===401)return this.unauthorizedAdmin();
    const data=await res.json().catch(()=>({}));if(!res.ok)return json({code:data.code??"request_failed",correlationId:res.headers.get("x-correlation-id")??undefined},res.status);
    return json(data);
   }catch(e){return this.error(e);}

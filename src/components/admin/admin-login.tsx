@@ -13,7 +13,7 @@ const FIELD =
 const safeReturn = (p: string | null) => (p && p.startsWith("/admin") && !p.includes("//") && !p.includes("\\") ? p : "/admin");
 
 const post = (path: string, body: unknown) =>
-  fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), credentials: "same-origin" });
 
 export function AdminLogin() {
   const router = useRouter();

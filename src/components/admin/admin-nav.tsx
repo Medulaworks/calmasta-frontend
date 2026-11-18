@@ -1,4 +1,4 @@
-import { CreditCard, House, ScrollText, Settings2, Users } from "lucide-react";
+import { CreditCard, House, ScrollText, Settings2, ShieldCheck, Users, Video } from "lucide-react";
 
 const A = "/admin";
 
@@ -15,6 +15,12 @@ export const SECTIONS = [
       { href: A, label: "Summary", exact: true },
       { href: `${A}/health`, label: "System status" },
     ],
+  },
+  {
+    id: "captures",
+    label: "Captures",
+    Icon: Video,
+    tabs: [{ href: `${A}/captures`, label: "Captures" }],
   },
   {
     id: "users",
@@ -45,7 +51,6 @@ export const SECTIONS = [
     tabs: [
       { href: `${A}/settings`, label: "Limits and switches" },
       { href: `${A}/integrations`, label: "Connected services" },
-      { href: `${A}/admins`, label: "Admins" },
     ],
   },
   {
@@ -53,6 +58,12 @@ export const SECTIONS = [
     label: "Activity",
     Icon: ScrollText,
     tabs: [{ href: `${A}/audit`, label: "Activity" }],
+  },
+  {
+    id: "admins",
+    label: "Admins",
+    Icon: ShieldCheck,
+    tabs: [{ href: `${A}/admins`, label: "Admins" }],
   },
 ] as const;
 

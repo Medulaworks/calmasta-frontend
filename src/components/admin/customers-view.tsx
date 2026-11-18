@@ -12,6 +12,7 @@ import type { CustomerDetail, UserExtras } from "@/lib/admin-types";
 import { RowMenu } from "./row-menu";
 import { DataTable, Notice, ResourceBoundary, Td, Th, useResource } from "./ui";
 import { DevicesAndWorkspaces, type UserDialogKind, UserDialogs, userMenuItems } from "./user-admin";
+import { Customer360, type Customer360Data } from "./customer-360";
 
 type Customer = Json<CustomerDetail> & Json<UserExtras>;
 type NewCustomer = { user: { id: string; name: string | null; email: string; emailVerified: boolean; timezone: string | null; isStaff: boolean; suspendedAt: string | null; createdAt: string }; workspaces: Array<{ id: string; plan: string; role: string; processingPaused: boolean }> };
@@ -43,24 +44,8 @@ export function CustomerDetail({ id }: { id: string }) {
                 </div>
                 <RowMenu label="Actions for this account" items={userMenuItems(user, setDialog)} trigger="Actions ▾" />
               </div>
-              <Card>
-                <CardHeader title="Account" />
-                <dl className="grid gap-x-6 gap-y-3 p-5 text-sm sm:grid-cols-2">
-                  <Row label="Joined">{fmtUtc(nc.user.createdAt)}</Row>
-                  <Row label="Time zone">{nc.user.timezone ?? "–"}</Row>
-                  <Row label="Staff">{nc.user.isStaff ? "Yes" : "No"}</Row>
-                  <Row label="Suspended">{nc.user.suspendedAt ? fmtUtc(nc.user.suspendedAt) : "No"}</Row>
-                </dl>
-                <p className="flex items-center gap-2 border-t border-border px-5 py-3 text-xs text-muted"><Lock aria-hidden className="size-4 shrink-0" /> Recordings and documents aren&rsquo;t visible to admins.</p>
-              </Card>
-              <Card>
-                <CardHeader title="Workspaces" />
-                {nc.workspaces.length === 0 ? <p className="p-5 text-sm text-muted">No workspaces.</p> : (
-                  <ul className="divide-y divide-border text-sm">
-                    {nc.workspaces.map((w) => <li key={w.id} className="flex items-center justify-between gap-3 px-5 py-3"><span className="truncate font-medium">{w.id.slice(0, 8)} · {w.plan} · {w.role}</span><Badge tone={w.processingPaused ? "warning" : "success"}>{w.processingPaused ? "paused" : "active"}</Badge></li>)}
-                  </ul>
-                )}
-              </Card>
+              <p className="flex items-center gap-2 text-xs text-muted"><Lock aria-hidden className="size-4 shrink-0" /> Recordings and documents aren&rsquo;t visible to admins — operational metadata only.</p>
+              <Customer360 id={id} data={c as unknown as Customer360Data} />
               <UserDialogs user={user} dialog={dialog} onClose={() => setDialog(null)} onDone={(message) => { toasts.push({ tone: "success", message }); res.reload(); }} />
               <ToastStack items={toasts.items} onDismiss={toasts.dismiss} />
             </div>

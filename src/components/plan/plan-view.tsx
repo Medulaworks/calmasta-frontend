@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useEffect, useId, useState } from "react";
 import { buttonClass } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
-import { type PlanSummary, fetchPlan, formatDate } from "@/lib/plan-client";
+import { type CreditPackView, type PlanSummary, fetchPlan, formatDate, formatNullableMinutes, orZero, totalRemainingMinutes } from "@/lib/plan-client";
 import { PLAN_LABEL, type PaidPlanId, isPaidPlan } from "@/lib/plan-types";
 import { annualPrice, formatPrice, yearlyTotal } from "@/lib/pricing";
 import { formatMinutes } from "@/lib/status";
@@ -231,21 +231,25 @@ export function PlanView() {
   const current = plan.plan.plan;
   const paid = isPaidPlan(current);
   const tz = plan.timezone;
-  const { currency, proMonthly, businessMonthly, annualDiscountPct } =
-    plan.pricing;
+  const pricing = plan.pricing;
   const annual = billing === "annual";
-  const proPerMonth = annual
-    ? annualPrice(proMonthly, annualDiscountPct)
-    : proMonthly;
-  const businessPerMonth = annual
-    ? annualPrice(businessMonthly, annualDiscountPct)
-    : businessMonthly;
+  const proPerMonth = pricing
+    ? annual
+      ? annualPrice(pricing.proMonthly, pricing.annualDiscountPct)
+      : pricing.proMonthly
+    : 0;
+  const businessPerMonth = pricing
+    ? annual
+      ? annualPrice(pricing.businessMonthly, pricing.annualDiscountPct)
+      : pricing.businessMonthly
+    : 0;
   const pending = plan.plan.status === "pending_activation";
   const grace = plan.plan.status === "grace";
+  const paused = plan.paused;
 
-  const freeH = formatMinutes(plan.freeAllowanceMinutes);
-  const proH = formatMinutes(plan.proAllowanceMinutes);
-  const businessH = formatMinutes(plan.businessAllowanceMinutes);
+  const freeH = formatNullableMinutes(plan.freeAllowanceMinutes);
+  const proH = formatNullableMinutes(plan.proAllowanceMinutes);
+  const businessH = formatNullableMinutes(plan.businessAllowanceMinutes);
   const times = (a: number, b: number) =>
     Math.max(1, Math.round(a / Math.max(1, b)));
 
@@ -297,11 +301,9 @@ export function PlanView() {
     );
   };
 
-  const packHref = (sku: string) =>
-    plan.checkoutUrl ??
-    (plan.testCheckout
-      ? `/dashboard/plan/test-checkout?pack=${encodeURIComponent(sku)}`
-      : null);
+  // Extra hours are bought through the capability-aware billing flow, which
+  // shows each offer's availability from the server catalogue.
+  const packHref = () => "/dashboard/billing";
   const label = PLAN_LABEL[current];
 
   return (
@@ -319,13 +321,26 @@ export function PlanView() {
         </p>
       )}
 
-      {grace && plan.plan.graceUntil && (
+      {grace && (
         <p
           role="alert"
           className="rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
-          Your last payment didn&rsquo;t go through. {label} stays on until{" "}
-          <strong>{formatDate(plan.plan.graceUntil, tz, true)}</strong>. After
-          that you&rsquo;ll move to Free and keep all your work.
+          Your last payment didn&rsquo;t go through. {label} stays on for the
+          5-day grace period
+          {plan.plan.graceUntil ? (
+            <>
+              {" "}until <strong>{formatDate(plan.plan.graceUntil, tz, true)}</strong>
+            </>
+          ) : null}
+          . After that you&rsquo;ll move to Free and keep all your work.
+        </p>
+      )}
+      {paused && (
+        <p
+          role="alert"
+          className="rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
+          Processing is paused on your workspace, so new recordings can&rsquo;t
+          be processed right now. Everything you&rsquo;ve already made is kept.
         </p>
       )}
       {pending && (
@@ -336,12 +351,22 @@ export function PlanView() {
           checkout page alone doesn&rsquo;t switch it on.
         </p>
       )}
-      {plan.plan.status === "expired" && (
+      {(plan.plan.status === "expired" ||
+        plan.plan.status === "cancelled" ||
+        plan.plan.status === "refunded") && (
         <p
           role="status"
           className="rounded-lg border border-border bg-surface px-4 py-3 text-sm text-muted">
           Your paid plan has ended, so you&rsquo;re on Free. Everything you made
           is kept.
+        </p>
+      )}
+      {plan.plan.status === "pending-cancel" && plan.plan.renewsAt && (
+        <p
+          role="status"
+          className="rounded-lg border border-border bg-surface px-4 py-3 text-sm text-muted">
+          {label} ends on {formatDate(plan.plan.renewsAt, tz)} and won&rsquo;t
+          renew. Everything you made is kept.
         </p>
       )}
       {paid && plan.plan.status === "active" && plan.plan.renewsAt && (
@@ -355,7 +380,7 @@ export function PlanView() {
       <BillingToggle
         value={billing}
         onChange={setBilling}
-        discount={annualDiscountPct}
+        discount={pricing?.annualDiscountPct ?? 0}
       />
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -363,7 +388,7 @@ export function PlanView() {
           name="Free"
           current={current === "free"}
           blurb="For trying Jooba and for occasional recordings."
-          price={formatPrice(currency, 0)}
+          price={pricing ? formatPrice(pricing.currency, 0) : "Free"}
           priceNote="Free, no card needed"
           action={
             current === "free" ? (
@@ -391,16 +416,18 @@ export function PlanView() {
           highlight
           badge="Most popular"
           blurb="For people who record and write up conversations every week."
-          price={formatPrice(currency, proPerMonth)}
+          price={pricing ? formatPrice(pricing.currency, proPerMonth) : "—"}
           priceNote={
-            annual
-              ? `per month, billed yearly (${formatPrice(currency, yearlyTotal(proPerMonth))})`
-              : "per month, billed monthly"
+            pricing
+              ? annual
+                ? `per month, billed yearly (${formatPrice(pricing.currency, yearlyTotal(proPerMonth))})`
+                : "per month, billed monthly"
+              : "Pricing isn't available yet."
           }
           action={paidAction("pro")}
           headline={[
             `${proH} of processing each month`,
-            `${times(plan.proAllowanceMinutes, plan.freeAllowanceMinutes)} times the Free allowance`,
+            `${times(orZero(plan.proAllowanceMinutes), orZero(plan.freeAllowanceMinutes))} times the Free allowance`,
             "Buy extra hours any time",
           ]}
           groupTitle="Everything in Free, plus"
@@ -414,16 +441,18 @@ export function PlanView() {
           name="Business"
           current={current === "business"}
           blurb="For people who record all day, every day, and never want to count hours."
-          price={formatPrice(currency, businessPerMonth)}
+          price={pricing ? formatPrice(pricing.currency, businessPerMonth) : "—"}
           priceNote={
-            annual
-              ? `per month, billed yearly (${formatPrice(currency, yearlyTotal(businessPerMonth))})`
-              : "per month, billed monthly"
+            pricing
+              ? annual
+                ? `per month, billed yearly (${formatPrice(pricing.currency, yearlyTotal(businessPerMonth))})`
+                : "per month, billed monthly"
+              : "Pricing isn't available yet."
           }
           action={paidAction("business")}
           headline={[
             `${businessH} of processing each month`,
-            `${times(plan.businessAllowanceMinutes, plan.proAllowanceMinutes)} times the Pro allowance`,
+            `${times(orZero(plan.businessAllowanceMinutes), orZero(plan.proAllowanceMinutes))} times the Pro allowance`,
             "Buy extra hours any time",
           ]}
           groupTitle="Everything in Pro, plus"
@@ -465,31 +494,31 @@ export function PlanView() {
               </span>
               <span className="text-muted">
                 {" "}
-                of {formatMinutes(plan.allowanceMinutes)} used
+                of {formatNullableMinutes(plan.allowanceMinutes)} used
               </span>
             </p>
             <Meter
               used={plan.usedMinutes}
-              total={plan.allowanceMinutes}
-              exhausted={plan.exhausted}
+              total={plan.allowanceMinutes ?? 0}
+              exhausted={plan.exhausted ?? false}
             />
             <dl className="grid gap-3 sm:grid-cols-3">
               <div>
                 <dt className="text-muted">Included left</dt>
                 <dd className="font-medium tabular-nums">
-                  {formatMinutes(plan.includedRemainingMinutes)}
+                  {formatNullableMinutes(plan.includedRemainingMinutes)}
                 </dd>
               </div>
               <div>
                 <dt className="text-muted">Bought hours left</dt>
                 <dd className="font-medium tabular-nums">
-                  {formatMinutes(plan.purchasedMinutes)}
+                  {formatNullableMinutes(plan.purchasedMinutes)}
                 </dd>
               </div>
               <div>
                 <dt className="text-muted">Total you can use</dt>
                 <dd className="font-medium tabular-nums">
-                  {formatMinutes(plan.remainingMinutes)}
+                  {formatNullableMinutes(totalRemainingMinutes(plan))}
                 </dd>
               </div>
             </dl>
@@ -544,23 +573,82 @@ export function PlanView() {
                   key={k.sku}
                   className="flex items-center justify-between gap-3 px-4 py-3">
                   <span className="font-medium">{k.label}</span>
-                  {packHref(k.sku) ? (
-                    <Link
-                      href={packHref(k.sku)!}
-                      className={buttonClass("secondary", "", "sm")}>
-                      Buy
-                    </Link>
-                  ) : (
-                    <span className="text-xs text-muted">
-                      Checkout not connected
-                    </span>
-                  )}
+                  <Link
+                    href={packHref()}
+                    className={buttonClass("secondary", "", "sm")}>
+                    Buy
+                  </Link>
                 </li>
               ))}
             </ul>
           </div>
         </Card>
       </div>
+
+      {(plan.creditPacks.length > 0 || plan.purchasedCredits) && (
+        <Card>
+          <CardHeader title="Purchased credits" />
+          <div className="space-y-3 p-5 text-sm">
+            <p className="text-muted">
+              Bought hours never touch your subscription. They expire 90 days
+              after purchase and are used after your monthly allowance runs out.
+            </p>
+            <ul className="divide-y divide-border rounded-lg border border-border">
+              {plan.creditPacks.map((pack) => (
+                <li key={pack.grantId} className="space-y-1 px-4 py-3">
+                  <p className="flex items-center justify-between gap-3">
+                    <span className="font-medium">{pack.sku}</span>
+                    <span className="text-xs text-muted">{packStateLabel(pack.state)}</span>
+                  </p>
+                  <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted sm:grid-cols-5">
+                    <div>
+                      <dt className="inline">Available: </dt>
+                      <dd className="inline font-medium tabular-nums">{formatMinutes(pack.availableSeconds / 60)}</dd>
+                    </div>
+                    <div>
+                      <dt className="inline">Reserved: </dt>
+                      <dd className="inline font-medium tabular-nums">{formatMinutes(pack.reservedSeconds / 60)}</dd>
+                    </div>
+                    <div>
+                      <dt className="inline">Used: </dt>
+                      <dd className="inline font-medium tabular-nums">{formatMinutes(pack.consumedSeconds / 60)}</dd>
+                    </div>
+                    <div>
+                      <dt className="inline">Refunded: </dt>
+                      <dd className="inline font-medium tabular-nums">{formatMinutes(pack.refundedSeconds / 60)}</dd>
+                    </div>
+                    <div>
+                      <dt className="inline">Expires: </dt>
+                      <dd className="inline font-medium tabular-nums">{pack.expiresAt ? formatDate(pack.expiresAt, tz) : "—"}</dd>
+                    </div>
+                  </dl>
+                </li>
+              ))}
+            </ul>
+            {plan.creditPacksTruncated && (
+              <p className="text-xs text-muted">Showing the first 100 packs.</p>
+            )}
+          </div>
+        </Card>
+      )}
     </div>
   );
+}
+
+/** Human label for a ledger credit-pack state; unknown states render as-is. */
+function packStateLabel(state: CreditPackView["state"]): string {
+  switch (state) {
+    case "active":
+      return "Active";
+    case "partially_refunded":
+      return "Partially refunded";
+    case "refunded":
+      return "Refunded";
+    case "consumed":
+      return "Used up";
+    case "expired":
+      return "Expired";
+    default:
+      return state;
+  }
 }

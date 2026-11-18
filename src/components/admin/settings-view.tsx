@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import type { AdminSetting, AdminSettings } from "@/lib/admin-types";
 import { formatSetting, fromDisplay, toDisplay, unitLabel } from "@/lib/admin-units";
 import { ApiError } from "@/lib/upload-client";
 import { ActionDialog, Notice, ResourceBoundary, useResource } from "./ui";
+import { RecordingSettings } from "./product-settings-form";
 
 type Data = Json<AdminSettings>;
 type Setting = Json<AdminSetting>;
@@ -26,9 +27,105 @@ const SOURCE: Record<Setting["source"], string> = { default: "Standard value", e
 
 const shown = (s: Setting, v: Value) => (typeof v === "number" ? formatSetting(s.unit, v) : typeof v === "boolean" ? (v ? "On" : "Off") : String(v));
 
+const SETTINGS_SECTIONS = [
+  { id: "settings-recording", label: "Recording" },
+  { id: "settings-sharing", label: "Sharing" },
+  { id: "settings-pause", label: "Pause new work" },
+] as const;
+
+export function SettingsStickyTabs() {
+  const [activeTab, setActiveTab] = useState<string>("settings-recording");
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof document === "undefined") return;
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        ticking = false;
+        if (typeof window === "undefined" || typeof document === "undefined") return;
+        const scrollY = window.scrollY;
+        const docHeight = document.documentElement.scrollHeight;
+        const winHeight = window.innerHeight;
+
+        // If user scrolled to the bottom of the page, activate the last tab
+        if (scrollY + winHeight >= docHeight - 50) {
+          setActiveTab("settings-pause");
+          return;
+        }
+
+        // Find which section is currently at or just below the top offset
+        const positions = SETTINGS_SECTIONS.map((sec) => {
+          const el = document.getElementById(sec.id);
+          return {
+            id: sec.id,
+            top: el ? el.getBoundingClientRect().top : Infinity,
+          };
+        });
+
+        // The active section is the last section whose top is <= 140px
+        const passed = positions.filter((p) => p.top <= 140);
+        if (passed.length > 0) {
+          setActiveTab(passed[passed.length - 1].id);
+        } else {
+          setActiveTab("settings-recording");
+        }
+      });
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const scrollTo = (id: string) => {
+    setActiveTab(id);
+    if (typeof document !== "undefined") {
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+  };
+
+  return (
+    <div className="sticky top-0 z-20 -mx-1 mb-4 rounded-xl border border-border/80 bg-background/95 px-2 py-2 backdrop-blur-md shadow-xs">
+      <nav aria-label="Settings sections" className="flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none]">
+        {SETTINGS_SECTIONS.map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => scrollTo(tab.id)}
+              aria-current={isActive ? "true" : undefined}
+              className={`whitespace-nowrap rounded-lg px-3.5 py-1.5 text-xs sm:text-sm font-medium transition-all ${
+                isActive
+                  ? "bg-accent-solid text-on-accent shadow-xs"
+                  : "text-muted hover:bg-surface hover:text-foreground"
+              }`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </nav>
+    </div>
+  );
+}
+
 export function SettingsView() {
   const res = useResource<Data>("/api/admin/settings");
-  return <ResourceBoundary resource={res}>{(d) => <Editor key={d.version} data={d} reload={res.reload} />}</ResourceBoundary>;
+  return (
+    <div className="space-y-5">
+      <SettingsStickyTabs />
+      <RecordingSettings />
+      <ResourceBoundary resource={res}>
+        {(d) => <Editor key={d.version} data={d} reload={res.reload} />}
+      </ResourceBoundary>
+    </div>
+  );
 }
 
 type NewSettings = { version: number; processingPaused: boolean; updatedAt: string | null; scope: string; adoption: string; editableKeys: string[]; recordingLimitsOverride?: unknown; bootstrapSettingsEditable: boolean };
@@ -51,22 +148,27 @@ function Editor({ data, reload }: { data: Data; reload: () => void }) {
     const ns = data as unknown as NewSettings;
     return (
       <div className="space-y-5">
-        <p className="text-sm text-muted">Version {ns.version} · scope {ns.scope} · adoption {ns.adoption} {ns.updatedAt ? `· updated ${fmtUtc(ns.updatedAt)}` : ""}</p>
+        <p className="text-sm text-muted">Version {ns.version} {ns.updatedAt ? `· last updated ${fmtUtc(ns.updatedAt)}` : ""}</p>
         {!can.allowed && <Notice>{can.reason}</Notice>}
         {conflict && <Notice tone="warning"><span className="flex flex-wrap items-center justify-between gap-3">Version conflict — refetch before another deliberate edit.<Button onClick={() => { setConflict(false); reload(); }}>Reload settings</Button></span></Notice>}
-        <Card><CardHeader title="Processing pause (shared database)" />
-          <div className="space-y-3 p-5 text-sm">
-            <label className="inline-flex items-center gap-2"><input type="checkbox" checked={paused} disabled={!can.allowed || !ns.editableKeys.includes("processingPaused")} onChange={(e) => setPaused(e.target.checked)} className="size-4" /> Paused</label>
-            <p className="text-xs text-muted">Deliberate operator pause, not a quota change. Reads/callbacks/cancel/settlement remain available.</p>
-          </div>
-        </Card>
+        <div id="settings-pause" className="scroll-mt-20">
+          <Card><CardHeader title="Pause new work" description="Emergency switch for the whole platform" />
+            <div className="space-y-3 p-5 text-sm">
+              <label className="inline-flex items-center gap-2"><input type="checkbox" checked={paused} disabled={!can.allowed || !ns.editableKeys.includes("processingPaused")} onChange={(e) => setPaused(e.target.checked)} className="size-4" /> Temporarily pause new recordings and meetings</label>
+              <div className="space-y-1 text-xs leading-relaxed text-muted">
+                <p>When this is on, the platform stops starting anything new — no new recordings, meetings, or processing jobs. Use it only when you need a safe, quick pause, for example during an incident or to avoid unexpected charges.</p>
+                <p>Everything already created stays available to view, download, and manage. Nothing is deleted and billing does not change. Turn it off to resume instantly.</p>
+              </div>
+            </div>
+          </Card>
+        </div>
         {can.allowed && paused !== ns.processingPaused && (
-          <ActionDialog title={paused ? "Pause processing?" : "Resume processing?"} description={`Version ${ns.version} → ${ns.version + 1}. Shared DB policy.`} confirmLabel={paused ? "Pause" : "Resume"} onClose={() => setPaused(ns.processingPaused)} onSubmit={async (v) => {
+          <ActionDialog title={paused ? "Pause new work?" : "Resume new work?"} description={paused ? "This will stop all new recordings and meetings from starting. Existing files and library content stay available. You can resume at any time." : "This will allow new recordings and meetings to start again."} confirmLabel={paused ? "Pause new work" : "Resume new work"} onClose={() => setPaused(ns.processingPaused)} onSubmit={async (v) => {
             try { await adminPatch("/api/admin/settings", { version: ns.version, processingPaused: paused, reason: v.reason }, { "Idempotency-Key": crypto.randomUUID().replace(/-/g, "").slice(0, 16).padEnd(8, "0") }); toasts.push({ tone: "success", message: "Settings saved." }); reload(); } catch (err) { if (err instanceof ApiError && (err as unknown as { code?: string }).code === "settings_version_conflict") setConflict(true); throw err; }
           }} />
         )}
         <Button variant="primary" disabled={!can.allowed || paused === ns.processingPaused} onClick={() => setReviewing(true)}>Review and save…</Button>
-        {reviewing && <ActionDialog title="Save?" description={`processingPaused ${String(ns.processingPaused)} → ${String(paused)}`} confirmLabel="Save" onClose={() => setReviewing(false)} onSubmit={async (v) => {
+        {reviewing && <ActionDialog title="Save change?" description={paused ? "You are about to pause all new work. Existing content will remain available." : "You are about to resume new work."} confirmLabel="Save" onClose={() => setReviewing(false)} onSubmit={async (v) => {
           try { await adminPatch("/api/admin/settings", { version: ns.version, processingPaused: paused, reason: v.reason }, { "Idempotency-Key": crypto.randomUUID().replace(/-/g, "").slice(0, 16).padEnd(8, "0") }); toasts.push({ tone: "success", message: "Saved." }); reload(); } catch (err) { if (err instanceof ApiError && (err as unknown as { code?: string }).code === "settings_version_conflict") setConflict(true); throw err; }
         }} />}
         <ToastStack items={toasts.items} onDismiss={toasts.dismiss} />

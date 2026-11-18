@@ -83,3 +83,12 @@ it("renders structured meeting notes with trusted metadata, nested topics and ow
  expect(html).toContain('href="/dashboard/captures/m#recording-audio"');expect(html).toContain("&lt;script&gt;");expect(html).not.toContain("<script>");expect(html).not.toContain("Detailed recap");
  expect((html.match(/<h5[^>]*>Josiah<\/h5>/g)??[])).toHaveLength(1);expect(fetch).not.toHaveBeenCalled();
 });
+
+it("non-meeting entries offer explicit AI Notes generation and omit meeting email preferences", async () => {
+ const qc=new QueryClient();clients.push(qc);qc.setQueryData(qk.meetingInsights("m"),base);
+ vi.mocked(fetch).mockResolvedValue(Response.json({id:"a",state:"queued"},{status:202}));
+ const html=renderToStaticMarkup(createElement(QueryClientProvider,{client:qc},createElement(MeetingInsights,{id:"m",transcriptVersion:1,audioAvailable:false,onSeek:vi.fn(),isMeeting:false})));
+ expect(html).toContain("AI Notes"); expect(html).toContain("Generate AI Notes"); expect(html).not.toContain("Meeting insights"); expect(html).not.toContain("Recap completion email"); expect(fetch).not.toHaveBeenCalled();
+ buttons.find(b=>b.children==="Generate AI Notes")!.onClick?.({} as never);
+ await vi.waitFor(()=>expect(fetch).toHaveBeenCalled()); expect(fetch).toHaveBeenCalledWith("/api/captures/m/recap",expect.objectContaining({method:"POST"}));
+});
