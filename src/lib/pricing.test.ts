@@ -13,7 +13,7 @@ describe("pricing", () => {
     expect(formatPrice("$", 9.6)).toBe("$9.60");
     expect(formatPrice("EUR", 0)).toBe("EUR0");
   });
-  it("works out a year's cost without floating-point dust", () => {
+  it("works out a year’s cost without floating-point dust", () => {
     expect(yearlyTotal(9.6)).toBe(115.2);
     expect(yearlyTotal(31.2)).toBe(374.4);
   });

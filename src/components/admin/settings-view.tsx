@@ -10,7 +10,7 @@ import { capability } from "@/lib/admin-capabilities";
 import type { AdminSetting, AdminSettings } from "@/lib/admin-types";
 import { formatSetting, fromDisplay, toDisplay, unitLabel } from "@/lib/admin-units";
 import { ApiError } from "@/lib/upload-client";
-import { ActionDialog, Notice, ResourceBoundary, useResource } from "./ui";
+import { ActionDialog, Notice, ResourceBoundary, SelectField, checkClass, inputClass, useResource } from "./ui";
 import { RecordingSettings } from "./product-settings-form";
 
 type Data = Json<AdminSettings>;
@@ -29,7 +29,9 @@ const shown = (s: Setting, v: Value) => (typeof v === "number" ? formatSetting(s
 
 const SETTINGS_SECTIONS = [
   { id: "settings-recording", label: "Recording" },
+  { id: "settings-uploads", label: "Uploads" },
   { id: "settings-sharing", label: "Sharing" },
+  { id: "settings-ai", label: "AI" },
   { id: "settings-pause", label: "Pause new work" },
 ] as const;
 
@@ -154,7 +156,7 @@ function Editor({ data, reload }: { data: Data; reload: () => void }) {
         <div id="settings-pause" className="scroll-mt-20">
           <Card><CardHeader title="Pause new work" description="Emergency switch for the whole platform" />
             <div className="space-y-3 p-5 text-sm">
-              <label className="inline-flex items-center gap-2"><input type="checkbox" checked={paused} disabled={!can.allowed || !ns.editableKeys.includes("processingPaused")} onChange={(e) => setPaused(e.target.checked)} className="size-4" /> Temporarily pause new recordings and meetings</label>
+              <label className="inline-flex items-center gap-2"><input type="checkbox" checked={paused} disabled={!can.allowed || !ns.editableKeys.includes("processingPaused")} onChange={(e) => setPaused(e.target.checked)} className={checkClass} /> Temporarily pause new recordings and meetings</label>
               <div className="space-y-1 text-xs leading-relaxed text-muted">
                 <p>When this is on, the platform stops starting anything new — no new recordings, meetings, or processing jobs. Use it only when you need a safe, quick pause, for example during an incident or to avoid unexpected charges.</p>
                 <p>Everything already created stays available to view, download, and manage. Nothing is deleted and billing does not change. Turn it off to resume instantly.</p>
@@ -242,16 +244,16 @@ function Editor({ data, reload }: { data: Data; reload: () => void }) {
                   <div className="space-y-1">
                     {s.kind === "boolean" ? (
                       <label className="inline-flex items-center gap-2 text-sm">
-                        <input id={id} type="checkbox" role="switch" disabled={locked} checked={text === "true"} onChange={(e) => set(s.key, String(e.target.checked))} className="size-4" />
+                        <input id={id} type="checkbox" role="switch" disabled={locked} checked={text === "true"} onChange={(e) => set(s.key, String(e.target.checked))} className={checkClass} />
                         {text === "true" ? "On" : "Off"}
                       </label>
                     ) : s.kind === "enum" ? (
-                      <select id={id} disabled={locked} value={text} onChange={(e) => set(s.key, e.target.value)} className="block h-9 w-full rounded-lg border border-border bg-background px-3 text-sm disabled:opacity-60">
+                      <SelectField id={id} disabled={locked} value={text} onChange={(e) => set(s.key, e.target.value)}>
                         {(s.options ?? []).map((o) => <option key={o}>{o}</option>)}
-                      </select>
+                      </SelectField>
                     ) : (
                       <div className="flex items-center gap-2">
-                        <input id={id} type={s.kind === "string" ? "text" : "number"} inputMode={s.kind === "string" ? undefined : "decimal"} step="any" disabled={locked} value={text} aria-invalid={!!(p && "error" in p)} aria-describedby={p && "error" in p ? `${id}-e` : undefined} onChange={(e) => set(s.key, e.target.value)} className="block h-9 w-full min-w-0 rounded-lg border border-border bg-background px-3 text-sm tabular-nums disabled:opacity-60" />
+                        <input id={id} type={s.kind === "string" ? "text" : "number"} inputMode={s.kind === "string" ? undefined : "decimal"} step="any" disabled={locked} value={text} aria-invalid={!!(p && "error" in p)} aria-describedby={p && "error" in p ? `${id}-e` : undefined} onChange={(e) => set(s.key, e.target.value)} className={`${inputClass} min-w-0 tabular-nums`} />
                         {s.unit && <span className="shrink-0 text-xs text-muted">{unitLabel(s.unit)}</span>}
                       </div>
                     )}

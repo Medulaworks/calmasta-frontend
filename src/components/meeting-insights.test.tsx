@@ -24,7 +24,7 @@ it("renders absent artifacts without automatically generating questions or recap
 it("renders escaped brief first, longer recap and independent lists with an AI review note",()=>{
  const {html}=render({...base,recap:artifact(recap)});
  expect(html).toContain("&lt;script&gt;");expect(html).not.toContain("<script>");expect(html).toContain("Detailed recap");expect(html.indexOf("quoted overview")).toBeLessThan(html.indexOf("Detailed recap"));
- for(const text of ["Highlight","Decision","Follow-up","Review","uncertain"])expect(html).toContain(text);
+ for(const text of ["Highlight","Decision","Follow-up","Review","not sure"])expect(html).toContain(text);
 });
 it("handles a valid empty question result and states extraction is not exhaustive",()=>{
  const {html}=render({...base,questions:artifact<QuestionsResult>({coverage:"ai_extraction_not_guaranteed_exhaustive",questions:[]})});
@@ -79,7 +79,7 @@ it("shows waiting message when transcript is pending and has no transcript versi
 it("renders structured meeting notes with trusted metadata, nested topics and owner-grouped actions",()=>{
  const summary={...recap,formatVersion:2 as const,meetingPurpose:"Review launch blockers.",topics:[{title:"Quota issue",points:[{text:"Demo blocked <script>",details:["Fix individual quotas."]}]}],technicalNotes:["Configure telemetry."],actionItems:[{owner:"Josiah",task:"Fix the quota.",due:"tomorrow"},{owner:"Josiah",task:"Review the fix.",due:null},{owner:null,task:"Investigate deployment.",due:null}]};
  const {html}=render({...base,meeting:{title:"Team Stand-Up",recordedAt:"2026-11-05T09:00:00Z",recordingPath:"/dashboard/captures/m#recording-audio"},recap:artifact(summary)});
- for(const value of ["Team Stand-Up","View recording","Meeting Purpose","Key Takeaways","Topics","Quota issue","Fix individual quotas.","Technical &amp; Admin Notes","Next Steps","Josiah","tomorrow","Owner not specified"])expect(html).toContain(value);
+ for(const value of ["Team Stand-Up","View recording","Meeting purpose","Key takeaways","Topics","Quota issue","Fix individual quotas.","Technical and admin notes","Next steps","Josiah","tomorrow","Owner not specified"])expect(html).toContain(value);
  expect(html).toContain('href="/dashboard/captures/m#recording-audio"');expect(html).toContain("&lt;script&gt;");expect(html).not.toContain("<script>");expect(html).not.toContain("Detailed recap");
  expect((html.match(/<h5[^>]*>Josiah<\/h5>/g)??[])).toHaveLength(1);expect(fetch).not.toHaveBeenCalled();
 });

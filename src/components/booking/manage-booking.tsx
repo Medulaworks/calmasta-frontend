@@ -44,12 +44,12 @@ export function ManageBooking({ token }: { token: string }) {
           });
         else if (err instanceof ApiError && err.status === 404)
           setProblem({
-            title: "We couldn't find that booking",
+            title: "We couldn’t find that booking",
             text: "The link may be incomplete. Try opening it again from the message you received.",
           });
         else
           setProblem({
-            title: "We couldn't load your booking",
+            title: "We couldn’t load your booking",
             text: "Please try again in a moment.",
           });
       },
@@ -74,7 +74,7 @@ export function ManageBooking({ token }: { token: string }) {
       setError(
         err instanceof Error
           ? err.message
-          : "Could not cancel. Please try again.",
+          : "We couldn’t cancel. Please try again.",
       );
     }
     setBusy(false);
@@ -97,7 +97,7 @@ export function ManageBooking({ token }: { token: string }) {
         setError(
           err instanceof Error
             ? err.message
-            : "Could not move the booking. Please try again.",
+            : "We couldn’t move the booking. Please try again.",
         );
     }
     setBusy(false);
@@ -263,9 +263,9 @@ export function ManageBooking({ token }: { token: string }) {
         </section>
       )}
       <p className="text-xs text-muted">
-        Booked through Jooba.{" "}
+        Booked through Joobah.{" "}
         <Link href="/" className="underline">
-          What is Jooba?
+          What is Joobah?
         </Link>
       </p>
     </div>

@@ -65,7 +65,7 @@ describe("meeting insights lifecycle", () => {
   it("permits current-version requests for stale failures without retrying same-version failure", () => {
     expect(canRequestInsight(insights(artifact("failed",true)),"recap")).toBe(true);
     expect(canRequestInsight(insights(artifact("failed")),"recap")).toBe(false);
-    expect(insightMessage(artifact("reconciliation_required"))).toContain("review");
+    expect(insightMessage(artifact("reconciliation_required"))).toContain("looking into");
     expect(insightMessage({...artifact("blocked"),failureReason:"insight_provider_not_configured"})).not.toContain("insight_provider");
   });
   it("selects a valid timestamp including zero, without guessing when sources are absent", () => {

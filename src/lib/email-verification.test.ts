@@ -31,5 +31,5 @@ it("reports expired links and network failures without exposing tokens or raw er
   vi.stubGlobal("fetch", fetch);
   const verify = createEmailVerifier();
   await expect(verify("expired-token")).rejects.toThrow("expired or has already been used");
-  await expect(verify("another-token")).rejects.toThrow("Unable to connect. Please try again.");
+  await expect(verify("another-token")).rejects.toThrow("We can’t connect right now. Check your connection and try again.");
 });

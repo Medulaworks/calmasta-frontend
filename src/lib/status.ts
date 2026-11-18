@@ -41,15 +41,15 @@ const tidy = (raw: string) => (raw ? raw.charAt(0).toUpperCase() + raw.slice(1).
 function baseCaptureStatus(c: { source: string; state: string; status: string }): StatusView {
   if(c.state==="reconciliation_required")return {label:"Needs attention",tone:"warning",active:false};
   if(c.state==="transcription_failed")return {label:"Transcription failed",tone:"danger",active:false};
-  if(c.state==="host_denied")return {label:"Host declined",tone:"warning",active:false};
-  if(c.state==="admission_timeout")return {label:"Not let in in time",tone:"warning",active:false};
+  if(c.state==="host_denied")return {label:"Declined by host",tone:"warning",active:false};
+  if(c.state==="admission_timeout")return {label:"Not admitted in time",tone:"warning",active:false};
   if(["media_pending","recorded"].includes(c.state))return {label:c.state==="recorded"?"Waiting for transcription":"Saving recording",tone:"info",active:true};
   if (c.state === "cancelled" || c.status === "cancelled") return { label: "Cancelled", tone: "neutral", active: false };
   if (c.state === "failed" || c.status === "failed") return { label: "Failed", tone: "danger", active: false };
 
   if (c.source === "meeting_url") {
-    if (c.status === "denied") return { label: "Host declined", tone: "warning", active: false };
-    if (c.status === "timed_out") return { label: "Not let in in time", tone: "warning", active: false };
+    if (c.status === "denied") return { label: "Declined by host", tone: "warning", active: false };
+    if (c.status === "timed_out") return { label: "Not admitted in time", tone: "warning", active: false };
     if (c.status === "recording") return { label: "Recording", tone: "danger", active: true }; // red on purpose: recording must be obvious
     if (MEETING_ACTIVE.has(c.status)) return { label: MEETING_LABELS[c.status] ?? c.status, tone: "info", active: true };
     if (c.status === "completed" || c.status === "ready_to_review") return { label: "Ready", tone: "success", active: false };

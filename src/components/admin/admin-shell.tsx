@@ -1,15 +1,16 @@
 "use client";
 
-import { ArrowLeft, ExternalLink, ShieldAlert, UserRound } from "lucide-react";
+import { ExternalLink, LogOut, ShieldAlert, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button, buttonClass } from "@/components/ui/button";
+import { Brand } from "@/components/ui/brand";
 import { Loading, Skeleton, SkeletonPanel } from "@/components/ui/skeleton";
 import { adminGet } from "@/lib/admin-client";
 import { clearCapabilities, loadCapabilities } from "@/lib/admin-capabilities";
 import { ApiError } from "@/lib/upload-client";
-import { SECTIONS, sectionFor } from "./admin-nav";
+import { NAV_GROUPS, SECTIONS, sectionFor } from "./admin-nav";
 
 type AdminProfile = { name: string | null; email: string };
 type Check = { state: "checking" } | { state: "failed" } | { state: "denied" } | { state: "ready"; profile: AdminProfile };
@@ -72,18 +73,18 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               <p className="text-sm text-muted">Something went wrong. Try again.</p>
               <div className="flex justify-center gap-2 pt-1">
                 <Button variant="primary" onClick={() => { setCheck({ state: "checking" }); setAttempt((n) => n + 1); }}>Try again</Button>
-                <Link href="/dashboard" className={buttonClass("secondary")}>Back to Jooba</Link>
+                <Link href="/dashboard" className={buttonClass("secondary")}>Back to Joobah</Link>
               </div>
             </>
           ) : (
             <>
               <h1 className="text-xl font-semibold">You don&rsquo;t have access to this area</h1>
               <p className="text-sm text-muted">
-                {profile?.email ? <><span className="font-medium text-foreground">{profile.email}</span> isn&rsquo;t an admin.</> : "This account isn't an admin."} Ask an admin for access.
+                {profile?.email ? <><span className="font-medium text-foreground">{profile.email}</span> isn&rsquo;t an admin.</> : "This account isn’t an admin."} Ask an admin for access.
               </p>
               <div className="flex flex-wrap justify-center gap-2 pt-1">
                 <Link href={`/admin/auth/login?returnTo=${encodeURIComponent(pathname)}`} className={buttonClass("primary")}>Sign in as an admin</Link>
-                <Link href="/dashboard" className={buttonClass("secondary")}>Back to Jooba</Link>
+                <Link href="/dashboard" className={buttonClass("secondary")}>Back to Joobah</Link>
               </div>
             </>
           )}
@@ -92,70 +93,74 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     );
   }
 
+  const name = profile?.name || profile?.email || "";
+  const link = (id: string) => SECTIONS.find((x) => x.id === id)!;
+  const item = (active: boolean) =>
+    `group relative flex h-9 items-center gap-2.5 whitespace-nowrap rounded-lg px-2.5 text-sm transition-colors ${active ? "bg-white/10 font-medium text-white" : "text-white/65 hover:bg-white/5 hover:text-white"}`;
+
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
-      <aside className="border-b border-border bg-surface/40 p-3 md:sticky md:top-0 md:flex md:h-screen md:w-60 md:shrink-0 md:flex-col md:overflow-y-auto md:border-b-0 md:border-r">
-        <div className="flex items-center justify-between gap-2 px-3 md:block md:py-2">
-          <p className="flex items-center gap-2 text-base font-semibold tracking-tight">
-            <span aria-hidden className="grid h-7 w-7 place-items-center rounded-lg bg-danger-solid text-sm font-semibold text-white">S</span>
-            Admin
+    <div className="flex min-h-screen flex-col bg-surface md:flex-row">
+      {/* The side menu: dark, grouped, with the Joobah logo and an Admin tag. */}
+      <aside className="relative isolate flex flex-col overflow-hidden bg-[#1d0a10] p-3 text-white md:fixed md:inset-y-0 md:left-0 md:z-30 md:w-56">
+        <div aria-hidden className="pointer-events-none absolute -left-16 -top-20 -z-10 size-64 rounded-full bg-accent/60 blur-3xl" />
+        <div aria-hidden className="pointer-events-none absolute -bottom-24 -right-16 -z-10 size-56 rounded-full bg-accent-solid/15 blur-3xl" />
+
+        <div className="flex shrink-0 items-center justify-between gap-2 px-2 md:py-1">
+          <p className="flex items-center gap-2.5">
+            <Brand size={24} tile="paper" />
+            <span className="rounded-md bg-accent-solid px-1.5 py-0.5 text-xs font-bold uppercase tracking-wider text-[#1d0a10]">Admin</span>
           </p>
-          {/* Opens the Jooba app in its own tab, so the staff area stays where it is. */}
-          <a href="/dashboard" target="_blank" rel="noopener noreferrer" className="hidden h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background text-sm font-medium text-muted transition-colors hover:bg-surface hover:text-foreground md:mt-4 md:flex">
-            Open Jooba <ExternalLink aria-hidden className="size-4" /><span className="sr-only">(opens in a new tab)</span>
-          </a>
-          {/* On a phone the same two actions sit in the top bar as icons. */}
           <div className="flex items-center gap-1 md:hidden">
-            <a href="/dashboard" target="_blank" rel="noopener noreferrer" aria-label="Open Jooba (opens in a new tab)" title="Open Jooba" className="grid size-9 place-items-center rounded-lg text-muted hover:bg-surface hover:text-foreground"><ExternalLink aria-hidden className="size-[18px]" /></a>
-            <button type="button" onClick={() => { void logoutAdmin(); }} aria-label="Log out" title="Log out" className="grid size-9 place-items-center rounded-lg text-muted hover:bg-surface hover:text-foreground disabled:opacity-50"><ArrowLeft aria-hidden className="size-[18px]" /></button>
+            <a href="/dashboard" target="_blank" rel="noopener noreferrer" aria-label="Open Joobah (opens in a new tab)" title="Open Joobah" className="grid size-9 place-items-center rounded-lg text-white/70 hover:bg-white/10 hover:text-white"><ExternalLink aria-hidden className="size-[18px]" /></a>
+            <button type="button" onClick={() => { void logoutAdmin(); }} aria-label="Log out" title="Log out" className="grid size-9 place-items-center rounded-lg text-white/70 hover:bg-white/10 hover:text-white"><LogOut aria-hidden className="size-[18px]" /></button>
           </div>
         </div>
 
-        <nav aria-label="Admin" className="mt-3 flex gap-1 overflow-x-auto [scrollbar-width:none] md:mt-4 md:flex-col">
-          {SECTIONS.map(({ id, label, Icon, tabs }) => {
-            const active = current?.id === id;
-            return (
-              <Link
-                key={id}
-                href={tabs[0].href}
-                aria-current={active ? "page" : undefined}
-                className={`flex h-9 items-center gap-3 whitespace-nowrap rounded-lg px-3 text-sm transition-colors ${active ? "bg-accent/10 font-medium text-accent" : "text-muted hover:bg-surface hover:text-foreground"}`}>
-                <Icon aria-hidden className="h-5 w-5 shrink-0" />
-                {label}
-              </Link>
-            );
-          })}
-          <Link
-            href="/admin/profile"
-            aria-current={pathname === "/admin/profile" ? "page" : undefined}
-            className={`flex h-9 items-center gap-3 whitespace-nowrap rounded-lg px-3 text-sm transition-colors md:hidden ${pathname === "/admin/profile" ? "bg-accent/10 font-medium text-accent" : "text-muted hover:bg-surface hover:text-foreground"}`}>
-            <UserRound aria-hidden className="h-5 w-5 shrink-0" />
-            My profile
+        <nav aria-label="Admin" className="mt-3 flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:-mx-3 md:mt-4 md:min-h-0 md:flex-1 md:flex-col md:gap-3 md:overflow-y-auto md:overflow-x-hidden md:px-3">
+          {NAV_GROUPS.map((g) => (
+            <div key={g.label} className="flex gap-1 md:flex-col">
+              <p className="hidden px-2.5 pb-0.5 text-xs font-semibold uppercase tracking-[0.14em] text-white/40 md:block">{g.label}</p>
+              {g.ids.map((id) => {
+                const { label, Icon, tabs } = link(id);
+                const active = current?.id === id;
+                return (
+                  <Link key={id} href={tabs[0].href} aria-current={active ? "page" : undefined} className={item(active)}>
+                    {active && <span aria-hidden className="absolute -left-3 top-2 hidden h-5 w-1 rounded-r-full bg-accent-solid md:block" />}
+                    <Icon aria-hidden className={`size-[18px] shrink-0 ${active ? "text-accent-solid" : ""}`} />
+                    {label}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
+          <Link href="/admin/profile" aria-current={pathname === "/admin/profile" ? "page" : undefined} className={`${item(pathname === "/admin/profile")} md:hidden`}>
+            <UserRound aria-hidden className="size-[18px] shrink-0" /> My profile
           </Link>
         </nav>
 
-        <div className="mt-4 hidden border-t border-border pt-3 md:mt-auto md:block">
+        <div className="mt-3 hidden shrink-0 space-y-2 border-t border-white/10 pt-3 md:block">
+          <a href="/dashboard" target="_blank" rel="noopener noreferrer" className="flex h-9 items-center justify-between rounded-lg border border-white/10 bg-white/5 px-2.5 text-sm text-white/80 transition-colors hover:bg-white/10 hover:text-white">
+            Open Joobah <ExternalLink aria-hidden className="size-4" /><span className="sr-only">(opens in a new tab)</span>
+          </a>
           {profile && (
-            <Link
-              href="/admin/profile"
-              aria-current={pathname === "/admin/profile" ? "page" : undefined}
-              title={profile.email}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-surface ${pathname === "/admin/profile" ? "bg-accent/10" : ""}`}>
-              <span aria-hidden className="grid size-7 shrink-0 place-items-center rounded-full bg-accent/10 text-xs font-semibold text-accent">{(profile.name || profile.email).trim().charAt(0).toUpperCase()}</span>
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-medium">{profile.name || profile.email}</span>
-                <span className="block text-xs text-muted">My profile</span>
-              </span>
-            </Link>
+            <div className="flex items-center gap-2 px-0.5">
+              <Link href="/admin/profile" aria-current={pathname === "/admin/profile" ? "page" : undefined} title={profile.email} className="flex min-w-0 flex-1 items-center gap-3 rounded-lg py-1 transition-colors hover:text-white">
+                <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-full bg-accent-solid text-sm font-semibold text-[#1d0a10]">{name.trim().charAt(0).toUpperCase()}</span>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-medium text-white">{name}</span>
+                  <span className="block text-xs text-white/50">My profile</span>
+                </span>
+              </Link>
+              <button type="button" onClick={() => { void logoutAdmin(); }} title="Log out" aria-label="Log out" className="grid size-8 shrink-0 place-items-center rounded-lg text-white/60 transition-colors hover:bg-white/10 hover:text-white">
+                <LogOut aria-hidden className="size-[18px]" />
+              </button>
+            </div>
           )}
-          <button type="button" onClick={() => { void logoutAdmin(); }} title="Log out" aria-label="Log out" className="mt-3 flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-border bg-background text-sm font-medium transition-colors hover:bg-surface disabled:opacity-50">
-            <ArrowLeft aria-hidden className="size-4" /> Log out
-          </button>
         </div>
       </aside>
 
-      <main id="main" tabIndex={-1} className="min-w-0 flex-1 outline-none">
-        <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-5 md:px-6 md:py-6">
+      <main id="main" tabIndex={-1} className="min-w-0 flex-1 outline-none md:ml-56">
+        <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 md:px-8 md:py-8">
           {check.state === "checking" ? (
             <Loading label="Checking your access" className="space-y-5">
               <div aria-hidden className="space-y-2">

@@ -36,7 +36,7 @@ describe("platformOf", () => {
 });
 
 describe("recordingOf and durations", () => {
-  it("maps a capture's status to what a person cares about", () => {
+  it("maps a capture’s status to what a person cares about", () => {
     expect(recordingOf({ capture: null })).toBe("not_recorded");
     expect(recordingOf({ capture: { id: "c", status: "completed" } })).toBe("recorded");
     for (const s of ["requested", "scheduled", "joining", "waiting_for_admission", "recording", "processing"]) expect(recordingOf({ capture: { id: "c", status: s } }), s).toBe("in_progress");
@@ -69,7 +69,7 @@ describe("applyFilters", () => {
     expect(titles({ participants: ["maya@x.test", "sam@x.test"] })).toEqual(["Team standup", "Project review"]);
     expect(titles({ participants: ["me@x.test"] })).toEqual([]); // that's you
   });
-  it("filters by date in the person's own zone, inclusive at both ends", () => {
+  it("filters by date in the person’s own zone, inclusive at both ends", () => {
     // 2026-10-26T06:00Z is 10:00 on the 26th in Muscat; the 29th 10:00Z is 14:00 on the 29th.
     expect(titles({ from: "2026-10-28", to: "2026-10-29" })).toEqual(["Project review", "Client call"]);
     expect(titles({ from: "2026-10-30" })).toEqual(["Public holiday"]);
@@ -125,7 +125,7 @@ describe("grouping by day", () => {
   const b = ev({ title: "Late same day", start: "2026-10-23T18:30:00Z" }); // 22:30 Fri
   const c = ev({ title: "Crosses midnight in Muscat", start: "2026-10-23T20:30:00Z" }); // 00:30 Sat
   const d = ev({ title: "Next week", start: "2026-10-30T06:00:00Z" });
-  it("groups by the day it starts in the person's zone, oldest first for upcoming", () => {
+  it("groups by the day it starts in the person’s zone, oldest first for upcoming", () => {
     const g = groupByDay([d, c, b, a], TZ, "asc", NOW);
     expect(g.map((x) => [x.key, x.events.map((e) => e.title)])).toEqual([
       ["2026-10-23", ["Early", "Late same day"]],

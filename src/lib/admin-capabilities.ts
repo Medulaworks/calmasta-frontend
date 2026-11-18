@@ -20,7 +20,7 @@ export function requireCapability(action: AdminCapability): CapabilityState {
 }
 export async function loadCapabilities(signal?: AbortSignal): Promise<CapabilitiesResponse> {
   const res = await fetch("/api/admin/capabilities", { cache: "no-store", credentials: "same-origin", signal });
-  if (!res.ok) throw new ApiError(res.status, "Could not check admin permissions.", "capabilities_unavailable");
+  if (!res.ok) throw new ApiError(res.status, "We couldn’t check admin permissions. Please try again.", "capabilities_unavailable");
   const data = (await res.json()) as CapabilitiesResponse;
   // Validate no secret leakage — capabilities must not carry provider keys.
   if (typeof data !== "object" || data === null || !("capabilities" in data)) throw new Error("malformed_capabilities");

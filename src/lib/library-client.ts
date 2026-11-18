@@ -32,7 +32,7 @@ export async function searchLibrary(f:LibraryQuery,signal?:AbortSignal,limit?:nu
 export interface LibraryPage { results:LibraryResult[];nextCursor:string|null; }
 async function request<T>(url:string,init?:RequestInit):Promise<T>{
  const res=await fetch(url,{cache:"no-store",...init});const body=await res.json().catch(()=>({}));
- if(!res.ok){const code=body.code as string|undefined;const message=res.status===401?"Your session ended. Please sign in again.":code==="version_conflict"?"This transcript was changed elsewhere. Your changes are still here.":res.status===413?"These edits are too large. Save fewer lines at a time.":body.error??"Could not load or save this recording. Please try again.";throw new ApiError(res.status,message,code);}return body as T;
+ if(!res.ok){const code=body.code as string|undefined;const message=res.status===401?"Your session ended. Please sign in again.":code==="version_conflict"?"This transcript was changed elsewhere. Your changes are still here.":res.status===413?"These edits are too large. Save fewer lines at a time.":body.error??"We couldn’t load or save this recording. Please try again.";throw new ApiError(res.status,message,code);}return body as T;
 }
 export async function searchLibraryPage(f:LibraryQuery,signal?:AbortSignal,cursor?:string,limit=25):Promise<LibraryPage>{
  const p=new URLSearchParams();if(f.q.trim())p.set("q",f.q.trim());

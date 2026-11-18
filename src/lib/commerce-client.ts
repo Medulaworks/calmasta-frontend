@@ -196,12 +196,12 @@ export function isTrustedCheckoutUrl(
 export function checkoutUnavailableMessage(reason: string | null | undefined): string {
   switch (reason) {
     case "subscriptions_unavailable":
-      return "Recurring subscriptions aren't available yet. Extra-hour packs can still be bought below.";
+      return "Recurring subscriptions aren’t available yet. Extra-hour packs can still be bought below.";
     case "checkout_bridge_unavailable":
-      return "Checkout isn't connected yet. Your plan and usage are unchanged — please try again later.";
+      return "Checkout isn’t connected yet. Your plan and usage are unchanged — please try again later.";
     case "busy":
     case "service_unavailable":
-      return "The store is busy. Please try again — you won't be charged twice for the same attempt.";
+      return "The store is busy. Please try again — you won’t be charged twice for the same attempt.";
     case "unknown_sku":
       return "That offer is no longer available. Please choose another pack.";
     default:

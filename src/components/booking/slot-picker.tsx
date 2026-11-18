@@ -31,7 +31,7 @@ export function SlotPicker({ load, timeZone, selected, onPick, split = false }: 
         const first = r.slots[0] ? dayKey(r.slots[0].start, timeZone) : null;
         setDay((d) => (d && r.slots.some((s) => dayKey(s.start, timeZone) === d) ? d : first));
       },
-      (err) => !cancelled && setRes({ load, from, tz: timeZone, error: err instanceof Error ? err.message : "Could not load times." }),
+      (err) => !cancelled && setRes({ load, from, tz: timeZone, error: err instanceof Error ? err.message : "We couldn’t load times. Please try again." }),
     );
     return () => {
       cancelled = true;

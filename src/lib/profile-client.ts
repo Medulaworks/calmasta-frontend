@@ -43,7 +43,7 @@ async function request(init?: RequestInit): Promise<ProfileView> {
   }
   return {
     ...body,
-    theme: ["a", "b", "d", "e", "f"].includes(body.theme ?? "") ? body.theme : DEFAULT_THEME,
+    theme: DEFAULT_THEME,
     mode: ["light", "dark", "system"].includes(body.mode ?? "") ? body.mode : DEFAULT_MODE,
     avatarUrl: body.avatarUrl ?? null,
     avatarExpiresAt: body.avatarExpiresAt ?? null,

@@ -133,7 +133,7 @@ export function AvailabilityTab() {
       await saveM.mutateAsync({ input: form, id: editing === "new" || !editing ? undefined : editing.id });
       setEditing(null);
     } catch (err) {
-      setLocalError(err instanceof Error ? err.message : "Could not save.");
+      setLocalError(err instanceof Error ? err.message : "We couldn’t save. Please try again.");
     }
   }
   async function remove() {
@@ -143,7 +143,7 @@ export function AvailabilityTab() {
       setConfirmDelete(null);
     } catch (err) {
       setConfirmDelete(null);
-      setLocalError(err instanceof Error ? err.message : "Could not delete.");
+      setLocalError(err instanceof Error ? err.message : "We couldn’t delete. Please try again.");
     }
   }
   const summary = (w: WeeklyHours) => summarizeWeek(w);
@@ -386,7 +386,7 @@ export function AvailabilityTab() {
               {calendars.length === 0 ? (
                 <p className="text-sm text-muted">
                   No calendar is connected, so only bookings made through
-                  Jooba are checked for clashes.{" "}
+                  Joobah are checked for clashes.{" "}
                   <Link
                     href="/dashboard/calendar"
                     className="font-medium text-accent hover:underline">
@@ -402,7 +402,7 @@ export function AvailabilityTab() {
                     </p>
                     <p className="text-xs text-muted">
                       Anything on them makes that time unavailable. If one
-                      can&apos;t be read, booking pauses rather than risk a
+                      can’t be read, booking pauses rather than risk a
                       double booking.
                     </p>
                     <ul className="mt-2 space-y-2">
@@ -435,7 +435,7 @@ export function AvailabilityTab() {
                   </div>
                   <Field
                     label="Add new bookings to"
-                    hint="Confirmed bookings are written here. Leave empty to keep them only in Jooba.">
+                    hint="Confirmed bookings are written here. Leave empty to keep them only in Joobah.">
                     <select
                       value={form.destinationCalendarId ?? ""}
                       onChange={(e) =>
@@ -445,7 +445,7 @@ export function AvailabilityTab() {
                         })
                       }
                       className={field}>
-                      <option value="">Nowhere (Jooba only)</option>
+                      <option value="">Nowhere (Joobah only)</option>
                       {calendars.map((c: { id: string; name: string; account: string }) => (
                         <option key={c.id} value={c.id}>
                           {c.name} · {c.account}

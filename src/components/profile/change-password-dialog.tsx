@@ -37,7 +37,7 @@ export function ChangePasswordDialog({ onClose }: { onClose: () => void }) {
               ? "Use Forgot password on the sign-in page to set a password."
               : data.error === "invalid_current_password"
                 ? "Your current password is incorrect."
-                : "This request could not be completed. Please try again.",
+                : "That didn’t work. Please try again.",
         );
       } else {
         setDone(true);
@@ -47,7 +47,7 @@ export function ChangePasswordDialog({ onClose }: { onClose: () => void }) {
         setMessage("Your password was updated. Please sign in again.");
       }
     } catch {
-      setMessage("Unable to connect. Please try again.");
+      setMessage("We can’t connect right now. Check your connection and try again.");
     } finally {
       setBusy(false);
     }

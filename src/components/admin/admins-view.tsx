@@ -11,12 +11,12 @@ import { type Json, adminPost, fmtUtc } from "@/lib/admin-client";
 import { capability } from "@/lib/admin-capabilities";
 import type { AdminInvite, AdminList, AdminMember } from "@/lib/admin-types";
 import { ClickRow, MenuTd, RowMenu, RowOpen } from "./row-menu";
-import { DataTable, ResourceBoundary, SimpleDialog, Td, Th, useResource } from "./ui";
+import { DataTable, ResourceBoundary, SelectField, SimpleDialog, Td, Th, inputClass, useResource } from "./ui";
 
 type Member = Json<AdminMember>;
 type Invite = Json<AdminInvite>;
 
-const field = "mt-2 block h-10 w-full rounded-lg border border-border bg-background px-3 text-sm";
+const field = `mt-2 ${inputClass}`;
 const EMAIL = /^\S+@\S+\.\S+$/;
 const daysLeft = (iso: string) => Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
 const key = () => crypto.randomUUID().replace(/-/g, "").slice(0, 16).padEnd(8, "0");
@@ -35,7 +35,7 @@ export function AdminsView() {
       toasts.push({ tone: "success", message: `Invite sent again to ${i.email}.` });
       res.reload();
     } catch (err) {
-      toasts.push({ tone: "danger", message: err instanceof Error ? err.message : "Couldn't send it again." });
+      toasts.push({ tone: "danger", message: err instanceof Error ? err.message : "Couldn’t send it again." });
     }
   }
 
@@ -49,7 +49,7 @@ export function AdminsView() {
         const lastOne = admins.length <= 1;
         const adminMenu = (a: Member) => [
           { label: "Open account", href: `/admin/customers/${a.id}`, disabled: a.id.startsWith("p-"), reason: "No account page for this sample person." },
-          { label: "Remove admin…", onSelect: () => setRemoving(a), danger: true, divider: true, disabled: !can.allowed || a.you || lastOne, reason: !can.allowed ? can.reason : a.you ? "You can't remove yourself. Ask another admin." : "There must always be at least one admin." },
+          { label: "Remove admin…", onSelect: () => setRemoving(a), danger: true, divider: true, disabled: !can.allowed || a.you || lastOne, reason: !can.allowed ? can.reason : a.you ? "You can’t remove yourself. Ask another admin." : "There must always be at least one admin." },
         ];
         const inviteMenu = (i: Invite) => [
           { label: daysLeft(i.expiresAt) <= 0 ? "Send a new invite" : "Resend invite", onSelect: () => void resend(i), disabled: !can.allowed, reason: can.reason },
@@ -119,7 +119,7 @@ export function AdminsView() {
               <SimpleDialog
                 danger
                 title={`Remove ${removing.name ?? removing.email}?`}
-                description={<>They lose admin access now. Their Jooba account stays.</>}
+                description={<>They lose admin access now. Their Joobah account stays.</>}
                 confirmLabel="Remove admin"
                 busyLabel="Removing…"
                 onClose={() => setRemoving(null)}
@@ -163,7 +163,7 @@ function InviteDialog({ onClose, onSent }: { onClose: () => void; onSent: (email
   return (
     <SimpleDialog
       title="Invite an admin"
-      description="They get an email link that expires in 48 hours. Raw tokens are never shown."
+      description="They get an email link that expires in 48 hours. The link itself is never shown here."
       confirmLabel="Send invite"
       busyLabel="Sending…"
       canSubmit={EMAIL.test(clean) && reason.trim().length > 0}
@@ -175,16 +175,16 @@ function InviteDialog({ onClose, onSent }: { onClose: () => void; onSent: (email
     >
       <label className="block text-sm">
         <span className="font-medium">Email address</span>
-        <input type="email" autoComplete="off" inputMode="email" spellCheck={false} placeholder="name@company.com" value={email} onChange={(e) => setEmail(e.target.value)} aria-invalid={touched} className={field} />
+        <input type="email" autoComplete="off" inputMode="email" spellCheck={false} placeholder="me@joobah.com" value={email} onChange={(e) => setEmail(e.target.value)} aria-invalid={touched} className={field} />
         {touched && <span role="alert" className="mt-1 block text-xs text-danger">Enter a full email address, like name@company.com.</span>}
       </label>
       <label className="block text-sm">
         <span className="font-medium">Role</span>
-        <select value={role} onChange={(e) => setRole(e.target.value)} className={field}>
+        <SelectField value={role} onChange={(e) => setRole(e.target.value)} className="mt-2">
           <option value="viewer">Viewer</option>
           <option value="operator">Operator</option>
           <option value="owner">Owner</option>
-        </select>
+        </SelectField>
       </label>
       <label className="block text-sm">
         <span className="font-medium">Reason (required, no secrets)</span>

@@ -1,4 +1,4 @@
-// The plans MyJooba sells, in one place for the server and the screens. Allowances and prices are configuration
+// The plans Joobah sells, in one place for the server and the screens. Allowances and prices are configuration
 // (server/billing/config.ts), never copy; this only names the plans and how they relate.
 
 export const PLAN_IDS = ["free", "pro", "business"] as const;

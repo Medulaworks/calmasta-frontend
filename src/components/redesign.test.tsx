@@ -31,12 +31,11 @@ describe("redesign pieces", () => {
   });
   it("the cold dashboard offers all four ways in, with exactly one solid primary action", () => {
     const out = html(createElement(ActionDock));
-    for (const t of ["Start Recording", "Capture a meeting", "Upload audio", "Create a document"]) expect(out).toContain(t);
-    expect(out).not.toContain("Record a thought");
+    for (const t of ["Start recording", "Join a meeting", "Upload audio", "Create a document"]) expect(out).toContain(t);
     expect(out).toContain("Paste a Zoom, Teams or Google Meet link");
   });
   it("the slim capture bar and calendar prompt use the agreed wording", () => {
-    expect(html(createElement(CaptureBar))).toContain("Send Jooba to the call");
+    expect(html(createElement(CaptureBar))).toContain("Send Joobah to the call");
     expect(html(createElement(CalendarPrompt))).toContain("You will approve each one");
   });
 });

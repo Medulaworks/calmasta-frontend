@@ -114,7 +114,7 @@ it("renders pending, success and blocked states without payment claims", () => {
   expect(active).toContain("Payment confirmed");
   expect(active).not.toContain("status=success");
   const blocked = panel({ kind: "unavailable", intent: intent("blocked") });
-  expect(blocked).toContain("couldn&#x27;t confirm");
+  expect(blocked).toContain("couldn’t confirm");
   expect(blocked).toContain("do not pay again");
 });
 

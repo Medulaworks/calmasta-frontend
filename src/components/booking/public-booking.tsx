@@ -42,7 +42,7 @@ export function PublicBooking({ slug }: { slug: string }) {
       },
       (err) => {
         const unavailable = err instanceof ApiError && err.status === 404;
-        setLoadError({ title: unavailable ? "This booking page isn't available" : "We couldn't load this page", text: unavailable ? "The link may be wrong, or the page has been switched off. Check with whoever sent it." : "Please try again in a moment." });
+        setLoadError({ title: unavailable ? "This booking page isn’t available" : "We couldn’t load this page", text: unavailable ? "The link may be wrong, or the page has been switched off. Check with whoever sent it." : "Please try again in a moment." });
       },
     );
   }, [slug]);
@@ -64,7 +64,7 @@ export function PublicBooking({ slug }: { slug: string }) {
     if (!type || !slot) return;
     const errs: typeof fieldError = {};
     if (!form.name.trim()) errs.name = "Please enter your name.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(form.email.trim())) errs.email = "That email address doesn't look right.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(form.email.trim())) errs.email = "That email address doesn’t look right.";
     setFieldError(errs);
     if (errs.name || errs.email) return;
     setSubmitting(true);
@@ -201,7 +201,7 @@ export function PublicBooking({ slug }: { slug: string }) {
               </label>
               <label className="block text-sm">
                 <span className="font-medium">Email</span>
-                <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} autoComplete="email" maxLength={254} aria-invalid={!!fieldError.email} aria-describedby={fieldError.email ? "err-email" : undefined} className={input} />
+                <input type="email" placeholder="me@joobah.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} autoComplete="email" maxLength={254} aria-invalid={!!fieldError.email} aria-describedby={fieldError.email ? "err-email" : undefined} className={input} />
                 {fieldError.email && <span id="err-email" className="mt-2 block text-danger">{fieldError.email}</span>}
               </label>
               <label className="block text-sm">
@@ -221,7 +221,7 @@ export function PublicBooking({ slug }: { slug: string }) {
           )}
         </div>
       </div>
-      <p className="mt-6 text-center text-xs text-muted">Scheduling by Jooba</p>
+      <p className="mt-6 text-center text-xs text-muted">Scheduling by Joobah</p>
     </div>
   );
 }

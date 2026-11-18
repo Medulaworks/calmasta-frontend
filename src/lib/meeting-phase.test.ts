@@ -42,7 +42,7 @@ describe("phaseToast", () => {
     expect(phaseToast("waiting", "timed_out", "Standup", "1")?.message).toContain("assistant");
     expect(phaseToast("recording", "failed", "Standup", "1")).toMatchObject({ tone: "danger" });
   });
-  it("only announces a capture it hasn't seen before if it is live", () => {
+  it("only announces a capture it hasn’t seen before if it is live", () => {
     expect(phaseToast(undefined, "ready", "Old one", "1")).toBeNull();
     expect(phaseToast(undefined, "declined", "Old one", "1")).toBeNull();
     expect(phaseToast(undefined, "recording", "Calendar meeting", "1")).not.toBeNull();

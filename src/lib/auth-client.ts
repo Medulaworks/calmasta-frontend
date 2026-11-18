@@ -7,7 +7,7 @@ export async function signOut(everywhere = false): Promise<void> {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ all: everywhere }),
   });
-  if (!response.ok) throw new Error("Could not sign out. Please try again.");
+  if (!response.ok) throw new Error("We couldn’t sign out. Please try again.");
   // Clear local capability cache — prevents a new session reusing old staff permissions.
   try { clearCapabilities(); clearOnLogout(); } catch {}
   // Query caches are cleared on navigation/reload; helper is available for SPA logout without reload.
@@ -19,7 +19,7 @@ export async function signOut(everywhere = false): Promise<void> {
 /** For tests and SPA logout without full reload — clears capability cache and returns redirect. */
 export async function signOutWithoutRedirect(everywhere = false): Promise<string> {
   const res = await fetch("/api/auth/logout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ all: everywhere }) });
-  if (!res.ok) throw new Error("Could not sign out.");
+  if (!res.ok) throw new Error("We couldn’t sign out. Please try again.");
   clearOnLogout();
   const body = (await res.json().catch(() => ({}))) as { redirectTo?: string };
   return body.redirectTo ?? "/auth/login";

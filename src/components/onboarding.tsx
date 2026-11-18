@@ -26,7 +26,7 @@ const delay = (d: number): CSSProperties => ({ ["--d" as string]: `${d}s` }) as 
  */
 const CHOICES = [
   { href: "/dashboard/voice", Icon: Mic, title: "Start recording", body: "Capture an idea, reminder or plan.", sound: "recordStart" as const, main: true },
-  { href: "/dashboard/capture?focus=link", Icon: Video, title: "Capture a meeting", body: "Start or connect a supported meeting.", sound: "sent" as const },
+  { href: "/dashboard/capture?focus=link", Icon: Video, title: "Join a meeting", body: "Paste a Meet, Teams or Zoom link.", sound: "sent" as const },
   { href: "/dashboard/voice", Icon: Upload, title: "Upload audio", body: "Turn an existing recording into text.", sound: "sent" as const },
   { href: "/dashboard/library", Icon: FileText, title: "Create a document", body: "Turn captured information into something useful.", sound: "notify" as const },
 ] as const;
@@ -73,7 +73,7 @@ export function Onboarding() {
     getProfile().then(
       (p: ProfileView) => {
         if (cancelled) return;
-        setAppearance(p.theme ?? DEFAULT_THEME, p.mode ?? DEFAULT_MODE);
+        setAppearance(DEFAULT_THEME, p.mode ?? DEFAULT_MODE);
         if (p.onboarded) {
           router.replace("/dashboard");
           return;
@@ -91,7 +91,7 @@ export function Onboarding() {
         setBootstrapError(
           err instanceof Error
             ? err.message
-            : "Unable to load profile. Please check your connection.",
+            : "We couldn’t load your profile. Check your connection and try again.",
         );
         setLoaded(false);
       },

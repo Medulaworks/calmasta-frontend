@@ -283,7 +283,7 @@ export function orZero(minutes: number | null): number {
 export const fetchPlan = async (): Promise<PlanSummary> => {
   const res = await fetch("/api/plan");
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new ApiError(res.status, body.error ?? "Could not load your plan.", body.code);
+  if (!res.ok) throw new ApiError(res.status, body.error ?? "We couldn’t load your plan. Please try again.", body.code);
   return normalizePlan(body);
 };
 

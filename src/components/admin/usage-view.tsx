@@ -1,5 +1,7 @@
 "use client";
 
+import { ChevronRight } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -8,7 +10,7 @@ import { ToastStack, useToasts } from "@/components/ui/toast";
 import { type Json, adminPost, fmtUtc } from "@/lib/admin-client";
 import { formatMinutes } from "@/lib/status";
 import type { UsageReport } from "@/lib/admin-types";
-import { ClickRow, MenuTd, RowMenu, RowOpen } from "./row-menu";
+import { ClickRow, RowOpen } from "./row-menu";
 import { ActionDialog, DataTable, Metric, Notice, ResourceBoundary, Td, Th, useResource } from "./ui";
 
 const usd = (n: number | null) => (n === null ? "unknown" : `$${n.toFixed(2)}`);
@@ -28,10 +30,10 @@ export function UsageView() {
           const nu = r as unknown as NewUsage;
           return (
             <div className="space-y-5">
-              <p className="text-sm text-muted">Period {nu.period} · {nu.timezone} · cost basis {nu.costBasis} — estimate versus settled preserved</p>
-              <DataTable label="Usage by workspace">
-                <thead><tr><Th>Workspace</Th><Th>Plan</Th><Th>Used</Th><Th>Reserved</Th></tr></thead>
-                <tbody>{nu.items.map((it) => <tr key={it.id}><Td>{it.id.slice(0, 8)}</Td><Td>{it.plan}</Td><Td>{formatMinutes(Math.round(it.usedSeconds / 60))}</Td><Td>{formatMinutes(Math.round(it.reservedSeconds / 60))}</Td></tr>)}</tbody>
+              <p className="text-sm text-muted">Minutes used since {nu.period} (UTC). “Reserved” minutes are set aside for recordings that are booked or still running.</p>
+              <DataTable label="Minutes used by account">
+                <thead><tr><Th>Account ID</Th><Th>Plan</Th><Th>Used</Th><Th>Reserved</Th></tr></thead>
+                <tbody>{nu.items.map((it) => <tr key={it.id}><Td className="font-mono text-xs">{it.id.slice(0, 8)}</Td><Td>{it.plan.replace(/^plan[_-]/i, "").replace(/^./, (c) => c.toUpperCase())}</Td><Td>{formatMinutes(Math.round(it.usedSeconds / 60))}</Td><Td>{formatMinutes(Math.round(it.reservedSeconds / 60))}</Td></tr>)}</tbody>
               </DataTable>
               {nu.spend.length > 0 && (
                 <DataTable label="Spend by day" narrow>
@@ -39,7 +41,7 @@ export function UsageView() {
                   <tbody>{nu.spend.map((s) => <tr key={s.day}><Td>{s.day}</Td><Td>{(s.reservedCostMicros / 1e6).toFixed(2)}</Td><Td>{(s.settledCostMicros / 1e6).toFixed(2)}</Td></tr>)}</tbody>
                 </DataTable>
               )}
-              <p className="text-xs text-muted">No totals fabricated; null stays –. <button type="button" onClick={res.reload} className="underline">Refresh</button></p>
+              <p className="text-xs text-muted">A dash means the number isn’t available. <button type="button" onClick={res.reload} className="underline">Refresh</button></p>
               <ToastStack items={toasts.items} onDismiss={toasts.dismiss} />
             </div>
           );
@@ -84,7 +86,7 @@ export function UsageView() {
                         <ClickRow key={t.userId} href={href}>
                           <Td><RowOpen href={href}>{t.email}</RowOpen></Td>
                           <Td className="tabular-nums">{formatMinutes(t.minutes)}</Td>
-                          <MenuTd><RowMenu label={`Actions for ${t.email}`} items={[{ label: "Open account", href }]} /></MenuTd>
+                          <td className="w-10 border-b border-border px-2 py-2 text-right align-middle"><Link href={href} aria-label={`Open ${t.email}’s account`} className="grid size-8 place-items-center rounded-lg text-muted hover:bg-surface hover:text-foreground"><ChevronRight aria-hidden className="size-4" /></Link></td>
                         </ClickRow>
                       );
                     })}

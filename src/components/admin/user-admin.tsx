@@ -1,5 +1,6 @@
 "use client";
 
+import { Ban, KeyRound, LogOut, MailCheck, Minus, Pencil, Plus, RotateCcw, Sparkles, UserRound, XCircle } from "lucide-react";
 import { Card, CardHeader } from "@/components/ui/card";
 import { type Json, adminPatch, adminPost, fmtUtc } from "@/lib/admin-client";
 import { type CapabilityState, capability } from "@/lib/admin-capabilities";
@@ -42,18 +43,18 @@ export function userMenuItems(u: UserLike, open: (d: UserDialogKind) => void, op
   const gone = u.deleting;
   const deleting = "This account is being deleted.";
   const items: MenuItem[] = [];
-  if (openHref) items.push({ label: "Open account", href: openHref });
-  if (u.timezone !== undefined) items.push({ label: "Edit name and time zone…", onSelect: () => open("edit"), ...gate(edit) });
-  items.push({ label: "Send password reset email", onSelect: () => open("recovery"), divider: items.length > 0, ...gate(mail) });
-  if (u.emailVerified === false) items.push({ label: "Resend confirm-email message", onSelect: () => open("verification"), ...gate(mail) });
-  if (u.sessionCount !== 0) items.push({ label: "Sign out of all devices…", onSelect: () => open("revoke"), ...gate(sessions) });
-  items.push({ label: "Add minutes…", onSelect: () => open("add_minutes"), divider: true, disabled: gone, reason: gone ? deleting : null });
-  items.push({ label: "Remove minutes…", onSelect: () => open("take_minutes"), disabled: gone, reason: gone ? deleting : null });
-  if (u.planSource === "staff" && u.plan !== "free") items.push({ label: "End the Pro we gave them…", onSelect: () => open("end_pro") });
-  else if (u.plan === "free") items.push({ label: "Give Pro for a while…", onSelect: () => open("grant_pro"), disabled: gone, reason: gone ? deleting : null });
+  if (openHref) items.push({ label: "Open account", icon: UserRound, href: openHref });
+  if (u.timezone !== undefined) items.push({ label: "Edit details", icon: Pencil, onSelect: () => open("edit"), ...gate(edit) });
+  items.push({ label: "Send password reset email", icon: KeyRound, onSelect: () => open("recovery"), divider: items.length > 0, ...gate(mail) });
+  if (u.emailVerified === false) items.push({ label: "Resend confirmation email", icon: MailCheck, onSelect: () => open("verification"), ...gate(mail) });
+  if (u.sessionCount !== 0) items.push({ label: "Sign out everywhere", icon: LogOut, onSelect: () => open("revoke"), ...gate(sessions) });
+  items.push({ label: "Add minutes", icon: Plus, onSelect: () => open("add_minutes"), divider: true, disabled: gone, reason: gone ? deleting : null });
+  items.push({ label: "Remove minutes", icon: Minus, onSelect: () => open("take_minutes"), disabled: gone, reason: gone ? deleting : null });
+  if (u.planSource === "staff" && u.plan !== "free") items.push({ label: "End free Pro access", icon: XCircle, onSelect: () => open("end_pro") });
+  else if (u.plan === "free") items.push({ label: "Give Pro for a while", icon: Sparkles, onSelect: () => open("grant_pro"), disabled: gone, reason: gone ? deleting : null });
   items.push(u.suspended
-    ? { label: "Turn account back on…", onSelect: () => open("reactivate"), divider: true, ...gate(suspend) }
-    : { label: "Suspend account…", onSelect: () => open("suspend"), danger: true, divider: true, ...gate(suspend) });
+    ? { label: "Turn account back on", icon: RotateCcw, onSelect: () => open("reactivate"), divider: true, ...gate(suspend) }
+    : { label: "Suspend account", icon: Ban, onSelect: () => open("suspend"), danger: true, divider: true, ...gate(suspend) });
   return items;
 }
 
@@ -79,7 +80,7 @@ export function UserDialogs({ user, dialog, onClose, onDone }: { user: UserLike;
 
   switch (dialog) {
     case "edit":
-      return <ActionDialog title="Edit name and time zone" description="The email can't be changed here." confirmLabel="Save" fields={[{ name: "name", label: "Name", defaultValue: user.name ?? "" }, { name: "timezone", label: "Time zone", defaultValue: user.timezone ?? "", hint: "For example Europe/London or America/New_York." }]} onClose={onClose} onSubmit={async (v) => { await adminPatch(`/api/admin/customers/${id}`, { name: v.name.trim() || undefined, timezone: v.timezone.trim() || undefined, reason: v.reason }, { "Idempotency-Key": key() }); onDone("Saved."); }} />;
+      return <ActionDialog title="Edit name and time zone" description="The email can’t be changed here." confirmLabel="Save" fields={[{ name: "name", label: "Name", defaultValue: user.name ?? "" }, { name: "timezone", label: "Time zone", defaultValue: user.timezone ?? "", hint: "For example Europe/London or America/New_York." }]} onClose={onClose} onSubmit={async (v) => { await adminPatch(`/api/admin/customers/${id}`, { name: v.name.trim() || undefined, timezone: v.timezone.trim() || undefined, reason: v.reason }, { "Idempotency-Key": key() }); onDone("Saved."); }} />;
     case "suspend":
       return <ActionDialog danger title="Suspend this account?" description={<>{who} can&rsquo;t sign in until you turn the account back on. Nothing is deleted.</>} confirmLabel="Suspend account" onClose={onClose} onSubmit={act("suspend", "Account suspended.")} />;
     case "reactivate":

@@ -19,7 +19,7 @@ function googleCalendarLink(b: GuestBooking) {
     action: "TEMPLATE",
     text: b.hostName ? `${b.meetingName} with ${b.hostName}` : b.meetingName,
     dates: `${t(b.startAt)}/${t(b.endAt)}`,
-    details: "Booked through Jooba.",
+    details: "Booked through Joobah.",
   });
   if (b.locationText) p.set("location", b.locationText);
   return `https://calendar.google.com/calendar/render?${p}`;
@@ -52,7 +52,7 @@ export function BookingSummary({
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
             {heading ??
-              (cancelled ? "This booking was cancelled" : "You're booked")}
+              (cancelled ? "This booking was cancelled" : "You’re booked")}
           </h1>
           <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted">
             <Badge tone={cancelled ? "neutral" : "success"}>
@@ -148,8 +148,8 @@ export function BookingSummary({
           role="status"
           className="rounded-lg border border-border bg-surface px-4 py-3 text-sm">
           <span className="font-medium">No confirmation email was sent.</span>{" "}
-          Email isn&apos;t set up yet, but your booking is confirmed. Keep this
-          page&apos;s link to change or cancel it later.
+          Email isn’t set up yet, but your booking is confirmed. Keep this
+          page’s link to change or cancel it later.
         </p>
       )}
       {!cancelled && booking.emailStatus === "failed" && (
@@ -157,10 +157,10 @@ export function BookingSummary({
           role="status"
           className="rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
           <span className="font-medium">
-            Your booking is confirmed, but the confirmation email couldn&apos;t
+            Your booking is confirmed, but the confirmation email couldn’t
             be sent.
           </span>{" "}
-          Keep this page&apos;s link: it&apos;s how you change or cancel.
+          Keep this page’s link: it’s how you change or cancel.
         </p>
       )}
       {!cancelled && booking.emailStatus === "pending" && (

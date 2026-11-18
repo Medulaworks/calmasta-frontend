@@ -24,7 +24,7 @@ export async function fetchUsageSummary(): Promise<UsageSummaryView> {
       res.status,
       res.status === 401
         ? "Your session ended. Please sign in again."
-        : (body.error ?? body.message ?? "Could not load usage summary."),
+        : (body.error ?? body.message ?? "We couldn’t load usage summary. Please try again."),
     );
   }
   return {

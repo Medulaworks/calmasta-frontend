@@ -20,7 +20,7 @@ export function TestCheckoutView() {
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
-    fetchPlan().then((p) => !cancelled && setPlan(p), (e) => !cancelled && setError(e instanceof Error ? e.message : "Could not load your plan."));
+    fetchPlan().then((p) => !cancelled && setPlan(p), (e) => !cancelled && setError(e instanceof Error ? e.message : "We couldn’t load your plan. Please try again."));
     return () => {
       cancelled = true;
     };
@@ -46,7 +46,7 @@ export function TestCheckoutView() {
     const k = plan.packs.find((x) => x.sku === pack);
     if (k) {
       title = `${k.label} of extra processing`;
-      detail = "Used after your monthly allowance. Doesn't reset each month.";
+      detail = "Used after your monthly allowance. Doesn’t reset each month.";
     }
   }
 
@@ -57,7 +57,7 @@ export function TestCheckoutView() {
       await api("/api/dev/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(pack ? { pack } : { plan: chosen, period }) });
       router.push("/dashboard/plan/confirming");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not complete the test purchase.");
+      setError(e instanceof Error ? e.message : "We couldn’t complete the test purchase. Please try again.");
       setBusy(false);
     }
   }

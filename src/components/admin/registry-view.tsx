@@ -8,7 +8,7 @@ import { ToastStack, useToasts } from "@/components/ui/toast";
 import { type Json, fmtUtc } from "@/lib/admin-client";
 import type { RegistryRow } from "@/lib/admin-types";
 import { ClickRow, MenuTd, RowMenu, RowOpen } from "./row-menu";
-import { AdminUnavailable, DataTable, ResourceBoundary, Td, Th, useResource } from "./ui";
+import { AdminUnavailable, DataTable, FilterSelect, ResourceBoundary, Td, Th, useResource } from "./ui";
 import { type UserDialogKind, UserDialogs, userMenuItems } from "./user-admin";
 
 const FILTERS = [
@@ -32,16 +32,12 @@ export function RegistryView() {
   const res = useResource<{ rows: Row[] } & { available?: boolean; reason?: string; items?: Row[] }>(`/api/admin/registry?filter=${filter}`);
   return (
     <div className="space-y-4">
-      <div role="group" aria-label="Show" className="flex flex-wrap gap-2">
-        {FILTERS.map((f) => (
-          <button key={f.id} type="button" aria-pressed={filter === f.id} onClick={() => setFilter(f.id)} className={`rounded-full border px-3 py-1 text-sm ${filter === f.id ? "border-accent bg-accent/10 font-medium text-accent" : "border-border text-muted hover:bg-surface"}`}>
-            {f.label}
-          </button>
-        ))}
+      <div className="flex justify-end">
+        <FilterSelect label="Show" value={filter} onChange={(v) => setFilter(v as typeof filter)} options={FILTERS.map((f) => ({ value: f.id, label: f.label }))} />
       </div>
       <ResourceBoundary resource={res}>
         {(data: { rows: Row[] } & { available?: boolean; reason?: string; items?: Row[] }) => {
-          if ((data as { available?: boolean }).available === false) return <AdminUnavailable title="Entitlements unavailable"><p className="text-sm text-muted">{(data as { reason?: string }).reason ?? "Not available yet."} — entitlements policy not approved.</p></AdminUnavailable>;
+          if ((data as { available?: boolean }).available === false) return <AdminUnavailable title="Subscribers aren’t available yet"><p className="text-sm text-muted">They will appear here once billing is switched on.</p></AdminUnavailable>;
           const rows = (data as { rows?: Row[]; items?: Row[] }).rows ?? (data as { items?: Row[] }).items ?? [];
           return (
           rows.length === 0 ? (

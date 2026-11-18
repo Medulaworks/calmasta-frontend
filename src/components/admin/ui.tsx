@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { ChevronDown, Eye, EyeOff, type LucideIcon, Search, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -48,7 +48,7 @@ export function usePaged<I, P extends { nextCursor: string | null }>(url: string
       (err) => {
         if (off) return;
         const unavailable = err instanceof ApiError && err.code === "feature_unavailable";
-        setLoaded({ url, rows: [], cursor: null, first: null, status: unavailable ? "unavailable" : "error", message: err instanceof Error ? err.message : "Couldn't load this." });
+        setLoaded({ url, rows: [], cursor: null, first: null, status: unavailable ? "unavailable" : "error", message: err instanceof Error ? err.message : "Couldn’t load this." });
       },
     );
     return () => { off = true; };
@@ -63,7 +63,7 @@ export function usePaged<I, P extends { nextCursor: string | null }>(url: string
       const page = await adminGet<P>(`${url}${url.includes("?") ? "&" : "?"}cursor=${encodeURIComponent(current.cursor)}`);
       setLoaded((cur) => (cur && cur.url === url ? { ...cur, rows: [...cur.rows, ...pickRef.current(page)], cursor: page.nextCursor } : cur));
     } catch (err) {
-      setLoaded((cur) => (cur ? { ...cur, message: err instanceof Error ? err.message : "Couldn't load more." } : cur));
+      setLoaded((cur) => (cur ? { ...cur, message: err instanceof Error ? err.message : "Couldn’t load more." } : cur));
     } finally {
       setMore(false);
     }
@@ -118,7 +118,7 @@ export function ResourceBoundary<T>({ resource, children }: { resource: Resource
     return (
       <Card>
         <div role="alert" className="space-y-3 p-5 text-sm">
-          <p className="font-medium">{forbidden ? "You don't have access to this." : "Couldn't load this."}</p>
+          <p className="font-medium">{forbidden ? "You don’t have access to this." : "Couldn’t load this."}</p>
           <p className="text-muted">{forbidden ? "Ask an admin for access." : error.message}</p>
           {!forbidden && <Button onClick={reload}>Try again</Button>}
         </div>
@@ -127,7 +127,7 @@ export function ResourceBoundary<T>({ resource, children }: { resource: Resource
   }
   if (loading || !data) {
     return (
-      <div role="status" aria-label="Loading" aria-busy="true" className="h-48 jb-skel rounded-xl border border-border bg-surface" />
+      <div role="status" aria-label="Loading" aria-busy="true" className="h-48 jb-skel rounded-2xl border border-border bg-surface" />
     );
   }
   return <>{children(data)}</>;
@@ -136,20 +136,23 @@ export function ResourceBoundary<T>({ resource, children }: { resource: Resource
 /** Wide tables scroll sideways on small screens instead of breaking the page. */
 export function DataTable({ children, label, narrow = false }: { children: React.ReactNode; label: string; narrow?: boolean }) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-border bg-background" tabIndex={0} role="region" aria-label={label}>
+    <div className="overflow-x-auto rounded-2xl border border-border bg-background shadow-sm" tabIndex={0} role="region" aria-label={label}>
       <table className={`w-full border-collapse text-left text-sm [&_tbody_tr:last-child_td]:border-b-0 ${narrow ? "" : "md:min-w-[40rem]"}`}>{children}</table>
     </div>
   );
 }
 /** `wide` columns are hidden on phones so the row's name, status and ⋯ menu always fit without sideways scrolling. */
-export const Th = ({ children, wide = false }: { children?: React.ReactNode; wide?: boolean }) => <th scope="col" className={`${wide ? "hidden md:table-cell " : ""}whitespace-nowrap border-b border-border bg-surface/50 px-4 py-2 text-xs font-medium text-muted`}>{children}</th>;
+export const Th = ({ children, wide = false }: { children?: React.ReactNode; wide?: boolean }) => <th scope="col" className={`${wide ? "hidden md:table-cell " : ""}whitespace-nowrap border-b border-border bg-surface/70 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted`}>{children}</th>;
 export const Td = ({ children, className = "", wide = false }: { children?: React.ReactNode; className?: string; wide?: boolean }) => <td className={`${wide ? "hidden md:table-cell " : ""}border-b border-border px-4 py-3 align-middle ${className}`}>{children}</td>;
 
-export function Metric({ label, value, hint, tone, trend }: { label: string; value: React.ReactNode; hint?: string; tone?: "danger" | "warning"; trend?: { text: string; good: boolean | null } }) {
+export function Metric({ label, value, hint, tone, trend, icon: Icon }: { label: string; value: React.ReactNode; hint?: string; tone?: "danger" | "warning"; trend?: { text: string; good: boolean | null }; icon?: LucideIcon }) {
   return (
-    <div className="rounded-xl border border-border bg-background p-4">
-      <p className="text-xs text-muted">{label}</p>
-      <p className={`mt-1 text-2xl font-medium tabular-nums ${tone === "danger" ? "text-danger" : tone === "warning" ? "text-warning" : ""}`}>{value}</p>
+    <div className="rounded-2xl border border-border bg-background p-5 shadow-sm">
+      <div className="flex items-center gap-3">
+        {Icon && <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent/10 text-accent"><Icon className="size-[18px]" /></span>}
+        <p className="text-sm text-muted">{label}</p>
+      </div>
+      <p className={`mt-3 text-3xl font-semibold tracking-tight tabular-nums ${tone === "danger" ? "text-danger" : tone === "warning" ? "text-warning" : ""}`}>{value}</p>
       {trend && <p className={`mt-1 text-xs font-medium ${trend.good === null ? "text-muted" : trend.good ? "text-success" : "text-danger"}`}>{trend.text}</p>}
       {hint && <p className="mt-1 text-xs text-muted">{hint}</p>}
     </div>
@@ -157,7 +160,7 @@ export function Metric({ label, value, hint, tone, trend }: { label: string; val
 }
 
 export function Notice({ tone = "info", children }: { tone?: "info" | "warning" | "danger"; children: React.ReactNode }) {
-  const c = tone === "danger" ? "border-danger/40 bg-danger/10" : tone === "warning" ? "border-warning/40 bg-warning/10" : "border-accent/30 bg-accent/10";
+  const c = tone === "danger" ? "border-danger/40 bg-danger/5" : tone === "warning" ? "border-warning/40 bg-warning/5" : "border-accent/30 bg-accent/5";
   return (
     <div role={tone === "info" ? "note" : "alert"} className={`rounded-xl border px-4 py-3 text-sm ${c}`}>
       {children}
@@ -234,7 +237,7 @@ export function ActionDialog({
       await onSubmit({ ...values, reason });
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "That didn't work.");
+      setError(err instanceof Error ? err.message : "That didn’t work.");
       setBusy(false);
     }
   }, [onSubmit, onClose, values, reason]);
@@ -249,7 +252,7 @@ export function ActionDialog({
           e.preventDefault();
           void submit();
         }}
-        className="max-h-[90vh] w-full max-w-md space-y-4 overflow-y-auto rounded-xl border border-border bg-background p-5 shadow-xl"
+        className="max-h-[90vh] w-full max-w-md space-y-4 overflow-y-auto rounded-2xl border border-border bg-background p-6 shadow-2xl"
       >
         <div>
           <h2 id={`${id}-t`} className="text-base font-semibold">{title}</h2>
@@ -263,7 +266,7 @@ export function ActionDialog({
                 required={f.required !== false}
                 value={values[f.name]}
                 onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))}
-                className="mt-2 block w-full rounded-lg border border-border bg-background px-3 py-2"
+                className="mt-2 block w-full rounded-xl border border-border bg-background px-3 py-2 shadow-sm focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent-solid/20"
               >
                 {f.options.map((o) => <option key={o}>{o}</option>)}
               </select>
@@ -277,7 +280,7 @@ export function ActionDialog({
                   required={f.required !== false}
                   value={values[f.name]}
                   onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))}
-                  className="block w-full rounded-lg border border-border bg-background px-3 py-2 pr-10"
+                  className="block w-full rounded-xl border border-border bg-background px-3 py-2 shadow-sm focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent-solid/20 pr-10"
                 />
                 <button
                   type="button"
@@ -299,7 +302,7 @@ export function ActionDialog({
                 required={f.required !== false}
                 value={values[f.name]}
                 onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))}
-                className="mt-2 block w-full rounded-lg border border-border bg-background px-3 py-2"
+                className="mt-2 block w-full rounded-xl border border-border bg-background px-3 py-2 shadow-sm focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent-solid/20"
               />
             )}
             {f.hint && <span className="mt-1 block text-xs text-muted">{f.hint}</span>}
@@ -315,7 +318,7 @@ export function ActionDialog({
             rows={3}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            className="mt-2 block w-full rounded-lg border border-border bg-background px-3 py-2"
+            className="mt-2 block w-full rounded-xl border border-border bg-background px-3 py-2 shadow-sm focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent-solid/20"
           />
           <span className="mt-1 block text-xs text-muted">At least 8 characters. Saved in Activity.</span>
         </label>
@@ -381,11 +384,11 @@ export function SimpleDialog({
             await onSubmit();
             onClose();
           } catch (err) {
-            setError(err instanceof Error ? err.message : "That didn't work. Please try again.");
+            setError(err instanceof Error ? err.message : "That didn’t work. Please try again.");
             setBusy(false);
           }
         }}
-        className="max-h-[90vh] w-full max-w-md space-y-4 overflow-y-auto rounded-xl border border-border bg-background p-5 shadow-xl"
+        className="max-h-[90vh] w-full max-w-md space-y-4 overflow-y-auto rounded-2xl border border-border bg-background p-6 shadow-2xl"
       >
         <div>
           <h2 id={`${id}-t`} className="text-base font-semibold">{title}</h2>
@@ -399,5 +402,49 @@ export function SimpleDialog({
         </div>
       </form>
     </div>
+  );
+}
+
+const control = "h-10 rounded-lg border border-border bg-background text-sm transition-[border-color,box-shadow] hover:border-muted/60 focus-within:border-accent focus-within:ring-4 focus-within:ring-accent-solid/20";
+
+/** A search box: magnifier on the left, a clear (×) button once there is text. Pressing Enter submits the surrounding form. */
+export function SearchField({ value, onChange, placeholder, label, className = "" }: { value: string; onChange: (v: string) => void; placeholder: string; label: string; className?: string }) {
+  return (
+    <label className={`relative flex min-w-52 flex-1 items-center sm:max-w-sm ${control} ${className}`}>
+      <span className="sr-only">{label}</span>
+      <Search aria-hidden className="pointer-events-none absolute left-3 size-4 text-muted" />
+      <input type="search" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} maxLength={100} autoComplete="off" className="h-full w-full appearance-none rounded-lg bg-transparent pl-9 pr-9 text-sm outline-none placeholder:text-muted [&::-webkit-search-cancel-button]:hidden" />
+      {value && (
+        <button type="button" onClick={() => onChange("")} aria-label="Clear search" className="absolute right-1.5 grid size-7 place-items-center rounded-md text-muted hover:bg-surface hover:text-foreground"><X aria-hidden className="size-4" /></button>
+      )}
+    </label>
+  );
+}
+
+/** A filter: its name sits inside the control ("Plan  All plans ⌄") so you always know what you are filtering. */
+export function FilterSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: ReadonlyArray<{ value: string; label: string }> }) {
+  return (
+    <label className={`relative inline-flex items-center ${control}`}>
+      <span className="pl-3 text-muted">{label}</span>
+      <select value={value} onChange={(e) => onChange(e.target.value)} className="h-full cursor-pointer appearance-none rounded-lg bg-transparent pl-2 pr-9 text-sm font-medium outline-none">
+        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+      <ChevronDown aria-hidden className="pointer-events-none absolute right-3 size-4 text-muted" />
+    </label>
+  );
+}
+
+/** One look for every text box in the staff area. */
+export const inputClass = "block h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none transition-[border-color,box-shadow] placeholder:text-muted hover:border-muted/60 focus:border-accent focus:ring-4 focus:ring-accent-solid/20 disabled:opacity-60 aria-[invalid=true]:border-danger";
+/** And for every tick box or switch. */
+export const checkClass = "size-4 shrink-0 accent-accent";
+
+/** A drop-down inside a form: the same box as a text field, with our own arrow instead of the browser's. */
+export function SelectField({ className = "", children, ...props }: React.ComponentPropsWithoutRef<"select">) {
+  return (
+    <span className="relative block">
+      <select {...props} className={`${inputClass} cursor-pointer appearance-none pr-9 ${className}`}>{children}</select>
+      <ChevronDown aria-hidden className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
+    </span>
   );
 }

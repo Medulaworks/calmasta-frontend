@@ -9,8 +9,8 @@ export async function fetchDashboard(): Promise<Dashboard> {
   if (!res.ok) {
     throw new Error(
       res.status === 401
-        ? "You're not signed in. Sign-in isn't set up yet; for local development set DEV_AUTH_EMAIL."
-        : (body.error ?? "Could not load your dashboard."),
+        ? "You’re not signed in. Sign-in isn’t set up yet; for local development set DEV_AUTH_EMAIL."
+        : (body.error ?? "We couldn’t load your dashboard. Please try again."),
     );
   }
   return body;

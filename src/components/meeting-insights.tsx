@@ -38,8 +38,8 @@ function StructuredRecap({result,meeting,isMeeting=true}:{result:StructuredRecap
       <h4 className="text-base font-semibold">{meeting.title}{recorded&&Number.isFinite(recorded.getTime())&&<> — <time dateTime={meeting.recordedAt}>{recorded.toLocaleDateString("en",{month:"long",day:"numeric",year:"numeric",timeZone:"UTC"})}</time></>}</h4>
       <Link href={meeting.recordingPath} className="text-accent underline underline-offset-4">View recording</Link>
     </header>}
-    <section className="space-y-2"><h4 className="font-semibold">{isMeeting ? "Meeting Purpose" : "Purpose"}</h4><p className="whitespace-pre-wrap break-words">{result.meetingPurpose}</p></section>
-    <SummaryList title="Key Takeaways" items={result.highlights}/>
+    <section className="space-y-2"><h4 className="font-semibold">{isMeeting ? "Meeting purpose" : "Purpose"}</h4><p className="whitespace-pre-wrap break-words">{result.meetingPurpose}</p></section>
+    <SummaryList title="Key takeaways" items={result.highlights}/>
     <section className="space-y-4">
       <h4 className="font-semibold">Topics</h4>
       {result.topics.length?result.topics.map((topic,index)=><section className="space-y-2" key={index}>
@@ -47,10 +47,10 @@ function StructuredRecap({result,meeting,isMeeting=true}:{result:StructuredRecap
         <ul className="list-disc space-y-2 pl-5">{topic.points.map((point,i)=><li className="whitespace-pre-wrap break-words" key={i}>{point.text}{point.details.length>0&&<ul className="mt-2 list-[circle] space-y-1 pl-5">{point.details.map((detail,j)=><li key={j}>{detail}</li>)}</ul>}</li>)}</ul>
       </section>):<p className="text-muted">No distinct topics identified.</p>}
     </section>
-    {result.technicalNotes.length>0&&<SummaryList title="Technical & Admin Notes" items={result.technicalNotes}/>}
+    {result.technicalNotes.length>0&&<SummaryList title="Technical and admin notes" items={result.technicalNotes}/>}
     {result.decisions.length>0&&<SummaryList title="Decisions" items={result.decisions}/>}
     <section className="space-y-4">
-      <h4 className="font-semibold">Next Steps</h4>
+      <h4 className="font-semibold">Next steps</h4>
       {owners.length?owners.map(owner=><section className="space-y-2" key={owner??"unassigned"}>
         <h5 className="font-medium">{owner??"Owner not specified"}</h5>
         <ul className="list-disc space-y-2 pl-5">{result.actionItems.filter(action=>action.owner===owner).map((action,index)=><li className="whitespace-pre-wrap break-words" key={index}>{action.task}{action.due&&<span className="text-muted"> — {action.due}</span>}</li>)}</ul>
@@ -119,7 +119,7 @@ function EmailPreference() {
       <input type="checkbox" role="switch" checked={prefs.recapEmailEnabled} disabled={save.isPending || query.isError} onChange={event => save.mutate(event.currentTarget.checked)} className="h-4 w-4 accent-accent" />
       Email me when a new meeting recap is complete
     </label>}
-    {prefs && !eligible && <p className="text-muted">Only the verified workspace owner can opt in to recap emails.</p>}
+    {prefs && !eligible && <p className="text-muted">Only the account owner can turn on recap emails, and only with a verified email.</p>}
     {save.isPending && <p role="status" className="text-muted">Saving email preference…</p>}
     <p className="text-xs text-muted">Opt-in applies to future recap completions across your meetings. Email contains a private app link, with no meeting content or attachments, and goes only to the verified owner. Enabling it does not resend previous recaps.</p>
   </section>;
@@ -165,7 +165,7 @@ export function MeetingInsights({id,transcriptVersion,audioAvailable,onSeek,isMe
  </div>
  {query.isPending&&<Loading label={isMeeting ? "Loading meeting insights" : "Loading AI Notes"} className="space-y-4"><div className="grid gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]"><div className="space-y-4 rounded-2xl border border-border p-5"><div className="flex items-center gap-2"><Skeleton className="h-5 w-5 rounded-md" /><Skeleton className="h-5 w-28" /></div><SkeletonLines lines={2} /><Skeleton className="h-24 w-full rounded-lg" /><SkeletonLines lines={3} /></div><div className="space-y-4 rounded-2xl border border-border bg-surface/40 p-5"><Skeleton className="h-5 w-24" /><SkeletonLines lines={3} /><Skeleton className="h-20 w-full rounded-lg" /></div></div></Loading>}<InsightError isMeeting={isMeeting} error={query.error}/>
  {data&&!data.enabled&&<p role="status" className="text-muted">{isMeeting ? "Meeting insights are currently unavailable. Your recording and transcript remain usable." : "AI Notes are currently unavailable. Your transcript remains usable."}</p>}
- {data?.enabled&&!data.liveProcessingEnabled&&<p role="status" className="text-muted">Insight processing is paused. Queued work cannot run until the service owner enables processing.</p>}
+ {data?.enabled&&!data.liveProcessingEnabled&&<p role="status" className="text-muted">Insights are paused for now. Anything you’ve requested will run when processing is back on.</p>}
  {data?.enabled&&!data.transcriptReady&&((data.transcriptVersion ?? transcriptVersion) !== null ? <p role="status" className="text-muted">No speech was detected in this recording.</p> : <p className="text-muted">Waiting for the current transcript before requesting insights.</p>)}
  {data&&<>
  <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)] xl:items-start">

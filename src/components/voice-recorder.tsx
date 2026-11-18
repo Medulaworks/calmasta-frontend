@@ -77,7 +77,7 @@ const subscribeNone = () => () => {};
 function describeMicError(err: unknown): string {
   const name = err instanceof DOMException ? err.name : "";
   if (name === "NotAllowedError" || name === "SecurityError") {
-    return "Microphone access was blocked. Allow it in your browser's site settings and try again.";
+    return "Microphone access was blocked. Allow it in your browser’s site settings and try again.";
   }
   if (name === "NotFoundError" || name === "OverconstrainedError") {
     return "No microphone was found on this device.";
@@ -85,7 +85,7 @@ function describeMicError(err: unknown): string {
   if (name === "NotReadableError") {
     return "The microphone is in use by another app. Close it and try again.";
   }
-  return "Could not start recording. Please try again.";
+  return "We couldn’t start recording. Please try again.";
 }
 
 export function VoiceRecorder() {
@@ -196,7 +196,7 @@ export function VoiceRecorder() {
         kind: "failed",
         captureId: processingId,
         message:
-          err instanceof Error ? err.message : "Lost contact with the server.",
+          err instanceof Error ? err.message : "We lost connection to Joobah. Please try again.",
       });
       return;
     }
@@ -214,7 +214,7 @@ export function VoiceRecorder() {
       setJob({
         kind: "failed",
         captureId: processingId,
-        message: capture.failureReason ?? "Processing failed.",
+        message: capture.failureReason ?? "Processing didn’t finish. Please try again.",
       });
     } else if (isTerminal(capture.state)) {
       setJob({ kind: "done", captureId: processingId!, capture });
@@ -291,7 +291,7 @@ export function VoiceRecorder() {
     } catch {
       stream.getTracks().forEach((t) => t.stop());
       setError(
-        "This browser can't record audio in a supported format. Try uploading a file instead.",
+        "This browser can’t record audio in a supported format. Try uploading a file instead.",
       );
       setPhase("idle");
       return;
@@ -344,7 +344,7 @@ export function VoiceRecorder() {
       recorder.start(1000);
     } catch {
       stream.getTracks().forEach((t) => t.stop());
-      setError("Could not start recording. Please try again.");
+      setError("We couldn’t start recording. Please try again.");
       setPhase("idle");
       return;
     }
@@ -594,7 +594,7 @@ export function VoiceRecorder() {
                     onChange={(e) => setConsent(e.target.checked)}
                     className="mt-1 size-4 shrink-0 accent-[var(--accent-solid)]"
                   />
-                  i have the permission toupload and transcribe this recording.
+                  I have permission to upload and transcribe this recording.
                 </label>
               </div>
             )}
@@ -626,7 +626,7 @@ export function VoiceRecorder() {
               <p role="status" className="text-sm text-muted">
                 {policyError ??
                   (policy
-                    ? "Uploading is not enabled for this account yet."
+                    ? "Uploading isn’t available on your account yet."
                     : "Loading capture limits…")}
               </p>
             )}

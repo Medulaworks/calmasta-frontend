@@ -2,8 +2,9 @@
 
 import { dashboardPath } from "@/lib/app-routes";
 
-import { Sparkles, Zap } from "lucide-react";
+import { CreditCard, Hourglass, PauseCircle, Sparkles, Timer, Trash2, Zap, type LucideIcon } from "lucide-react";
 import Link from "next/link";
+import { buttonClass } from "@/components/ui/button";
 import {
   DUMMY_PLAN,
   type DeletionView,
@@ -16,15 +17,18 @@ import { PLAN_LABEL, isPaidPlan } from "@/lib/plan-types";
 import { formatMinutes } from "@/lib/status";
 
 type Level = "info" | "warning" | "danger";
-const LEVELS: Record<Level, string> = {
-  info: "border-accent/30 bg-accent/10",
-  warning: "border-warning/40 bg-warning/10",
-  danger: "border-danger/40 bg-danger/10",
+// Each level has a soft wash, a left edge, and a tint for its icon and the faint illustration behind it.
+const LEVELS: Record<Level, { box: string; edge: string; tint: string }> = {
+  info: { box: "border-accent/30 bg-accent/5", edge: "bg-accent", tint: "bg-accent/15 text-accent" },
+  warning: { box: "border-warning/40 bg-warning/5", edge: "bg-warning", tint: "bg-warning/15 text-warning" },
+  danger: { box: "border-danger/40 bg-danger/5", edge: "bg-danger-solid", tint: "bg-danger/15 text-danger" },
 };
 
 interface Banner {
   id: string;
   level: Level;
+  /** A short heading above the sentence. */
+  title: string;
   text: string;
   href?: string;
   cta?: string;
@@ -41,11 +45,12 @@ export function bannersFor(
       deletion.status === "requested"
         ? "Your account is set to be deleted. Nothing has been removed yet, and you can still change your mind."
         : deletion.status === "partial_failure"
-          ? "Your account deletion is still finishing: some files could not be removed yet. We keep trying, and your account stays until everything is gone."
+          ? "Your account is still being deleted. A few files couldn’t be removed yet, so we’re trying again. Your account stays until everything is gone."
           : "Your account is being deleted.";
     out.push({
       id: "deletion",
       level: "danger",
+      title: deletion.status === "requested" ? "Account set to be deleted" : "Account deletion in progress",
       text,
       href: "/dashboard/settings#delete-account",
       cta: deletion.canCancel ? "Review or cancel" : "See progress",
@@ -56,13 +61,15 @@ export function bannersFor(
     out.push({
       id: "paused",
       level: "warning",
+      title: "Processing is paused",
       text: "New processing is paused for a short while. Everything you already have is safe, and work already under way will finish.",
     });
   if (plan.plan.status === "grace" && plan.plan.graceUntil) {
     out.push({
       id: "grace",
       level: "warning",
-      text: `Your last payment didn't go through. ${PLAN_LABEL[plan.plan.plan]} stays on until ${formatDate(plan.plan.graceUntil, plan.timezone)}. After that you'll move to Free and keep all your work.`,
+      title: "Payment needs attention",
+      text: `Your last payment didn’t go through. ${PLAN_LABEL[plan.plan.plan]} stays on until ${formatDate(plan.plan.graceUntil, plan.timezone)}. After that you’ll move to Free and keep all your work.`,
       href: plan.billingUrl ?? "/dashboard/plan",
       cta: "Fix payment",
     });
@@ -70,7 +77,8 @@ export function bannersFor(
     out.push({
       id: "expired",
       level: "info",
-      text: "Your paid plan has ended, so you're on Free. All your recordings, transcripts and documents are kept.",
+      title: "Your plan has ended",
+      text: "Your paid plan has ended, so you’re on Free. All your recordings, transcripts and documents are kept.",
       href: "/dashboard/plan",
       cta: "See plans",
     });
@@ -78,7 +86,8 @@ export function bannersFor(
     out.push({
       id: "pending",
       level: "info",
-      text: "We're waiting for the store to confirm your payment. Your plan starts as soon as it does.",
+      title: "Waiting for payment",
+      text: "We’re waiting for the store to confirm your payment. Your plan starts as soon as it does.",
       href: "/dashboard/plan/confirming",
       cta: "Check status",
     });
@@ -87,10 +96,11 @@ export function bannersFor(
     out.push({
       id: "exhausted",
       level: "warning",
+      title: "Allowance used up",
       text:
         (plan.reservedMinutes ?? 0) > 0
-          ? "Your allowance is used or reserved for recordings awaiting processing or billing confirmation. New recordings need available time. See usage for the breakdown."
-          : "You've used this month's allowance, so new recordings can't be processed. Your saved work remains subject to its retention period.",
+          ? "Your allowance is fully reserved or used. Part of it is held for recordings still being processed or waiting on billing confirmation, so new recordings can’t start until time frees up. See Plan and usage for the breakdown."
+          : "You’ve used this month’s allowance, so new recordings can’t be processed. Everything you’ve saved stays available until its retention period ends.",
       href: "/dashboard/plan",
       cta: "Buy hours or upgrade",
     });
@@ -101,6 +111,7 @@ export function bannersFor(
     out.push({
       id: "low",
       level: "info",
+      title: "Running low this month",
       text: `${formatNullableMinutes(plan.remainingMinutes)} left this month.`,
       href: "/dashboard/plan",
       cta: "See usage",
@@ -122,34 +133,42 @@ export function AccountBanners({
   );
   if (banners.length === 0) return null;
   return (
-    <div className="mb-6 space-y-2">
-      {banners.map((b) => (
-        <div
-          key={b.id}
-          role={b.level === "info" ? "status" : "alert"}
-          className={`flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-xl border px-4 py-3 text-sm ${LEVELS[b.level]}`}>
-          <p className="min-w-0 flex-1">{b.text}</p>
-          {b.href &&
-            b.cta &&
-            (b.href.startsWith("/") ? (
-              <Link
-                href={dashboardPath(b.href)}
-                className="shrink-0 font-medium underline underline-offset-2">
-                {b.cta}
-              </Link>
-            ) : (
-              <a
-                href={dashboardPath(b.href)}
-                className="shrink-0 font-medium underline underline-offset-2"
-                rel="noopener noreferrer">
-                {b.cta}
-              </a>
-            ))}
-        </div>
-      ))}
+    <div className="mb-5 space-y-3">
+      {banners.map((b) => {
+        const lv = LEVELS[b.level];
+        const Icon = ICONS[b.id] ?? Zap;
+        const cta = b.href && b.cta ? (
+          b.href.startsWith("/") ? (
+            <Link href={dashboardPath(b.href)} className={buttonClass(b.level === "info" ? "secondary" : "primary", "shrink-0", "sm")}>{b.cta}</Link>
+          ) : (
+            <a href={dashboardPath(b.href)} rel="noopener noreferrer" className={buttonClass(b.level === "info" ? "secondary" : "primary", "shrink-0", "sm")}>{b.cta}</a>
+          )
+        ) : null;
+        return (
+          <div key={b.id} role={b.level === "info" ? "status" : "alert"} className={`relative isolate flex flex-wrap items-center gap-x-4 gap-y-3 overflow-hidden rounded-2xl border py-4 pl-5 pr-4 ${lv.box}`}>
+            <span aria-hidden className={`absolute inset-y-0 left-0 w-1 ${lv.edge}`} />
+            {/* A faint set of rings and ticks, like a dial, behind the right-hand side. Decoration only. */}
+            <svg aria-hidden viewBox="0 0 240 120" fill="none" className={`pointer-events-none absolute inset-y-0 right-0 -z-10 h-full w-1/2 max-w-sm opacity-40 ${lv.tint.split(" ")[1]}`} style={{ maskImage: "linear-gradient(to left, black, transparent)", WebkitMaskImage: "linear-gradient(to left, black, transparent)" }} preserveAspectRatio="xMaxYMid slice">
+              {[28, 52, 76, 100].map((r) => <circle key={r} cx="200" cy="60" r={r} stroke="currentColor" strokeOpacity={0.35 - r / 400} strokeWidth="1.5" />)}
+              {Array.from({ length: 12 }, (_, i) => {
+                const a = (i / 12) * Math.PI * 2;
+                return <line key={i} x1={200 + Math.cos(a) * 28} y1={60 + Math.sin(a) * 28} x2={200 + Math.cos(a) * 36} y2={60 + Math.sin(a) * 36} stroke="currentColor" strokeOpacity="0.5" strokeWidth="1.5" strokeLinecap="round" />;
+              })}
+            </svg>
+            <span aria-hidden className={`grid size-10 shrink-0 place-items-center rounded-xl ${lv.tint}`}><Icon className="size-5" /></span>
+            <div className="min-w-0 flex-1 basis-64">
+              <p className="text-sm font-semibold">{b.title}</p>
+              <p className="mt-0.5 text-sm text-muted">{b.text}</p>
+            </div>
+            {cta}
+          </div>
+        );
+      })}
     </div>
   );
 }
+
+const ICONS: Record<string, LucideIcon> = { deletion: Trash2, paused: PauseCircle, grace: CreditCard, expired: Timer, pending: Hourglass, exhausted: Hourglass, low: Timer };
 
 type Health = "ok" | "low" | "out" | "grace" | "pending";
 

@@ -1,11 +1,10 @@
 import { PlansView } from "@/components/admin/plans-view";
-import { AdminHeader } from "@/components/admin/section-tabs";
+import { SettingsPageLayout } from "@/components/admin/section-tabs";
 
 export default function Page() {
   return (
-    <div className="space-y-5">
-      <AdminHeader title="Plans" />
+    <SettingsPageLayout title="Plans and pricing" description="What each plan costs, how many hours it includes, and the extra-hours packs people can buy.">
       <PlansView />
-    </div>
+    </SettingsPageLayout>
   );
 }

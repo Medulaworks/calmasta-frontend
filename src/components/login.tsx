@@ -120,7 +120,7 @@ export function Login({
         } else {
           setChecking(false);
           setBootstrapError(
-            "Authentication service is temporarily unavailable. Please try again in a few moments.",
+            "Sign-in is unavailable right now. Please try again in a few minutes.",
           );
         }
       },
@@ -128,7 +128,7 @@ export function Login({
         if (!cancelled) {
           setChecking(false);
           setBootstrapError(
-            "Network error. Unable to verify your session. Please check your connection.",
+            "We can’t reach Joobah right now. Check your connection and try again.",
           );
         }
       },
@@ -175,18 +175,18 @@ export function Login({
       } else {
         if (data.error === "email_already_registered") {
           setFormError(
-            "This email is already registered. Please sign in instead.",
+            "There’s already an account with this email. Try signing in instead.",
           );
         } else if (data.error === "invalid_credentials") {
-          setFormError("Invalid email or password. Please try again.");
+          setFormError("That email or password isn’t right. Please try again.");
         } else {
           setFormError(
-            data.error || "Authentication failed. Please check your input.",
+            data.error || "We couldn’t sign you in. Check your details and try again.",
           );
         }
       }
     } catch {
-      setFormError("Network error. Please try again.");
+      setFormError("We can’t connect right now. Check your connection and try again.");
     } finally {
       setSubmitting(false);
     }
@@ -218,7 +218,7 @@ export function Login({
           ? "Sign in with your staff account to access the administration console."
           : mode === "signin"
             ? "Meetings and voice notes become transcripts, briefs and follow-ups. Pick up where you left off."
-            : "Start capturing, transcribing, and organizing your conversations."}
+            : "Capture, transcribe and organise your conversations."}
       </p>
 
       {expired && (
@@ -305,7 +305,7 @@ export function Login({
             <label
               className="mb-2 block text-sm font-medium text-foreground"
               htmlFor="email">
-              Email Address
+              Email address
             </label>
             <input
               id="email"
@@ -313,7 +313,7 @@ export function Login({
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
+              placeholder="me@joobah.com"
               className={AUTH_FIELD}
             />
           </div>
@@ -524,7 +524,7 @@ export function Login({
             <div className="mt-[clamp(0.75rem,2.6vh,1.5rem)] text-center text-sm text-muted">
               {mode === "signin" ? (
                 <p>
-                  Don&apos;t have an account?{" "}
+                  Don’t have an account?{" "}
                   <Link
                     href={`/auth/register?${q}`}
                     className="font-medium text-foreground underline hover:no-underline">

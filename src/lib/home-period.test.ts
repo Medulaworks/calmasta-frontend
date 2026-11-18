@@ -11,7 +11,7 @@ describe("home period", () => {
     expect(windowOf({ key: "month" }, "UTC", NOW)).toMatchObject({ from: "2026-10-12", days: 30 });
     expect(windowOf({ key: "range", from: "2026-10-01", to: "2026-10-31" }, "UTC", NOW)).toEqual({ from: "2026-10-01", to: "2026-10-31", days: 31 });
   });
-  it("follows the person's own time zone for what 'today' is", () => {
+  it("follows the person’s own time zone for what 'today' is", () => {
     const late = new Date("2026-11-10T23:30:00Z");
     expect(windowOf({ key: "day" }, "UTC", late).to).toBe("2026-11-10");
     expect(windowOf({ key: "day" }, "Asia/Tokyo", late).to).toBe("2026-11-11");

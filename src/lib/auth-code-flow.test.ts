@@ -5,7 +5,7 @@ it("recovery preserves zeros, exchanges privately, resets once, and clears the g
  let now=1000;const calls:{path:string;body:unknown}[]=[];
  const send=async(path:string,body:unknown)=>{calls.push({path,body});return Response.json(path.endsWith("verify-reset-code")?{resetToken:"a".repeat(64)}:{ok:true});};
  const flow=createAuthCodeFlow("recovery",send,()=>now);
- await flow.send("a@example.test");expect(flow.snapshot().step).toBe("code");expect(flow.snapshot().notice).toContain("If an account exists");
+ await flow.send("a@example.test");expect(flow.snapshot().step).toBe("code");expect(flow.snapshot().notice).toContain("If there’s an account");
  expect(calls[0].body).toEqual({email:"a@example.test",delivery:"code"});
  await flow.send();expect(calls).toHaveLength(1);
  expect(codeSecondsLeft(flow.snapshot().resendAt,now)).toBe(60);now+=60000;expect(codeSecondsLeft(flow.snapshot().resendAt,now)).toBe(0);
@@ -18,7 +18,7 @@ it("pending requests cannot duplicate, and failed code checks remain retryable",
  let finish!:(r:Response)=>void;const send=vi.fn(()=>new Promise<Response>(r=>{finish=r;}));
  const flow=createAuthCodeFlow("verification",send);
  const pending=flow.verify("012345");await flow.verify("012345");expect(send).toHaveBeenCalledTimes(1);
- finish(Response.json({error:"invalid_code"},{status:400}));await pending;expect(flow.snapshot()).toMatchObject({busy:false,step:"code"});expect(flow.snapshot().error).toContain("incorrect");
+ finish(Response.json({error:"invalid_code"},{status:400}));await pending;expect(flow.snapshot()).toMatchObject({busy:false,step:"code"});expect(flow.snapshot().error).toContain("isn’t right");
 });
 it.each([["expired_code",400],["too_many_attempts",429],["too_many_auth_attempts",429],["unauthorized",401],["invalid_or_expired_token",400]])("handles %s without exposing raw errors",async(error,status)=>{
  const flow=createAuthCodeFlow("verification",async()=>Response.json({error},{status}));await flow.verify("012345");expect(flow.snapshot().error).toBeTruthy();expect(flow.snapshot().busy).toBe(false);
@@ -31,7 +31,7 @@ it("verification resends codes and never sends a token with code",async()=>{
 });
 it("missing endpoints and network failures report errors without fallback or raw secrets",async()=>{
  const send=vi.fn().mockResolvedValueOnce(Response.json({error:"missing"},{status:404})).mockRejectedValueOnce(new Error("private secret"));
- const flow=createAuthCodeFlow("recovery",send);await flow.send("a@example.test");expect(flow.snapshot().step).toBe("email");expect(flow.snapshot().error).toContain("unavailable");await flow.send("a@example.test");expect(flow.snapshot().error).not.toContain("private");expect(send).toHaveBeenCalledTimes(2);
+ const flow=createAuthCodeFlow("recovery",send);await flow.send("a@example.test");expect(flow.snapshot().step).toBe("email");expect(flow.snapshot().error).toContain("aren’t available");await flow.send("a@example.test");expect(flow.snapshot().error).not.toContain("private");expect(send).toHaveBeenCalledTimes(2);
 });
 it("back clears recovery grant and rejects malformed codes before any request",async()=>{
  const send=vi.fn(async(path:string)=>Response.json(path.endsWith("verify-reset-code")?{resetToken:"b".repeat(64)}:{ok:true}));const flow=createAuthCodeFlow("recovery",send);

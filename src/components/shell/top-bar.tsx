@@ -14,7 +14,6 @@ import {
   Info,
   LogOut,
   LoaderCircle,
-  Palette,
   Settings,
   ShieldCheck,
   Sparkles,
@@ -35,7 +34,6 @@ import { useThemeChoice } from "@/lib/theme";
 import {
   MODE_ICON,
   ModeIcons,
-  ThemeSwatches,
 } from "@/components/theme/theme-picker";
 import { Avatar } from "@/components/ui/avatar";
 import { DUMMY_PLAN, type PlanSummary, formatDate, formatNullableMinutes, orZero } from "@/lib/plan-client";
@@ -353,7 +351,7 @@ function ProfileMenu({
       await signOut();
     } catch {
       setSigningOut(false);
-      setSignOutError("Could not sign out. Please try again.");
+      setSignOutError("We couldn’t sign out. Please try again.");
     }
   }
 
@@ -481,10 +479,6 @@ function ProfileMenu({
               <span className="flex items-center gap-3 text-sm"><ModeIcon aria-hidden className="size-4 text-muted" /> Mode</span>
               <ModeIcons />
             </div>
-            <div className="flex items-center justify-between gap-3 px-3 py-2">
-              <span className="flex items-center gap-3 text-sm"><Palette aria-hidden className="size-4 text-muted" /> Theme</span>
-              <ThemeSwatches />
-            </div>
           </div>
           <div role="separator" className="border-t border-border" />
           <div className="p-2">
@@ -533,7 +527,7 @@ export function TopBar({
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-topbar px-4 text-topbar-fg sm:px-5 md:px-6">
       <Link
         href="/dashboard"
-        aria-label="Jooba home"
+        aria-label="Joobah home"
         className="text-lg text-topbar-fg md:hidden">
         <Brand size={28} />
       </Link>

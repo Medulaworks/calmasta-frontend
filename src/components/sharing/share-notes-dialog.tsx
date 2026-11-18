@@ -32,7 +32,7 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
     let active = true;
     Promise.all([
       getSharing(captureId).catch((e) => {
-        if (active) setError(e instanceof Error ? e.message : "Could not load sharing.");
+        if (active) setError(e instanceof Error ? e.message : "We couldn’t load sharing. Please try again.");
         return null;
       }),
       getMeetingInsights(captureId).catch(() => null),
@@ -97,7 +97,7 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
     try {
       const parsedDays = expiryDays.trim() ? Number(expiryDays) : null;
       if (maxExpiry && parsedDays && parsedDays > maxExpiry) {
-        setError(`Link expiry cannot exceed policy maximum of ${maxExpiry} days.`);
+        setError(`Links can last up to ${maxExpiry} days at most.`);
         setSubmitting(false);
         return;
       }
@@ -117,11 +117,11 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
       setState(fresh);
     } catch (e) {
       if (e instanceof ApiError && e.code === "sharing_disabled") {
-        setError("Note sharing is disabled in system settings. An administrator can enable sharing under Admin > Settings.");
+        setError("Sharing notes is turned off right now. Ask your administrator to turn it on.");
       } else if (e instanceof ApiError && e.code === "version_conflict") {
-        setError("Version conflict — reload and try again.");
+        setError("These notes changed while you were sharing. Reload and try again.");
       } else {
-        setError(e instanceof Error ? e.message : "Publish failed.");
+        setError(e instanceof Error ? e.message : "We couldn’t share these notes. Please try again.");
       }
     } finally {
       setSubmitting(false);
@@ -130,7 +130,7 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
 
   async function makeLink() {
     if (!publicationId) {
-      setError("Publish selected notes first.");
+      setError("Choose which notes to share first.");
       return;
     }
     setError(null);
@@ -153,7 +153,7 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
       const fresh = await getSharing(captureId);
       setState(fresh);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not create link.");
+      setError(e instanceof Error ? e.message : "We couldn’t create link. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -161,11 +161,11 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
 
   async function addGrant() {
     if (!publicationId) {
-      setError("Publish a snapshot first.");
+      setError("Share a copy of the notes first.");
       return;
     }
     if (!email.trim() || !email.includes("@")) {
-      setError("Enter a valid email.");
+      setError("Enter a valid email address.");
       return;
     }
     setError(null);
@@ -184,7 +184,7 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
       setState(fresh);
       setEmail("");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not add grant.");
+      setError(e instanceof Error ? e.message : "We couldn’t add that person. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -200,7 +200,7 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
       const fresh = await getSharing(captureId);
       setState(fresh);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Revoke failed.");
+      setError(e instanceof Error ? e.message : "We couldn’t remove access. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -214,7 +214,7 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
       const fresh = await getSharing(captureId);
       setState(fresh);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Revoke failed.");
+      setError(e instanceof Error ? e.message : "We couldn’t remove access. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -222,7 +222,7 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
 
   async function onSendGrant(grantId: string) {
     if (!invitationsAllowed) {
-      setError("Email invitations are disabled by policy.");
+      setError("Email invitations are turned off right now.");
       return;
     }
     setError(null);
@@ -232,7 +232,7 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
       const fresh = await getSharing(captureId);
       setState(fresh);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Send failed.");
+      setError(e instanceof Error ? e.message : "We couldn’t send the invitation. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -250,8 +250,8 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
 
         {sharingDisabledByPolicy && (
           <div role="alert" className="mt-3 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-foreground">
-            <p className="font-medium text-warning">Sharing is disabled by system policy</p>
-            <p className="mt-1 text-xs text-muted">Note sharing is currently turned off for this environment. An administrator can enable public links and recipient sharing in <a href="/admin/settings" className="underline hover:text-foreground">Admin Settings</a>.</p>
+            <p className="font-medium text-warning">Sharing is turned off</p>
+            <p className="mt-1 text-xs text-muted">Sharing is currently turned off. An administrator can turn on public links and sharing with people in <a href="/admin/settings" className="underline hover:text-foreground">Admin Settings</a>.</p>
           </div>
         )}
 
@@ -259,13 +259,13 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
 
         {state && (
           <div className="mt-4 space-y-5">
-            <p className="text-xs text-muted">Owner-only. Opening this dialog does not publish or create a link. Select completed notes/templates to publish; audio/video and participant list are not shared. Recipients are view-only.</p>
+            <p className="text-xs text-muted">Only you can manage sharing, and nothing is shared until you choose to. Shared notes never include audio, video or the participant list, and people you share with can only view them.</p>
 
             <Card>
-              <CardHeader title="Publish snapshot" description="Select the content to include in the published view." />
+              <CardHeader title="Choose what to share" description="Pick the notes people will see." />
               <div className="space-y-4 p-4 text-sm">
                 <label className="block">
-                  <span className="text-sm font-medium">Display title (shown on shared page)</span>
+                  <span className="text-sm font-medium">Title shown on the shared page</span>
                   <input
                     value={displayTitle}
                     onChange={(e) => setDisplayTitle(e.target.value)}
@@ -276,7 +276,7 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
                 </label>
 
                 <div className="space-y-2 rounded-lg border border-border p-3">
-                  <span className="text-xs font-medium text-muted uppercase tracking-wider">Content to include</span>
+                  <span className="text-xs font-medium text-muted uppercase tracking-wider">What to include</span>
                   {readyInsights.length > 0 ? (
                     <div className="space-y-2 pt-1">
                       {readyInsights.map((insight) => (
@@ -292,7 +292,7 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-muted">No completed summary notes ready yet.</p>
+                    <p className="text-xs text-muted">No finished notes to share yet.</p>
                   )}
                   {hasTranscript && (
                     <label className="flex items-center gap-2 pt-1 border-t border-border cursor-pointer">
@@ -302,13 +302,13 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
                         onChange={(e) => setIncludeTranscript(e.target.checked)}
                         className="size-4"
                       />
-                      <span>Include transcript snapshot</span>
+                      <span>Include the transcript</span>
                     </label>
                   )}
                 </div>
 
                 <label className="block">
-                  <span className="text-sm font-medium">Link expiry (days{maxExpiry ? `, 1–${maxExpiry}` : ", 1–365, blank = no expiry"})</span>
+                  <span className="text-sm font-medium">Link expires after (days{maxExpiry ? `, 1–${maxExpiry}` : ", 1–365, or leave blank for no expiry"})</span>
                   <input
                     type="number"
                     min={1}
@@ -321,7 +321,7 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
                 </label>
 
                 {!hasSelectedContent && (
-                  <p className="text-xs text-warning">Select at least one note snapshot or transcript to publish.</p>
+                  <p className="text-xs text-warning">Choose at least one note, or the transcript, to share.</p>
                 )}
 
                 <Button
@@ -329,31 +329,31 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
                   disabled={submitting || !hasSelectedContent || sharingDisabledByPolicy}
                   onClick={() => void publish()}
                 >
-                  {submitting ? "Publishing…" : "Publish selected snapshots"}
+                  {submitting ? "Sharing…" : "Share selected notes"}
                 </Button>
 
                 {state.publication && (
                   <p className="text-xs text-muted">
-                    Active publication: version {state.publication.version} · published {state.publication.publishedAt ? new Date(state.publication.publishedAt).toLocaleString() : "recently"}
+                    Currently shared: version {state.publication.version} · shared {state.publication.publishedAt ? new Date(state.publication.publishedAt).toLocaleString() : "recently"}
                   </p>
                 )}
               </div>
             </Card>
 
             <Card>
-              <CardHeader title="People with access" description="Share directly with specific email addresses." />
+              <CardHeader title="People with access" description="Share with specific people by email." />
               <div className="space-y-3 p-4 text-sm">
-                <p className="text-xs text-muted">Owner (you) — can view. Recipients — can view. Owner cannot be removed.</p>
+                <p className="text-xs text-muted">You own these notes. People you add can view them.</p>
                 {!recipientGrantsAllowed && (
-                  <p className="text-xs text-warning">Recipient sharing is currently disabled in system settings.</p>
+                  <p className="text-xs text-warning">Sharing with people is turned off right now.</p>
                 )}
                 {!publicationId && (
-                  <p className="text-xs text-muted">Publish a snapshot above first before adding recipients.</p>
+                  <p className="text-xs text-muted">Share the notes above first, then add people.</p>
                 )}
                 <div className="flex gap-2">
                   <input
                     type="email"
-                    placeholder="Add email address"
+                    placeholder="me@joobah.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={!publicationId || !recipientGrantsAllowed || submitting}
@@ -389,7 +389,7 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
                                 size="sm"
                                 variant="ghost"
                                 disabled={submitting || !invitationsAllowed}
-                                title={!invitationsAllowed ? "Invitations are disabled by policy" : "Send email invitation"}
+                                title={!invitationsAllowed ? "Invitations are turned off right now" : "Send email invitation"}
                                 onClick={() => void onSendGrant(g.id)}
                               >
                                 Send
@@ -405,21 +405,21 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
             </Card>
 
             <Card>
-              <CardHeader title="Link visibility" description="Create a public link for anyone with the URL." />
+              <CardHeader title="Link visibility" description="Create a link that anyone can open." />
               <div className="space-y-3 p-4 text-sm">
-                <p className="text-xs text-muted">Restricted (default). Creating a link allows anyone with the URL to view the published snapshot. Audio/video are never included.</p>
+                <p className="text-xs text-muted">Right now only the people you added can see these notes. A link lets anyone who has it view them. Audio and video are never included.</p>
                 {!publicLinksAllowed && (
-                  <p className="text-xs text-warning">Public link sharing is currently disabled in system settings.</p>
+                  <p className="text-xs text-warning">Link sharing is turned off right now.</p>
                 )}
                 {!publicationId && (
-                  <p className="text-xs text-muted">Publish a snapshot above first before creating a link.</p>
+                  <p className="text-xs text-muted">Share the notes above first, then create a link.</p>
                 )}
                 <div className="flex flex-wrap gap-2">
                   <Button
                     disabled={!publicationId || !publicLinksAllowed || submitting}
                     onClick={() => void makeLink()}
                   >
-                    {submitting ? "Creating…" : state.link && !state.link.revokedAt ? "Create replacement link" : "Create link (Anyone with link)"}
+                    {submitting ? "Creating…" : state.link && !state.link.revokedAt ? "Create replacement link" : "Create link"}
                   </Button>
                   {state.link && !state.link.revokedAt && (
                     <Button
@@ -433,7 +433,7 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
                 </div>
                 {linkUrl && (
                   <div className="rounded-lg border border-border bg-surface px-3 py-2">
-                    <p className="text-xs text-muted">Copy this link now — it is shown only once.</p>
+                    <p className="text-xs text-muted">Copy this link now. You won’t be able to see it again.</p>
                     <p className="mt-1 break-all font-mono text-sm select-all">{linkUrl}</p>
                     <Button size="sm" className="mt-2" onClick={() => void navigator.clipboard.writeText(linkUrl)}>
                       Copy link
@@ -442,7 +442,7 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
                 )}
                 {alreadyIssued && (
                   <p className="text-xs text-warning">
-                    A link was already issued for this publication. The previous token is hashed and cannot be recovered; replacing it revokes the old link.
+                    A link already exists for these notes. For security we can’t show it again. Creating a new link turns the old one off.
                   </p>
                 )}
                 {state.link && !linkUrl && (

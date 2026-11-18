@@ -92,7 +92,7 @@ export function LibraryList() {
     enabled: isSearching(filters) && !tooShort,
   });
   const results: LibraryResult[] | null = !isSearching(filters) || tooShort ? [] : searchPage ? searchPage.results : null;
-  const searchError = searchErr ? (searchErr instanceof Error ? searchErr.message : "Could not search your library.") : null;
+  const searchError = searchErr ? (searchErr instanceof Error ? searchErr.message : "We couldn’t search your library. Please try again.") : null;
 
   const {
     data: docsRaw,
@@ -113,7 +113,7 @@ export function LibraryList() {
   const docs = !searching ? (docsRaw ?? (docsLoading ? null : [])) : null;
   const caps = !searching ? (capsRaw ?? (capsLoading ? null : [])) : null;
   const errorRaw = docsErr ?? capsErr;
-  const error = errorRaw ? (errorRaw instanceof Error ? errorRaw.message : "Could not load your library.") : null;
+  const error = errorRaw ? (errorRaw instanceof Error ? errorRaw.message : "We couldn’t load your library. Please try again.") : null;
 
   const tabs: Array<{ id: Tab; label: string; count: number | null }> = [
     { id: "documents", label: "Documents", count: docs?.length ?? null },
@@ -202,7 +202,7 @@ export function LibraryList() {
           docs === null ? (
             <SkeletonRows count={5} label="Loading your library" />
           ) : docs.length === 0 ? (
-            <EmptyState illustration={<DocumentIllustration />} title="No documents yet" body="Open a recording and choose a template to write your first document." action={<ButtonLink href="/dashboard/voice" variant="primary">Record a thought</ButtonLink>} />
+            <EmptyState illustration={<DocumentIllustration />} title="No documents yet" body="Open a recording and choose a template to write your first document." action={<ButtonLink href="/dashboard/voice" variant="primary">Start recording</ButtonLink>} />
           ) : (
             <ul className="divide-y divide-border" role="tabpanel" id={tabPanelId("documents")} aria-labelledby={tabId("documents")}>
               {docs.map((d: import("@/lib/documents-client").DocumentListItem) => {
@@ -225,7 +225,7 @@ export function LibraryList() {
         ) : caps === null ? (
           <SkeletonRows count={5} label="Loading your library" />
         ) : caps.length === 0 ? (
-          <EmptyState illustration={<InboxIllustration />} title="Your folder is empty" body="Record your voice, upload audio or send Jooba to a meeting. Everything you make will be kept here." action={<ButtonLink href="/dashboard/voice" variant="primary">Record a thought</ButtonLink>} />
+          <EmptyState illustration={<InboxIllustration />} title="Your folder is empty" body="Record your voice, upload audio or send Joobah to a meeting. Everything you make will be kept here." action={<ButtonLink href="/dashboard/voice" variant="primary">Start recording</ButtonLink>} />
         ) : (
           <ul className="divide-y divide-border" role="tabpanel" id={tabPanelId("recordings")} aria-labelledby={tabId("recordings")}>
             {caps.map((c: import("@/lib/upload-client").CaptureListItem) => {

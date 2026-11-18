@@ -46,13 +46,13 @@ beforeEach(() => vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json(
 
 it("renders Send Bot button for each card with joinUrl", () => {
   const html = markup(event());
-  expect(html).toContain("Send bot");
+  expect(html).toContain("Send the assistant");
   expect(html).toContain("Bot");
 });
 
 it("hides bot button when no joinUrl", () => {
   const html = markup(event({ joinUrl: null }));
-  expect(html).not.toContain("Send bot");
+  expect(html).not.toContain("Send the assistant");
   expect(html).not.toContain("Bot");
 });
 
@@ -64,7 +64,7 @@ it("disables bot when capture already active (sent guard)", () => {
 
 it("disables bot when meeting capture not enabled via policy", () => {
   const html = markup(event(), { policy: { meetingEnabled: false, maxMeetingDurationSeconds: 1800 } });
-  expect(html).toContain("Meeting capture not enabled");
+  expect(html).toContain("Meeting recording isn’t available");
   expect(html).toContain("disabled");
 });
 

@@ -47,7 +47,7 @@ export function BotNamePreferenceDialog({ onReady }: { onReady?: (prefs: Capture
       if (e instanceof ApiError && e.code === "version_conflict") {
         setError("Someone else updated preferences. Please try again.");
         try { const p = await getCapturePreferences(); setPrefs(p); } catch {}
-      } else setError(e instanceof Error ? e.message : "Could not save.");
+      } else setError(e instanceof Error ? e.message : "We couldn’t save. Please try again.");
     } finally { setSaving(false); }
   }
 

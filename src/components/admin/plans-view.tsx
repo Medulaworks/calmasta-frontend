@@ -13,12 +13,12 @@ import { formatMinutes } from "@/lib/status";
 import { PlanCard } from "./plan-card";
 import { PlanEditor } from "./plan-editor";
 import { MenuTd, RowMenu } from "./row-menu";
-import { AdminUnavailable, DataTable, ResourceBoundary, SimpleDialog, Td, Th, useResource } from "./ui";
+import { AdminUnavailable, DataTable, ResourceBoundary, SimpleDialog, Td, Th, inputClass, useResource } from "./ui";
 
 type Plan = Json<AdminPlan>;
 type Pack = Json<AdminPack>;
 
-const field = "mt-2 block h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-solid/15";
+const field = `mt-2 ${inputClass}`;
 const httpsOk = (t: string) => { if (!t.trim()) return true; try { return new URL(t.trim()).protocol === "https:"; } catch { return false; } };
 
 /** The three plans, the yearly discount, and the extra-hours packs: the same things the app's Plan page shows. */
@@ -35,7 +35,7 @@ export function PlansView() {
     <ResourceBoundary resource={res}>
       {(data: Json<PlanList> & { available?: boolean; reason?: string; items?: unknown[] }) => {
         if ((data as { available?: boolean }).available === false) {
-          return <AdminUnavailable title="Plans unavailable" ><p className="text-sm text-muted">{(data as { reason?: string }).reason ?? "Not available yet."} — commerce policy not approved.</p></AdminUnavailable>;
+          return <AdminUnavailable title="Plans aren’t available yet"><p className="text-sm text-muted">They will appear here once billing is switched on.</p></AdminUnavailable>;
         }
         const { plans, packs, annualDiscountPct, enterpriseUrl } = data as Json<PlanList>;
         return (
@@ -60,7 +60,7 @@ export function PlansView() {
               <Button onClick={() => setPack("new")}><Plus aria-hidden className="size-4" /> Add pack</Button>
             </div>
             {packs.length === 0 ? (
-              <Card><EmptyState title="No packs yet" body="People can't buy extra hours until you add one." /></Card>
+              <Card><EmptyState title="No packs yet" body="People can’t buy extra hours until you add one." /></Card>
             ) : (
               <DataTable label="Extra-hours packs">
                 <thead><tr><Th>Pack</Th><Th>Size</Th><Th>Checkout</Th><Th><span className="sr-only">Actions</span></Th></tr></thead>

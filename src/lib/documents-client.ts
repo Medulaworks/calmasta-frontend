@@ -50,7 +50,7 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
   if (!res.ok) {
     const message =
       res.status === 401
-        ? "You're not signed in. Sign-in isn't set up yet; for local development set DEV_AUTH_EMAIL."
+        ? "You’re not signed in. Sign-in isn’t set up yet; for local development set DEV_AUTH_EMAIL."
         : (body.error ?? "Something went wrong. Please try again.");
     throw new DocError(res.status, message, body.code);
   }
@@ -93,6 +93,6 @@ export async function regenerateSection(id: string, input: { heading: string; oc
   const res = await fetch(`/api/documents/${id}/regenerate-section`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) });
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) as { error?: string; code?: string };
-    throw new DocError(res.status, body.error ?? "Could not start the rewrite.", body.code);
+    throw new DocError(res.status, body.error ?? "We couldn’t start the rewrite. Please try again.", body.code);
   }
 }

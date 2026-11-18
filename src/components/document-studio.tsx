@@ -38,7 +38,7 @@ const SAVE_LABEL: Record<SaveState, string> = {
   saved: "Saved",
   dirty: "Unsaved changes",
   saving: "Saving…",
-  error: "Couldn't save — retrying when you type",
+  error: "Couldn’t save — retrying when you type",
   conflict: "Changed elsewhere",
 };
 
@@ -274,7 +274,7 @@ export function DocumentStudio({ id }: { id: string }) {
       await qc.invalidateQueries({ queryKey: ["document", id] });
     } catch (err) {
       if (err instanceof DocError && (err as DocError).code === "has_edits") setConfirm("rewrite");
-      else setNotice(err instanceof Error ? err.message : "Could not start the rewrite.");
+      else setNotice(err instanceof Error ? err.message : "We couldn’t start the rewrite. Please try again.");
     }
   }
 
@@ -289,7 +289,7 @@ export function DocumentStudio({ id }: { id: string }) {
       if (err instanceof DocError && (err as DocError).code === "section_has_edits") setConfirm(section);
       else {
         setConfirm(null);
-        setNotice(err instanceof Error ? err.message : "Could not start the rewrite.");
+        setNotice(err instanceof Error ? err.message : "We couldn’t start the rewrite. Please try again.");
       }
     }
   }
@@ -311,7 +311,7 @@ export function DocumentStudio({ id }: { id: string }) {
       await qc.invalidateQueries({ queryKey: ["document", id, "versions"] });
       setNotice("Restored. The version you replaced is in history too.");
     } catch (err) {
-      setNotice(err instanceof Error ? err.message : "Could not restore.");
+      setNotice(err instanceof Error ? err.message : "We couldn’t restore. Please try again.");
     }
   }
 
@@ -321,7 +321,7 @@ export function DocumentStudio({ id }: { id: string }) {
       await deleteM.mutateAsync(id);
       router.push("/dashboard/library");
     } catch (err) {
-      setNotice(err instanceof Error ? err.message : "Could not delete.");
+      setNotice(err instanceof Error ? err.message : "We couldn’t delete. Please try again.");
     }
   }
 
@@ -332,7 +332,7 @@ export function DocumentStudio({ id }: { id: string }) {
       );
       setNotice("Copied as plain text.");
     } catch {
-      setNotice("Couldn't copy. Select the text and copy it manually.");
+      setNotice("Couldn’t copy. Select the text and copy it manually.");
     }
   }
 
@@ -565,7 +565,7 @@ export function DocumentStudio({ id }: { id: string }) {
           {outline.uncertain}{" "}
           {outline.uncertain === 1 ? "place is" : "places are"} marked{" "}
           <span className="font-medium">not specified</span> or to confirm.
-          Jooba leaves a gap rather than guess an owner, date or number: fill
+          Joobah leaves a gap rather than guess an owner, date or number: fill
           them in, or check them against the conversation.
         </p>
       )}

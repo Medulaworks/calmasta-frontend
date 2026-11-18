@@ -64,7 +64,7 @@ export function Dashboard() {
     refetchInterval: refetchWhileRunning,
   });
   const data = dataRaw ?? null;
-  const error = queryError ? (queryError instanceof Error ? queryError.message : "Could not load your dashboard.") : null;
+  const error = queryError ? (queryError instanceof Error ? queryError.message : "We couldn’t load your dashboard. Please try again.") : null;
   const refresh = () => void refetch();
   const [seen, setSeen] = useState(() => (typeof window === "undefined" ? true : resultSeen()));
   const first = (profile?.name?.trim() || "").split(/\s+/)[0];
@@ -88,9 +88,9 @@ export function Dashboard() {
   const waiting = data?.metrics.actionItems ? data.metrics.actionItems.open + data.metrics.actionItems.toReview : 0;
   const subtitle =
     state === "cold" ? "Your ideas deserve somewhere useful to go."
-    : state === "lapsed" ? "Here is where you left off."
+    : state === "lapsed" ? "Here’s where you left off."
     : waiting > 0 ? `${waiting} ${waiting === 1 ? "thing is" : "things are"} waiting on you.`
-    : "Here is what has been happening.";
+    : "Here’s what’s been happening.";
 
   const recent = (limit = 8) => (
     <ListCard
@@ -144,9 +144,9 @@ export function Dashboard() {
             <div aria-hidden className="jb-orb pointer-events-none absolute -right-20 -top-20 size-72 rounded-full bg-accent-solid/20 blur-3xl" />
             <div className="relative grid items-center gap-6 md:grid-cols-[1fr_16rem]">
               <div>
-                <p className="inline-flex items-center gap-2 rounded-full border border-border bg-background/80 px-4 py-1 text-xs font-medium text-muted backdrop-blur"><Sparkles aria-hidden className="size-4 text-accent" /> Meet · Think · Act</p>
+                <p className="inline-flex items-center gap-2 rounded-full border border-border bg-background/80 px-4 py-1 text-xs font-medium text-muted backdrop-blur"><Sparkles aria-hidden className="size-4 text-accent" /> Capture · Understand · Act</p>
                 <h2 className="mt-4 text-3xl font-semibold tracking-tight md:text-4xl">Capture it. Make sense of it. Put it to work.</h2>
-                <p className="mt-4 max-w-2xl text-base text-muted">Meetings, ideas, conversations and voice notes deserve more than a recording. Jooba helps you turn what you say and hear into organised information, useful insights and actionable next steps.</p>
+                <p className="mt-4 max-w-2xl text-base text-muted">Meetings, ideas, conversations and voice notes deserve more than a recording. Joobah helps you turn what you say and hear into organised information, useful insights and actionable next steps.</p>
               </div>
               <div className="mx-auto hidden w-full max-w-64 md:block"><VoiceIllustration /></div>
             </div>
@@ -165,7 +165,7 @@ export function Dashboard() {
             </div>
           </div>
 
-          <p className="mx-auto max-w-2xl pb-4 text-center text-base text-muted">Your thoughts should not get lost. Your conversations should not go to waste. Jooba helps you remember more, organise better and follow through.</p>
+          <p className="mx-auto max-w-2xl pb-4 text-center text-base text-muted">Your thoughts should not get lost. Your conversations should not go to waste. Joobah helps you remember more, organise better and follow through.</p>
         </>
       )}
 

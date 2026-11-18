@@ -1,11 +1,13 @@
-// The product is called Jooba. The server's capture settings may still name the meeting assistant after the old name
-// ("CalMasta Notetaker"), so the app shows, and sends, the Jooba spelling of that default.
+// The product is called Joobah. The server's capture settings may still name the meeting assistant after an older name
+// ("CalMasta Notetaker", "MyJooba Notetaker" or "Jooba Notetaker"), so the app shows, and sends, the Joobah spelling of that default.
 
-/** "CalMasta Notetaker" -> "Jooba Notetaker". Leaves any other name alone. */
-export const brandText = (text: string): string => text.replace(/calmasta/gi, "Jooba");
+const OLD_NAME = /calmasta|myjooba|jooba(?!h)/gi;
+
+/** "CalMasta Notetaker" -> "Joobah Notetaker". Leaves any other name alone. */
+export const brandText = (text: string): string => text.replace(OLD_NAME, "Joobah");
 
 /** The assistant name to show and to send when the person leaves the field empty. Null means "let the server choose". */
 export function defaultBotName(serverDefault: string | null | undefined): string | null {
   const name = serverDefault?.trim();
-  return name && /calmasta/i.test(name) ? brandText(name) : null;
+  return name && /calmasta|myjooba|jooba(?!h)/i.test(name) ? brandText(name) : null;
 }

@@ -60,7 +60,7 @@ export function MeetingPanel({
       setError(
         err instanceof Error
           ? err.message
-          : "Could not send the assistant again.",
+          : "We couldn’t send the assistant again. Please try again.",
       );
       setBusy(false);
     }
@@ -70,7 +70,7 @@ export function MeetingPanel({
     try {
       await simulateVideoReady(cap.id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not simulate that.");
+      setError(err instanceof Error ? err.message : "We couldn’t simulate that. Please try again.");
     }
     onChanged();
   }
@@ -79,7 +79,7 @@ export function MeetingPanel({
     try {
       await simulateMeetingStatus(cap.id, status);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not simulate that.");
+      setError(err instanceof Error ? err.message : "We couldn’t simulate that. Please try again.");
     }
     onChanged();
   }
@@ -191,9 +191,9 @@ export function MeetingPanel({
                   className="mt-1 h-4 w-4"
                 />
                 <span className="text-muted">
-                  i have the permission torecord this meeting and will tell its
-                  participants. The recording assistant may need the host to
-                  admit it again.
+                  I have permission to record this meeting and I will tell the
+                  participants. The assistant may need the host to let it in
+                  again.
                 </span>
               </label>
               <Button

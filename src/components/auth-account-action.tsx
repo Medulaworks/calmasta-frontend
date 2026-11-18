@@ -34,7 +34,7 @@ export function AuthAccountAction({kind}:{kind:"verify-email"|"reset-password"|"
    setBusy(false);setAutoVerifying(false);setDone(true);setToken("");setMessage("Your email is verified.");
   },(error:unknown)=>{
    if(cancelled)return;
-   setBusy(false);setAutoVerifying(false);setMessage(error instanceof Error?error.message:"Email verification could not be completed.");
+   setBusy(false);setAutoVerifying(false);setMessage(error instanceof Error?error.message:"We couldn’t verify your email. The link may have expired.");
   });
   return()=>{cancelled=true;};
  },[verifying,token,verify]);
@@ -45,7 +45,7 @@ export function AuthAccountAction({kind}:{kind:"verify-email"|"reset-password"|"
    const res=await fetch(`/api/auth/${kind}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
    if(!res.ok){const data=await res.json().catch(()=>({}));setMessage(res.status===401?"Please sign in again.":data.error==="use_password_recovery"?"Use Forgot password on the sign-in page to set a password.":data.error==="invalid_current_password"?"Your current password is incorrect.":"This request could not be completed. The link may have expired or already been used.");}
    else{setDone(true);setToken("");setPassword("");setCurrent("");setConfirm("");setMessage("Your password was updated. Please sign in again.");}
-  }catch{setMessage("Unable to connect. Please try again.");}finally{setBusy(false);}
+  }catch{setMessage("We can’t connect right now. Check your connection and try again.");}finally{setBusy(false);}
  }
  async function resend(){
   if(busy||Date.now()<resendDeadline.current)return;
@@ -54,7 +54,7 @@ export function AuthAccountAction({kind}:{kind:"verify-email"|"reset-password"|"
    const res=await fetch("/api/auth/verify-email/resend",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});
    if(res.ok){resendDeadline.current=Date.now()+60000;setResendSeconds(60);}
    setMessage(res.ok?"A new verification email was requested. Check your inbox.":res.status===401?"Sign in first, then request another verification email.":"Email could not be sent. Please try again later.");
-  }catch{setMessage("Unable to connect. Please try again.");}finally{setBusy(false);}
+  }catch{setMessage("We can’t connect right now. Check your connection and try again.");}finally{setBusy(false);}
  }
  const content=<><h1 className={AUTH_HEADING}>{verifying?"Verify your email":changing?"Change password":"Reset password"}</h1>
  {verifying&&!done&&<p className={AUTH_DESCRIPTION}>Open the link in your verification email. Your address will be verified automatically before you use recording features.</p>}

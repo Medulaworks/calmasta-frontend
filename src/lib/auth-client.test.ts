@@ -19,6 +19,6 @@ it("stays on the current screen if session clearing fails", async () => {
   const assign = vi.fn();
   vi.stubGlobal("window", { location: { assign } });
   vi.stubGlobal("fetch", vi.fn(async () => Response.json({}, { status: 503 })));
-  await expect(signOut()).rejects.toThrow("Could not sign out");
+  await expect(signOut()).rejects.toThrow("We couldn’t sign out");
   expect(assign).not.toHaveBeenCalled();
 });

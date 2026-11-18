@@ -122,7 +122,7 @@ export function CaptureDetail({
   const errorMessage = queryError
     ? queryError instanceof Error
       ? queryError.message
-      : "Could not load this recording."
+      : "We couldn’t load this recording. Please try again."
     : null;
   const notFound = queryError instanceof ApiError && queryError.status === 404;
 
@@ -286,8 +286,8 @@ export function CaptureDetail({
                 <div><p className="text-muted">Usage</p><p className="font-medium">{usage ?? "—"}</p></div>
               </div>
               <dl className="divide-y divide-border rounded-lg border border-border">
-                <div className="grid grid-cols-[8rem_1fr] gap-3 px-4 py-3"><dt className="text-muted">Join At</dt><dd>{joinAt}</dd></div>
-                <div className="grid grid-cols-[8rem_1fr] gap-3 px-4 py-3"><dt className="text-muted">Bot Name</dt><dd>{ext.botName ?? "—"}</dd></div>
+                <div className="grid grid-cols-[8rem_1fr] gap-3 px-4 py-3"><dt className="text-muted">Joined</dt><dd>{joinAt}</dd></div>
+                <div className="grid grid-cols-[8rem_1fr] gap-3 px-4 py-3"><dt className="text-muted">Assistant name</dt><dd>{ext.botName ?? "—"}</dd></div>
                 <div className="grid grid-cols-[8rem_1fr] gap-3 px-4 py-3"><dt className="text-muted">Metadata</dt><dd>{ext.metadata ? `${Object.keys(ext.metadata).length} field${Object.keys(ext.metadata).length===1?"":"s"}` : "—"}</dd></div>
                 <div className="grid grid-cols-[8rem_1fr] gap-3 px-4 py-3"><dt className="text-muted">Meeting</dt><dd className="truncate">{meetingUrl ? <a href={meetingUrl} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">{meetingUrl}</a> : "—"}</dd></div>
                 <div className="px-4 py-3"><p className="text-muted">Participants · {(ext.participants?.length ?? 0) || 0}</p>{ext.participants?.length ? <ul className="mt-2 flex flex-wrap gap-2">{ext.participants.map((p,i)=><li key={i} className="rounded-full bg-surface px-3 py-1 text-xs">{p.name}{p.role ? ` · ${p.role}` : ""}</li>)}</ul> : <p className="mt-1 text-muted">No participant list yet.</p>}</div>

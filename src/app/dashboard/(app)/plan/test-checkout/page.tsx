@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { TestCheckoutView } from "@/components/plan/test-checkout-view";
 import { PageHeader } from "@/components/ui/page-header";
 
-export const metadata = { title: "Test checkout · Jooba" };
+export const metadata = { title: "Test checkout · Joobah" };
 
 export default function TestCheckoutPage() {
   if (process.env.NODE_ENV === "production") notFound();

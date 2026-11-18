@@ -15,7 +15,7 @@ describe("summarizeWeek", () => {
     expect(summarizeWeek({ tue: nine, wed: nine })).toBe("Tue and Wed 09:00–17:00");
     expect(summarizeWeek({ wed: [{ start: "14:00", end: "16:00" }] })).toBe("Wed 14:00–16:00");
   });
-  it("does not join days that aren't next to each other, or that differ", () => {
+  it("does not join days that aren’t next to each other, or that differ", () => {
     expect(summarizeWeek({ mon: nine, wed: nine })).toBe("Mon 09:00–17:00 · Wed 09:00–17:00");
     expect(summarizeWeek({ mon: nine, tue: nine, wed: [{ start: "10:00", end: "12:00" }], thu: nine })).toBe("Mon and Tue 09:00–17:00 · Wed 10:00–12:00 · Thu 09:00–17:00");
   });

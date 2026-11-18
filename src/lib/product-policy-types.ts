@@ -147,7 +147,7 @@ export const fixtureEffectivePolicy: EffectiveProductPolicy = {
       maxVideoBytes: 250000000,
       videoEnabled: true,
     },
-    bot: { defaultName: "MyJooba Notetaker" },
+    bot: { defaultName: "Joobah Notetaker" },
     quota: { freeMonthlySeconds: 3600 },
     spend: {
       recallCeilingMicrosPerHour: "10000000",

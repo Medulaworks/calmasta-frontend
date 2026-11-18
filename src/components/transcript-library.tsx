@@ -71,7 +71,7 @@ export function TranscriptLibrary() {
     const query = JSON.parse(key) as LibraryQuery;
     searchLibraryPage(query, ctrl.signal).then(
       (page) => { if (!ctrl.signal.aborted) setView({ key, ...page, error: null }); },
-      (error) => { if (!ctrl.signal.aborted) setView({ key, results: [], nextCursor: null, error: error instanceof Error ? error.message : "Could not load your folder." }); },
+      (error) => { if (!ctrl.signal.aborted) setView({ key, results: [], nextCursor: null, error: error instanceof Error ? error.message : "We couldn’t load your folder. Please try again." }); },
     );
     return () => { ctrl.abort(); more.current?.abort(); };
   }, [key]);
@@ -90,7 +90,7 @@ export function TranscriptLibrary() {
       const page = await searchLibraryPage(filters, ctrl.signal, current.nextCursor);
       if (!ctrl.signal.aborted) setView((prev) => prev?.key === key ? { key, results: [...prev.results, ...page.results.filter((r) => !prev.results.some((old) => old.id === r.id))], nextCursor: page.nextCursor, error: null } : prev);
     } catch (error) {
-      if (!ctrl.signal.aborted) setView((prev) => prev?.key === key ? { ...prev, error: error instanceof Error ? error.message : "Could not load more." } : prev);
+      if (!ctrl.signal.aborted) setView((prev) => prev?.key === key ? { ...prev, error: error instanceof Error ? error.message : "We couldn’t load more. Please try again." } : prev);
     } finally {
       setLoadingMore((v) => (v === key ? null : v));
     }
@@ -185,7 +185,7 @@ export function TranscriptLibrary() {
                 action={<Button variant="secondary" onClick={reset}>Clear all</Button>}
               />
             ) : (
-              <EmptyState icon={<Mic className="size-5" />} title="Your folder is empty" body="Record your voice, upload audio or send Jooba to a meeting. Everything you make is kept here." action={<ButtonLink href="/dashboard/voice" variant="primary">Start recording</ButtonLink>} />
+              <EmptyState icon={<Mic className="size-5" />} title="Your folder is empty" body="Record your voice, upload audio or send Joobah to a meeting. Everything you make is kept here." action={<ButtonLink href="/dashboard/voice" variant="primary">Start recording</ButtonLink>} />
             )}
           </Card>
         ) : layout === "cards" ? (

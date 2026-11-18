@@ -13,7 +13,7 @@ import { formatDuration } from "@/lib/audio";
 import { type CaptureView, ApiError, getCapture, saveTranscript } from "@/lib/upload-client";
 
 type SaveState = "saved" | "dirty" | "saving" | "error" | "conflict";
-const SAVE_LABEL: Record<SaveState, string> = { saved: "All changes saved", dirty: "Unsaved changes", saving: "Saving…", error: "Couldn't save", conflict: "Not saved: changed elsewhere" };
+const SAVE_LABEL: Record<SaveState, string> = { saved: "All changes saved", dirty: "Unsaved changes", saving: "Saving…", error: "Couldn’t save", conflict: "Not saved: changed elsewhere" };
 const AUTOSAVE_MS = 1200;
 
 /**
@@ -102,7 +102,7 @@ export function TranscriptEditor({ cap, statusLabel, active, onChanged, loadCapt
       if (err instanceof ApiError && err.status === 409 && err.code === "version_conflict") setSave("conflict");
       else {
         setSave("error");
-        setMessage(err instanceof Error ? err.message : "Could not save your changes.");
+        setMessage(err instanceof Error ? err.message : "We couldn’t save your changes. Please try again.");
       }
       return false;
     } finally {inFlight.current=false;submitted.current={lines:{},names:{}};}
@@ -152,7 +152,7 @@ export function TranscriptEditor({ cap, statusLabel, active, onChanged, loadCapt
     void loadCapture(cap.id).then((c) => {
       baseVersion.current = c.transcriptVersion ?? 0;
       onChanged();
-    }).catch(err=>{setSave("error");setMessage(err instanceof Error?err.message:"Could not reload the transcript.");});
+    }).catch(err=>{setSave("error");setMessage(err instanceof Error?err.message:"We couldn’t reload the transcript. Please try again.");});
   }
   async function keepMine() {
     try {
@@ -163,7 +163,7 @@ export function TranscriptEditor({ cap, statusLabel, active, onChanged, loadCapt
       onChanged();
     } catch (err) {
       setSave("error");
-      setMessage(err instanceof Error ? err.message : "Could not reload the transcript.");
+      setMessage(err instanceof Error ? err.message : "We couldn’t reload the transcript. Please try again.");
     }
   }
 
@@ -272,7 +272,7 @@ export function TranscriptEditor({ cap, statusLabel, active, onChanged, loadCapt
                     onChange={(e) => setLine(seg.id, seg.text, e.target.value)}
                     className={`block w-full resize-y rounded-lg border bg-background px-3 py-2 ${blank(seg.id) ? "border-danger" : "border-border"}`}
                   />
-                  {blank(seg.id) && <p className="mt-1 text-xs text-danger">A line can&apos;t be empty. Type something, or put the original back.</p>}
+                  {blank(seg.id) && <p className="mt-1 text-xs text-danger">A line can’t be empty. Type something, or put the original back.</p>}
                 </div>
               ) : (
                 <p className="min-w-0 whitespace-pre-wrap break-words">

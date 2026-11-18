@@ -42,7 +42,7 @@ export function PagesTab() {
       await saveM.mutateAsync({ input: form, id: editing === "new" || !editing ? undefined : editing.id });
       setEditing(null);
     } catch (err) {
-      setLocalError(err instanceof Error ? err.message : "Could not save.");
+      setLocalError(err instanceof Error ? err.message : "We couldn’t save. Please try again.");
     }
   }
   async function remove() {
@@ -51,7 +51,7 @@ export function PagesTab() {
       await delM.mutateAsync(confirmDelete.id);
       setConfirmDelete(null);
     } catch (err) {
-      setLocalError(err instanceof Error ? err.message : "Could not delete.");
+      setLocalError(err instanceof Error ? err.message : "We couldn’t delete. Please try again.");
     }
   }
   async function copy(slug: string) {
@@ -60,7 +60,7 @@ export function PagesTab() {
       setCopied(slug);
       setTimeout(() => setCopied(null), 2000);
     } catch {
-      setLocalError("Couldn't copy. Select the link and copy it yourself.");
+      setLocalError("Couldn’t copy. Select the link and copy it yourself.");
     }
   }
 

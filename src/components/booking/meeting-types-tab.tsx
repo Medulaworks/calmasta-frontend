@@ -89,7 +89,7 @@ export function MeetingTypesTab() {
       });
       setEditing(null);
     } catch (err) {
-      setLocalError(err instanceof Error ? err.message : "Could not save.");
+      setLocalError(err instanceof Error ? err.message : "We couldn’t save. Please try again.");
     }
   }
   async function remove() {
@@ -98,7 +98,7 @@ export function MeetingTypesTab() {
       await delM.mutateAsync(confirmDelete.id);
       setConfirmDelete(null);
     } catch (err) {
-      setLocalError(err instanceof Error ? err.message : "Could not delete.");
+      setLocalError(err instanceof Error ? err.message : "We couldn’t delete. Please try again.");
     }
   }
 
@@ -216,7 +216,7 @@ export function MeetingTypesTab() {
             </Field>
             <Field
               label="Where it happens"
-              hint="A video link (Google Meet, Teams or Zoom) or instructions like “Phone: I'll call you”. Guests see it after booking.">
+              hint="A video link (Google Meet, Teams or Zoom) or instructions like “Phone: I’ll call you”. Guests see it after booking.">
               <input
                 value={form.locationText}
                 maxLength={500}
@@ -264,7 +264,7 @@ export function MeetingTypesTab() {
                   <span className="block text-muted">
                     It joins as a visible recording assistant a couple of
                     minutes before the start, and may need to be admitted. If it
-                    can&apos;t join, the booking is unaffected.
+                    can’t join, the booking is unaffected.
                   </span>
                 </span>
               </label>
@@ -284,15 +284,14 @@ export function MeetingTypesTab() {
                         className="mt-1 h-4 w-4"
                       />
                       <span>
-                        i have the permission torecord these meetings, and I
-                        will tell my guests.
+                        I have permission to record these meetings and I will tell my guests.
                       </span>
                     </label>
                   )}
                   {wasCapturing && (
                     <p className="text-sm text-muted">
-                      You confirmed your right to record these meetings earlier.
-                      Turn recording off and on again to confirm afresh.
+                      You confirmed you have permission to record these meetings earlier. Turn
+                      recording off and on again to confirm again.
                     </p>
                   )}
                   <p className="flex items-start gap-2 text-xs text-muted">

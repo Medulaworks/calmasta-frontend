@@ -67,7 +67,7 @@ const minutesText = (m: number) =>
 
 /**
  * Meetings: everything on your connected calendars plus your bookings, as a list you can search and filter in detail,
- * with the selected meeting's details beside it. Read-only: Jooba shows your events but never changes them, and
+ * with the selected meeting's details beside it. Read-only: Joobah shows your events but never changes them, and
  * connecting a calendar never starts a recording.
  */
 export function CalendarView() {
@@ -82,9 +82,9 @@ export function CalendarView() {
           denied: { ok: false, text: "Calendar connection was cancelled." },
           missing_scope: { ok: false, text: "Required calendar permissions were not granted. Please reconnect and allow them." },
           missing_grant: { ok: false, text: "Google did not return the credentials needed to keep the calendar connected. Please reconnect." },
-          error: { ok: false, text: "Could not connect your calendar. Please try again." },
+          error: { ok: false, text: "We couldn’t connect your calendar. Please try again." },
         };
-        return map[calParam] ?? { ok: false, text: "Could not connect your calendar. Please try again." };
+        return map[calParam] ?? { ok: false, text: "We couldn’t connect your calendar. Please try again." };
       })()
     : search.get("connected")
       ? { ok: true, text: "Calendar connected." }
@@ -98,7 +98,7 @@ export function CalendarView() {
                   not_available: "This setup has no real calendar to sign in to.",
                 } as Record<string, string>
               )[search.get("error")!] ??
-              "We couldn't connect your calendar. Please try again.",
+              "We couldn’t connect your calendar. Please try again.",
           }
         : null;
   const timeZone = profile?.timezone || browserTimeZone();
@@ -119,7 +119,7 @@ export function CalendarView() {
   } = useQuery(calendarConnectionsQuery);
   const conns = connsRaw ?? null;
   const [error, setError] = useState<string | null>(null);
-  const connsErrorMsg = connsError ? (connsError instanceof Error ? connsError.message : "Could not load your calendars.") : null;
+  const connsErrorMsg = connsError ? (connsError instanceof Error ? connsError.message : "We couldn’t load your calendars. Please try again.") : null;
   const displayError = error ?? connsErrorMsg;
   const reload = () => {
     setError(null);
@@ -175,7 +175,7 @@ export function CalendarView() {
     placeholderData: (prev) => prev,
   });
   const agenda: { key: string; data: Agenda | null; error?: string } | null = agendaError
-    ? { key: winKey, data: null, error: agendaError instanceof Error ? agendaError.message : "Could not load your meetings." }
+    ? { key: winKey, data: null, error: agendaError instanceof Error ? agendaError.message : "We couldn’t load your meetings. Please try again." }
     : agendaData
       ? { key: winKey, data: agendaData }
       : null;
@@ -364,7 +364,7 @@ export function CalendarView() {
           role="status"
           className="rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
           {p.reason === "needs_reconnect"
-            ? `${p.accountEmail} needs reconnecting, so its events aren't shown.`
+            ? `${p.accountEmail} needs reconnecting, so its events aren’t shown.`
             : `${p.accountEmail} could not be reached just now, so some meetings may be missing. Try again in a moment.`}
         </p>
       ))}
@@ -410,9 +410,9 @@ export function CalendarView() {
                   body={
                     data?.connected
                       ? tab === "upcoming"
-                        ? "Your calendars have nothing in this period. Bookings made through Jooba appear here too."
+                        ? "Your calendars have nothing in this period. Bookings made through Joobah appear here too."
                         : "Nothing happened in this period."
-                      : "Connect a calendar to see everything in one place. Bookings made through Jooba appear here too."
+                      : "Connect a calendar to see everything in one place. Bookings made through Joobah appear here too."
                   }
                 />
               )}
@@ -503,7 +503,7 @@ export function MeetingRow({
       });
       setSent(true);
     } catch (err) {
-      setBotError(err instanceof Error ? err.message : "Could not send bot.");
+      setBotError(err instanceof Error ? err.message : "We couldn’t send the assistant. Please try again.");
     }
   }
   const others = e.attendees.filter((a) => !a.self);
@@ -600,8 +600,8 @@ export function MeetingRow({
             type="button"
             onClick={() => void onSendBot()}
             disabled={!canSend || sendBot.isPending}
-            aria-label={sent ? `Bot sent to ${e.title}` : botError ? `Retry sending bot to ${e.title}: ${botError}` : `Send bot to ${e.title}`}
-            title={botError ?? (sent ? "Bot sent" : policy?.meetingEnabled === false ? "Meeting capture not enabled" : "Send meeting bot")}
+            aria-label={sent ? `Assistant sent to ${e.title}` : botError ? `Retry sending the assistant to ${e.title}: ${botError}` : `Send the assistant to ${e.title}`}
+            title={botError ?? (sent ? "Assistant sent" : policy?.meetingEnabled === false ? "Meeting recording isn’t available" : "Send the assistant")}
             className={`flex flex-1 items-center justify-center gap-1 px-3 text-xs font-medium transition-colors ${sent ? "bg-success/10 text-success" : botError ? "bg-danger/10 text-danger hover:bg-danger/15" : "text-muted hover:bg-surface hover:text-foreground disabled:opacity-50"} ${upcoming ? "border-t border-border" : ""}`}>
             <Bot aria-hidden className="h-4 w-4" />
             {sendBot.isPending ? "Sending…" : sent ? "Sent" : botError ? "Retry" : "Bot"}
@@ -783,7 +783,7 @@ function MeetingDetail({
                 <div className="mt-1 space-y-1">
                   <p className="text-muted">
                     {event.joinUrl
-                      ? "This meeting wasn't recorded, so there's no transcript or summary."
+                      ? "This meeting wasn’t recorded, so there’s no transcript or summary."
                       : "No video link, so there is nothing for the assistant to join."}
                   </p>
                   {!upcoming && (

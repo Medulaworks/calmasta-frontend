@@ -2,6 +2,7 @@
 
 import { Lock } from "lucide-react";
 import { useState } from "react";
+import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader } from "@/components/ui/card";
 import { ToastStack, useToasts } from "@/components/ui/toast";
@@ -32,19 +33,20 @@ export function CustomerDetail({ id }: { id: string }) {
           const user = { id: nc.user.id, email: nc.user.email, name: nc.user.name, timezone: nc.user.timezone ?? undefined, suspended, emailVerified: nc.user.emailVerified, plan: nc.workspaces[0]?.plan ?? "free", planSource: null, sessionCount: 0, deleting: false };
           return (
             <div className="space-y-5">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h1 className="break-words text-2xl font-semibold">{nc.user.name ?? nc.user.email}</h1>
-                  <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted">
-                    {nc.user.name && <span>{nc.user.email}</span>}
+              <header className="flex flex-wrap items-center gap-4 rounded-2xl border border-border bg-background p-5 shadow-sm sm:p-6">
+                <Avatar name={nc.user.name ?? nc.user.email} src={(nc.user as { avatarUrl?: string | null }).avatarUrl ?? null} size={72} className="ring-4 ring-accent/10" />
+                <div className="min-w-0 flex-1">
+                  <h1 className="break-words text-2xl font-semibold tracking-tight">{nc.user.name ?? nc.user.email}</h1>
+                  {nc.user.name && <p className="mt-0.5 break-all text-sm text-muted">{nc.user.email}</p>}
+                  <p className="mt-3 flex flex-wrap items-center gap-2">
                     <Badge tone={suspended ? "danger" : "success"}>{suspended ? "Suspended" : "Active"}</Badge>
                     {nc.user.isStaff && <Badge tone="info">Admin</Badge>}
                     <Badge tone={nc.user.emailVerified ? "success" : "warning"}>{nc.user.emailVerified ? "Email confirmed" : "Email not confirmed"}</Badge>
+                    <Badge tone="neutral">{(nc.workspaces[0]?.plan ?? "free").replace(/^plan[_-]/i, "").replace(/^./, (ch) => ch.toUpperCase())} plan</Badge>
                   </p>
                 </div>
                 <RowMenu label="Actions for this account" items={userMenuItems(user, setDialog)} trigger="Actions ▾" />
-              </div>
-              <p className="flex items-center gap-2 text-xs text-muted"><Lock aria-hidden className="size-4 shrink-0" /> Recordings and documents aren&rsquo;t visible to admins — operational metadata only.</p>
+              </header>
               <Customer360 id={id} data={c as unknown as Customer360Data} />
               <UserDialogs user={user} dialog={dialog} onClose={() => setDialog(null)} onDone={(message) => { toasts.push({ tone: "success", message }); res.reload(); }} />
               <ToastStack items={toasts.items} onDismiss={toasts.dismiss} />
@@ -144,7 +146,7 @@ export function CustomerDetail({ id }: { id: string }) {
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="min-w-0">
-      <dt className="text-xs text-muted">{label}</dt>
+      <dt className="text-xs font-medium text-muted">{label}</dt>
       <dd className="mt-1 break-words">{children}</dd>
     </div>
   );

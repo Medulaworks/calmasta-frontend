@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { SkeletonGuest } from "@/components/ui/skeleton";
 import { ManageBooking } from "@/components/booking/manage-booking";
 
-export const metadata = { title: "Your booking · Jooba" };
+export const metadata = { title: "Your booking · Joobah" };
 
 async function Manage(props: PageProps<"/manage/[token]">) {
   const { token } = await props.params;

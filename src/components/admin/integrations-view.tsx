@@ -37,7 +37,7 @@ const TEST_MESSAGES: Record<string, string> = {
   api_access_verified: "Read-only API access succeeded.", authentication_failed: "Authentication was rejected. Check the applied credentials.",
   access_denied: "These credentials do not have access to this API.", provider_unavailable: "The provider is unavailable. Try again later.",
   invalid_provider_response: "The provider returned an unexpected response.", check_timed_out: "The check timed out after five seconds.",
-  connection_failed: "Could not connect using the applied configuration.", configuration_missing: "The applied configuration is incomplete.",
+  connection_failed: "We couldn’t connect using the applied configuration. Please try again.", configuration_missing: "The applied configuration is incomplete.",
   applied_version_changed: "The version changed during this check. Test again after application finishes.", test_pending: "This test has not finished. Try again in 30 seconds.",
   applied_version_required: "Wait until the active version is applied to the API before testing.", integration_test_rate_limited: "Wait 30 seconds before starting another test for this service.",
 };
@@ -74,7 +74,7 @@ export function IntegrationsView() {
       toasts.push({ tone, message: `${toTitle(profile.id)} applied v${result.version}: ${TEST_MESSAGES[result.code] ?? "The credential check did not complete."}` });
       res.reload();
     } catch (error) {
-      toasts.push({ tone: "danger", message: error instanceof ApiError && error.code && TEST_MESSAGES[error.code] ? TEST_MESSAGES[error.code] : "Could not run the credential check. Please try again." });
+      toasts.push({ tone: "danger", message: error instanceof ApiError && error.code && TEST_MESSAGES[error.code] ? TEST_MESSAGES[error.code] : "We couldn’t run the credential check. Please try again." });
     } finally {
       busyTests.current.delete(profile.id);setTesting(current => { const next = new Set(current);next.delete(profile.id);return next; });
     }
@@ -85,17 +85,17 @@ export function IntegrationsView() {
       {(nd: Profiles) => {
           return (
             <div className="space-y-5">
-              {!nd.replacementEnabled && <Notice tone="warning">Credential replacement is unavailable. The server needs a valid ADMIN_SECRET_ENCRYPTION_KEY.</Notice>}
+              {!nd.replacementEnabled && <Notice tone="warning">Changing credentials is switched off. The tech team needs to add the server’s encryption key first.</Notice>}
               {nd.runtimeAvailable === false && <Notice tone="warning">Automatic application needs the server migration and updated API and worker processes. Contact your operator to finish the setup.</Notice>}
               {!replace.allowed && <Notice>{replace.reason}</Notice>}
-              <p className="text-[11px] leading-relaxed text-muted">Environment <span className="font-medium text-foreground/70">{nd.environment}</span> · activation applies automatically with a graceful restart · refreshes every 5s · applied credential checks available on supported services.</p>
+              <p className="text-xs leading-relaxed text-muted">Environment <span className="font-medium text-foreground/70">{nd.environment}</span> · activation applies automatically with a graceful restart · refreshes every 5s · applied credential checks available on supported services.</p>
               <div className="grid items-start gap-3 md:grid-cols-2">
                 {nd.items.map((i) => {
                   const open = expanded.has(i.id);
                   const pending = ["restart_required", "activation_pending", "applying", "awaiting_services"].includes(i.effectiveStatus);
                   const status = !i.configured ? "Not configured" : i.activeVersion === null ? "Staged" : toStatusLabel(i.effectiveStatus);
                   return <Card key={i.id} className="overflow-hidden">
-                    <div className="space-y-2.5 px-4 py-3">
+                    <div className="space-y-3 px-5 py-4">
                       <div className="flex items-center justify-between gap-3">
                         <h3 className="min-w-0 flex-1">
                           <button type="button" id={`integration-toggle-${i.id}`} aria-expanded={open} aria-controls={`integration-details-${i.id}`} onClick={() => toggleCard(i.id)} className="flex w-full items-center gap-2 rounded-md text-left text-[13px] font-semibold tracking-tight outline-none focus-visible:ring-2 focus-visible:ring-accent/40">
@@ -103,18 +103,18 @@ export function IntegrationsView() {
                             <span className="truncate">{toTitle(i.id)}</span>
                           </button>
                         </h3>
-                        <Button variant="ghost" size="sm" aria-haspopup="dialog" onClick={() => setHistoryId(i.id)} className="min-h-6! shrink-0 gap-1 border border-accent/15 bg-accent/10 px-2 text-[10px] font-medium text-accent! hover:bg-accent/15!">
+                        <Button variant="ghost" size="sm" aria-haspopup="dialog" onClick={() => setHistoryId(i.id)} className="min-h-6! shrink-0 gap-1 border border-accent/15 bg-accent/10 px-2 text-xs font-medium text-accent! hover:bg-accent/15!">
                           <History aria-hidden className="size-3" /> History
                         </Button>
                       </div>
-                      <p className="flex items-center gap-1.5 text-[11px] text-muted"><Clock3 aria-hidden className="size-3 shrink-0 opacity-60" />Last updated {i.updatedAt ? fmtUtc(i.updatedAt) : "—"}</p>
+                      <p className="flex items-center gap-1.5 text-xs text-muted"><Clock3 aria-hidden className="size-3 shrink-0 opacity-60" />Last updated {i.updatedAt ? fmtUtc(i.updatedAt) : "—"}</p>
                       <div className="flex flex-wrap items-center gap-1.5">
                         <Badge tone={i.effectiveStatus === "applied" ? "success" : i.effectiveStatus === "application_blocked" ? "warning" : "neutral"}>{status}</Badge>
                         {pending && <Badge tone="warning">Application pending</Badge>}
                       </div>
                     </div>
-                    {open && <div id={`integration-details-${i.id}`} role="region" aria-labelledby={`integration-toggle-${i.id}`} className="flex flex-col gap-3 border-t border-border/60 px-4 py-3">
-                      <div className="space-y-1 text-[11px] leading-relaxed text-muted">
+                    {open && <div id={`integration-details-${i.id}`} role="region" aria-labelledby={`integration-toggle-${i.id}`} className="flex flex-col gap-3 border-t border-border px-5 py-4">
+                      <div className="space-y-1 text-xs leading-relaxed text-muted">
                         <p>{i.configured ? "Saved configuration" : "Not configured"} · <span className="tabular-nums">v{i.version}</span> saved / {i.activeVersion === null ? "not live" : <span className="tabular-nums">v{i.activeVersion} live</span>}</p>
                         <p>Full workflow {toStatusLabel(i.providerConnectivity)}</p>
                         {i.adoption?.services?.length ? <ul className="space-y-0.5" aria-label="Application status">
@@ -129,12 +129,12 @@ export function IntegrationsView() {
                         <Button size="sm" disabled={!replace.allowed || !nd.replacementEnabled || i.version === 0 || i.activeVersion === i.version} onClick={() => setActivating(i)} className="text-xs">Activate</Button>
                       </div>
                       {i.credentialTest?.supported && <div className="space-y-2 border-t border-border/60 pt-3">
-                        <p className="text-[11px] leading-relaxed text-muted">{i.credentialTest.appliedVersion ? `Tests API applied v${i.credentialTest.appliedVersion}.` : "No version is applied to this API yet."} {i.version !== i.activeVersion && `Draft v${i.version} is not tested.`} Worker adoption is separate.</p>
-                        <p className="text-[11px] leading-relaxed text-muted">{testLimit(i.id)}</p>
+                        <p className="text-xs leading-relaxed text-muted">{i.credentialTest.appliedVersion ? `Tests API applied v${i.credentialTest.appliedVersion}.` : "No version is applied to this API yet."} {i.version !== i.activeVersion && `Draft v${i.version} is not tested.`} Worker adoption is separate.</p>
+                        <p className="text-xs leading-relaxed text-muted">{testLimit(i.id)}</p>
                         <Button size="sm" className="text-xs" disabled={!check.allowed || !i.credentialTest.canTest || testing.has(i.id)} onClick={() => testCredentials(i)}>{testing.has(i.id) ? "Testing applied credentials…" : "Test applied credentials"}</Button>
-                        {!i.credentialTest.canTest && <p className="text-[11px] text-muted">Wait for the active version to be applied to the API.</p>}
-                        {!check.allowed && <p className="text-[11px] text-muted">An owner must run credential checks.</p>}
-                        {i.credentialTest.latest && <div className="space-y-1 text-[11px]" role="status">
+                        {!i.credentialTest.canTest && <p className="text-xs text-muted">Wait for the active version to be applied to the API.</p>}
+                        {!check.allowed && <p className="text-xs text-muted">An owner must run credential checks.</p>}
+                        {i.credentialTest.latest && <div className="space-y-1 text-xs" role="status">
                           <div className="flex flex-wrap items-center gap-1.5"><Badge tone={!i.credentialTest.latest.isCurrent ? "warning" : i.credentialTest.latest.status === "passed" ? "success" : i.credentialTest.latest.status === "failed" ? "danger" : "info"}>{!i.credentialTest.latest.isCurrent ? "Older version" : toStatusLabel(i.credentialTest.latest.status)}</Badge><span className="text-muted">{`Tested API v${i.credentialTest.latest.version} · ${fmtUtc(i.credentialTest.latest.checkedAt)}`}</span></div>
                           <p className="text-muted">{!i.credentialTest.latest.isCurrent ? "This result does not validate the current applied version." : TEST_MESSAGES[i.credentialTest.latest.code] ?? "No final result available."}</p>
                         </div>}

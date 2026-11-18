@@ -80,7 +80,7 @@ export class ApiError extends Error {
   }
 }
 
-const messages:Record<string,string>={meeting_already_active:"An assistant is already active for this meeting. Open the existing capture before trying again.",quota_not_configured:"Capture is not enabled for this account yet.",quota_exceeded:"Your recording allowance is used up.",spend_guard_exceeded:"Processing is temporarily unavailable. Try again later.",usage_reconciliation_required:"Processing needs attention before more work can start.",invalid_audio:"The recording could not be validated. Check its format and file contents.",audio_too_long:"The recording exceeds the configured duration limit.",upload_too_large:"The file exceeds the upload size limit.",upload_expired:"This upload expired. Choose the file again.",audio_unavailable:"The audio has expired or was removed. Your transcript remains available.",storage_unavailable:"Storage is temporarily unavailable. Please try again.",meeting_cost_not_configured:"Meeting capture is not available yet.",capture_not_retryable:"This meeting cannot be retried yet.",provider_outcome_unknown:"Processing needs attention. A second request will not be sent automatically.",version_conflict:"This transcript was changed elsewhere. Your changes are still here.",invalid_avatar:"Use a PNG, JPG or WebP picture under 1 MB.",invalid_image:"That picture couldn't be validated. Choose a non-animated PNG, JPG or WebP image.",avatar_version_conflict:"Your profile photo was changed in another tab. We refreshed your profile.",avatar_superseded:"A newer profile photo has already been saved.",avatar_upload_expired:"This photo upload expired. Please try again.",avatar_upload_incomplete:"The photo upload didn't finish. Please try again."};
+const messages:Record<string,string>={meeting_already_active:"An assistant is already in this meeting. Open the existing recording before trying again.",quota_not_configured:"Recording isn’t available on your account yet.",quota_exceeded:"Your recording allowance is used up.",spend_guard_exceeded:"Processing is temporarily unavailable. Try again later.",usage_reconciliation_required:"Processing needs attention before more work can start.",invalid_audio:"We couldn’t read this recording. Check that it’s a valid audio file.",audio_too_long:"This recording is longer than your limit.",upload_too_large:"This file is larger than the upload limit.",upload_expired:"This upload expired. Choose the file again.",audio_unavailable:"The audio has expired or was removed. Your transcript remains available.",storage_unavailable:"Storage is temporarily unavailable. Please try again.",meeting_cost_not_configured:"Meeting recording isn’t available yet.",capture_not_retryable:"This meeting cannot be retried yet.",provider_outcome_unknown:"Processing needs attention. A second request will not be sent automatically.",version_conflict:"This transcript was changed elsewhere. Your changes are still here.",invalid_avatar:"Use a PNG, JPG or WebP picture under 1 MB.",invalid_image:"That picture couldn’t be validated. Choose a non-animated PNG, JPG or WebP image.",avatar_version_conflict:"Your profile photo was changed in another tab. We refreshed your profile.",avatar_superseded:"A newer profile photo has already been saved.",avatar_upload_expired:"This photo upload expired. Please try again.",avatar_upload_incomplete:"The photo upload didn’t finish. Please try again."};
 export async function api<T>(url:string,init?:RequestInit):Promise<T>{
  const res=await fetch(url,{cache:"no-store",...init});if(res.status===204)return undefined as T;const body=await res.json().catch(()=>({}));
  if(!res.ok){
@@ -97,7 +97,7 @@ export const getPrivateAudio=(id:string)=>api<PrivateAudio>(`/api/captures/${enc
 function putWithProgress(url:string,blob:Blob,headers:Record<string,string>,onProgress:(fraction:number)=>void){return new Promise<void>((resolve,reject)=>{
  const xhr=new XMLHttpRequest();xhr.open("PUT",url);xhr.timeout=120000;
  // Browsers set Content-Length from the Blob; JavaScript is forbidden to set it.
- for(const [name,value] of Object.entries(headers)){if(name.toLowerCase()==="content-length"){if(Number(value)!==blob.size){reject(new Error("Upload size mismatch."));return;}}else xhr.setRequestHeader(name,value);}
+ for(const [name,value] of Object.entries(headers)){if(name.toLowerCase()==="content-length"){if(Number(value)!==blob.size){reject(new Error("The upload didn’t match the file. Please try again."));return;}}else xhr.setRequestHeader(name,value);}
  xhr.upload.onprogress=e=>{if(e.lengthComputable)onProgress(e.loaded/e.total);};
  xhr.onload=()=>xhr.status>=200&&xhr.status<300||xhr.status===412?resolve():reject(new ApiError(xhr.status,"The upload failed. Please try again."));
  xhr.onerror=xhr.ontimeout=xhr.onabort=()=>reject(new ApiError(0,"The upload was interrupted. Check your connection and try again."));xhr.send(blob);
@@ -114,19 +114,19 @@ type UploadIntent={id:string;captureId:string;state:string;upload?:{url:string;h
 type Attempt={key:string;completeKey:string;title:string;intent?:UploadIntent;uploaded:boolean;pending?:Promise<string>};
 const uploads=new WeakMap<Blob,Attempt>();
 export async function uploadAudio(input:{blob:Blob;filename:string;title:string;source:"voice_recording"|"audio_upload";consent:boolean},onProgress:(fraction:number)=>void):Promise<string>{
- if(input.consent!==true)throw new Error("Confirm that you have the right to upload and transcribe this recording.");
+ if(input.consent!==true)throw new Error("Confirm you have permission to upload and transcribe this recording.");
  let attempt=uploads.get(input.blob);const title=input.title.trim();if(attempt&&attempt.title!==title)throw new Error("Keep the same title when retrying this upload, or choose the file again.");
  if(!attempt){attempt={key:crypto.randomUUID(),completeKey:crypto.randomUUID(),title,uploaded:false};uploads.set(input.blob,attempt);}if(attempt.pending)return attempt.pending;
  const current=attempt;
  current.pending=(async()=>{
   const policy=await getCapturePolicy();
-  if(!policy.uploadEnabled)throw new Error("Uploading is not enabled for this account yet.");
+  if(!policy.uploadEnabled)throw new Error("Uploading isn’t available on your account yet.");
   if(!input.blob.size||(policy.maxUploadBytes!==null&&input.blob.size>policy.maxUploadBytes))throw new Error("The recording is empty or exceeds the upload size limit.");
   const contentType=await audioBlobContentType(input.blob,input.filename);
   if(!policy.supportedAudioTypes.includes(contentType))throw new Error("Use MP3, M4A, PCM WAV, WebM or Ogg audio.");
   if(!current.intent){const sha256=await blobSha256(input.blob);current.intent=await api<UploadIntent>("/api/uploads",{method:"POST",headers:{"Content-Type":"application/json","Idempotency-Key":current.key},body:JSON.stringify({contentType,sizeBytes:input.blob.size,sha256,consent:true,...(title?{title}:{})})});}
   if(current.intent.state==="completed")return current.intent.captureId;
-  if(!current.uploaded){if(!current.intent.upload)throw new Error("Upload link unavailable.");await putWithProgress(current.intent.upload.url,input.blob,current.intent.upload.headers,onProgress);current.uploaded=true;}
+  if(!current.uploaded){if(!current.intent.upload)throw new Error("We couldn’t start the upload. Please try again.");await putWithProgress(current.intent.upload.url,input.blob,current.intent.upload.headers,onProgress);current.uploaded=true;}
   await api(`/api/uploads/${current.intent.id}/complete`,{method:"POST",headers:{"Content-Type":"application/json","Idempotency-Key":current.completeKey},body:"{}"});return current.intent.captureId;
  })();try{return await current.pending;}finally{current.pending=undefined;}
 }
@@ -149,9 +149,9 @@ export const listCaptures=async(limit=25,kind?:"meetings"|"recordings",signal?:A
 };
 const meetingKeys=new Map<string,string>(),retryKeys=new Map<string,string>();
 export async function requestMeetingCapture(meetingUrl:string,consentConfirmed:boolean,title?:string,recordVideo=false,options?:{maxDurationSeconds:number;idempotencyKey?:string;botName?:string;titleMode?: "auto"|"manual"}){
- if(consentConfirmed!==true)throw new Error("Confirm that you have the right to record this meeting.");
- const policy=await getCapturePolicy();if(!policy.meetingEnabled)throw new Error("Meeting capture is not available yet.");
- if(recordVideo && !policy.videoEnabled) throw new Error("Video recording is not enabled for this account yet.");
+ if(consentConfirmed!==true)throw new Error("Confirm you have permission to record this meeting.");
+ const policy=await getCapturePolicy();if(!policy.meetingEnabled)throw new Error("Meeting recording isn’t available yet.");
+ if(recordVideo && !policy.videoEnabled) throw new Error("Video recording isn’t available on your account yet.");
  const seconds=options?.maxDurationSeconds??policy.maxMeetingDurationSeconds??1800;if(!Number.isSafeInteger(seconds)||seconds<30||(policy.maxMeetingDurationSeconds!==null&&seconds>policy.maxMeetingDurationSeconds))throw new Error("Choose a duration within the meeting limit.");
  const botName=options?.botName?.trim();if(botName&&(botName.length>100||/[\u0000-\u001f\u007f]/.test(botName)))throw new Error("Choose an assistant name of up to 100 characters without control characters.");
  const titleMode = options?.titleMode ?? (title?.trim() ? "manual" : "auto");
@@ -214,7 +214,7 @@ export interface TranscriptEditInput {
 /** Saves corrections. Throws ApiError with code "version_conflict" (409) if someone else edited first. */
 export const saveTranscript=(id:string,edit:TranscriptEditInput)=>api<{version:number;speakerNames:Record<string,string>}>(`/api/library/captures/${encodeURIComponent(id)}/transcript`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({expectedVersion:edit.baseVersion,segments:edit.segments,speakers:edit.speakers})});
 export async function retryMeeting(id:string,consentConfirmed:boolean){
- if(consentConfirmed!==true)throw new Error("Confirm that you have the right to record this meeting again.");let key=retryKeys.get(id);if(!key){key=crypto.randomUUID();retryKeys.set(id,key);}
+ if(consentConfirmed!==true)throw new Error("Confirm you have permission to record this meeting again.");let key=retryKeys.get(id);if(!key){key=crypto.randomUUID();retryKeys.set(id,key);}
  const r=await api<{id:string}>(`/api/captures/${encodeURIComponent(id)}/retry`,{method:"POST",headers:{"Content-Type":"application/json","Idempotency-Key":key},body:JSON.stringify({consent:true})});return {captureId:r.id,duplicate:false};
 }
 
