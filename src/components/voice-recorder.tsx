@@ -196,7 +196,9 @@ export function VoiceRecorder() {
         kind: "failed",
         captureId: processingId,
         message:
-          err instanceof Error ? err.message : "We lost connection to Joobah. Please try again.",
+          err instanceof Error
+            ? err.message
+            : "We lost connection to Joobah. Please try again.",
       });
       return;
     }
@@ -214,7 +216,9 @@ export function VoiceRecorder() {
       setJob({
         kind: "failed",
         captureId: processingId,
-        message: capture.failureReason ?? "Processing didn’t finish. Please try again.",
+        message:
+          capture.failureReason ??
+          "Processing didn’t finish. Please try again.",
       });
     } else if (isTerminal(capture.state)) {
       setJob({ kind: "done", captureId: processingId!, capture });
@@ -404,7 +408,7 @@ export function VoiceRecorder() {
             Record your voice
           </h2>
           <p className="mt-1 text-sm text-muted">
-            {maxSeconds === null
+            {!policy ? "Loading recording limits…" : maxSeconds === null
               ? "No recording time limit."
               : `Record up to ${formatDuration(maxSeconds)}.`}{" "}
             Keep this tab open and in the foreground: browsers can pause
@@ -466,9 +470,9 @@ export function VoiceRecorder() {
           </h2>
           <p className="mt-1 text-sm text-muted">
             MP3, M4A, PCM WAV, WebM or Ogg
-            {policy?.maxUploadBytes === null
+            {!policy ? ", loading upload limits…" : policy.maxUploadBytes === null
               ? ", with no upload size limit."
-              : `, up to ${formatBytes(policy?.maxUploadBytes ?? 25000000)}.`}
+              : `, up to ${formatBytes(policy.maxUploadBytes ?? 25000000)}.`}
           </p>
           <label
             onDragOver={(e) => {
@@ -495,7 +499,7 @@ export function VoiceRecorder() {
             />
           </label>
         </section>
-        <TranscriptUpload />
+        <TranscriptUpload policy={policy??null} />
       </div>
 
       {error && (

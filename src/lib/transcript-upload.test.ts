@@ -39,3 +39,11 @@ it("maps imported capture source in detail and recording lists", async () => {
  vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(Response.json({ id: "text", source: "transcript", state: "completed" })).mockResolvedValueOnce(Response.json({ results: [{ id: "text", source: "transcript", state: "completed" }] })));
  expect((await getCapture("text")).source).toBe("transcript_upload"); expect((await listCaptures(25, "recordings"))[0].source).toBe("transcript_upload");
 });
+
+it("uses configured character and UTF-8 file byte limits", async () => {
+ const limits={maxTranscriptCharacters:5,maxTranscriptBytes:8};
+ expect(()=>validateTranscript("abcdef",limits)).toThrow();
+ expect(()=>validateTranscript("界界界",limits)).toThrow();
+ await expect(readTranscriptFile(new File(["abcdef"],"notes.txt"),limits)).rejects.toThrow();
+ expect(()=>validateTranscript("abcde",limits)).not.toThrow();
+});

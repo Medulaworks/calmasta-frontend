@@ -10,7 +10,8 @@ vi.mock("react", async original => ({ ...await original<typeof import("react")>(
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: h.push }) }));
 vi.mock("@tanstack/react-query", () => ({ useQueryClient: () => ({ invalidateQueries: h.invalidate }) }));
-function tree() { h.index = 0; return TranscriptUpload(); }
+let currentPolicy: {maxTranscriptCharacters:number;maxTranscriptBytes:number}|null|undefined;
+function tree() { h.index = 0; return TranscriptUpload({policy:currentPolicy}); }
 function nodes<P>(node: ReactNode, type: unknown): ReactElement<P>[] {
  if (Array.isArray(node)) return node.flatMap(child => nodes<P>(child, type));
  if (!isValidElement<{ children?: ReactNode }>(node)) return [];
@@ -22,7 +23,7 @@ function paste(text: string) { nodes<ComponentProps<"textarea">>(tree(), "textar
 function consent() { input("checkbox").props.onChange?.({ target: { checked: true } } as never); }
 function open() { button("Add transcript").props.onClick?.({} as never); }
 const receipt = () => Response.json({ id: "saved", captureId: "saved", state: "completed", transcriptVersion: 1 }, { status: 201 });
-beforeEach(() => { h.index = 0; h.values = []; h.push.mockReset(); h.invalidate.mockReset(); vi.stubGlobal("fetch", vi.fn()); });
+beforeEach(() => { currentPolicy=undefined;h.index = 0; h.values = []; h.push.mockReset(); h.invalidate.mockReset(); vi.stubGlobal("fetch", vi.fn()); });
 afterEach(() => vi.unstubAllGlobals());
 it("pastes and previews text, requires consent and navigates only after confirmed persistence", async () => {
  let finish!: (response: Response) => void;
@@ -75,4 +76,17 @@ it("a rejected file preserves the current paste and never sends a save", async (
  await input("file").props.onChange?.({ currentTarget: { files: [new File([new Uint8Array([255])], "bad.txt")], value: "bad.txt" } } as never);
  expect(nodes<ComponentProps<"textarea">>(tree(), "textarea")[0].props.value).toBe("Keep this draft"); expect(fetch).not.toHaveBeenCalled(); expect(h.push).not.toHaveBeenCalled();
  expect(nodes<ComponentProps<"p">>(tree(), "p").some(node => node.props.role === "alert")).toBe(true);
+});
+
+it("renders transcript limits supplied by the capture policy",()=>{
+ h.index=0;const output=TranscriptUpload({policy:{maxTranscriptCharacters:42,maxTranscriptBytes:2097152}});
+ expect(JSON.stringify(output)).toContain("42 characters and 2 MiB per file");
+});
+
+it("applies refreshed limits without truncating an existing draft",async()=>{
+ currentPolicy={maxTranscriptCharacters:50,maxTranscriptBytes:1048576};open();paste("a draft that must be preserved");
+ currentPolicy={maxTranscriptCharacters:5,maxTranscriptBytes:1048576};
+ expect(nodes<ComponentProps<"textarea">>(tree(),"textarea")[0].props.maxLength).toBe(5);
+ consent();await button("Save transcript").props.onClick?.({} as never);
+ expect(fetch).not.toHaveBeenCalled();expect(nodes<ComponentProps<"textarea">>(tree(),"textarea")[0].props.value).toBe("a draft that must be preserved");
 });

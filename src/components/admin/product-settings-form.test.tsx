@@ -56,6 +56,7 @@ function input(id: string) {
   return el!;
 }
 function edit(id: string, value: string | boolean) {
+  if(id==="recording-change-reason"&&!screen().some(e=>e.props.id===id))(button("Save recording settings").props.onClick as ()=>void)();
   const onChange = input(id).props.onChange as (event: { target: { value: string; checked: boolean } }) => void;
   onChange({ target: { value: String(value), checked: value === true } });
 }
@@ -64,7 +65,10 @@ function button(label: string) {
   expect(el, label).toBeDefined();
   return el!;
 }
-async function click(label: string) { await (button(label).props.onClick as () => Promise<void>)(); }
+async function click(label: string) {
+ if(label==="Save recording settings"&&screen().some(e=>e.props.id==="recording-change-reason"&&!!String(e.props.value).trim()))label="Confirm changes";
+ await (button(label).props.onClick as () => Promise<void>)();
+}
 beforeEach(() => { hooks.values = []; hooks.cursor = 0; hooks.allowed = true; reload.mockClear(); cache.removeQueries.mockClear(); cache.invalidateQueries.mockClear(); cache.reload.mockClear(); cache.intervals = []; cache.fetching = false; cache.error = null; cache.data = null; });
 afterEach(() => vi.unstubAllGlobals());
 
@@ -140,7 +144,7 @@ it("keeps only Save and enables it when a setting changes, before entering a rea
   const fetcher = vi.fn(); vi.stubGlobal("fetch", fetcher);
   await click("Save recording settings");
   expect(fetcher).not.toHaveBeenCalled();
-  expect(JSON.stringify(screen())).toContain("Enter a reason");
+  expect(button("Confirm changes").props.disabled).toBe(true);
   expect(input("recording-change-reason").props["aria-required"]).toBe(true);
 });
 
@@ -198,7 +202,7 @@ it("saves durations and video directly through the versioned policy contract", a
 it("rejects a default above the maximum and requires a reason", async () => {
   const fetcher = vi.fn(); vi.stubGlobal("fetch", fetcher);
   edit("recording-default-minutes", "30");
-  edit("recording-change-reason", "Invalid duration");
+  expect(screen().some(e => e.props.id === "recording-change-reason")).toBe(false);
   expect(button("Save recording settings").props.disabled).toBe(true);
   await click("Save recording settings");
   expect(fetcher).not.toHaveBeenCalled();
@@ -206,6 +210,7 @@ it("rejects a default above the maximum and requires a reason", async () => {
   edit("recording-change-reason", "");
   expect(button("Save recording settings").props.disabled).toBe(false);
   await click("Save recording settings");
+  expect(button("Confirm changes").props.disabled).toBe(true);
   expect(fetcher).not.toHaveBeenCalled();
 });
 
@@ -260,4 +265,20 @@ it("hides an edited form when the real resource boundary reports revoked access"
   sectionForm(first).props.onEdited?.();
   cache.error = new ApiError(403, "Forbidden"); hooks.cursor = 0;
   expect(renderedForms(RecordingSettings())).toEqual([]);
+});
+
+it("opens reason confirmation from the floating Save and submits configured transcript limits once", async()=>{
+ const fetcher=vi.fn().mockResolvedValue(Response.json({version:policy.version+1}));vi.stubGlobal("fetch",fetcher);
+ edit("transcript-max-characters","200000");edit("transcript-max-bytes","2097152");
+ expect(screen().some(e=>e.props.id==="recording-change-reason")).toBe(false);
+ await (button("Save recording settings").props.onClick as ()=>Promise<void>)();
+ expect(fetcher).not.toHaveBeenCalled();expect(button("Confirm changes").props.disabled).toBe(true);
+ edit("recording-change-reason","Increase bounded transcript import limits");await click("Confirm changes");
+ const request=JSON.parse(fetcher.mock.calls[0][1].body);expect(request.changes.capture).toMatchObject({maxTranscriptCharacters:200000,maxTranscriptBytes:2097152});expect(request.reason).toBe("Increase bounded transcript import limits");
+});
+
+it("cancelling confirmation preserves edited limits without sending a save",async()=>{
+ const fetcher=vi.fn();vi.stubGlobal("fetch",fetcher);edit("transcript-max-characters","42000");
+ await click("Save recording settings");await click("Cancel");expect(fetcher).not.toHaveBeenCalled();
+ expect(input("transcript-max-characters").props.value).toBe("42000");expect(screen().some(e=>e.props.id==="recording-change-reason")).toBe(false);
 });

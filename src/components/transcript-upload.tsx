@@ -1,5 +1,6 @@
 "use client";
 
+import type {CapturePolicy} from "@/lib/upload-client";
 import { FileText } from "lucide-react";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -8,12 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import {
   createTranscriptImport,
-  MAX_TRANSCRIPT_LENGTH,
+  DEFAULT_TRANSCRIPT_LIMITS,
+  transcriptByteLabel,
   readTranscriptFile,
-  validateTranscript,
 } from "@/lib/transcript-upload";
 
-export function TranscriptUpload() {
+export function TranscriptUpload({policy}: {policy?:Pick<CapturePolicy,"maxTranscriptCharacters"|"maxTranscriptBytes">|null}={}) {
+  const limits={maxTranscriptCharacters:policy?.maxTranscriptCharacters??DEFAULT_TRANSCRIPT_LIMITS.maxTranscriptCharacters,maxTranscriptBytes:policy?.maxTranscriptBytes??DEFAULT_TRANSCRIPT_LIMITS.maxTranscriptBytes};
+  const policyReady=policy!==null;
   const router = useRouter(),
     queryClient = useQueryClient();
   const [open, setOpen] = useState(false),
@@ -36,7 +39,7 @@ export function TranscriptUpload() {
     setReading(true);
     setError(null);
     try {
-      const value = await readTranscriptFile(file);
+      const value = await readTranscriptFile(file,limits);
       if (sequence === fileRead.current) {
         setText(value);
         setConsent(false);
@@ -58,9 +61,9 @@ export function TranscriptUpload() {
   async function save() {
     if (inFlight.current || reading) return;
     try {
-      validateTranscript(text);
+      if(!policyReady)return;
       if (!attempt.current)
-        attempt.current = createTranscriptImport({ text, title, consent });
+        attempt.current = createTranscriptImport({ text, title, consent },limits);
       inFlight.current = true;
       setLocked(true);
       setPending(true);
@@ -99,10 +102,10 @@ export function TranscriptUpload() {
         </h2>
         <p className="mt-1 text-sm text-muted">
           Save a UTF-8 .txt file or pasted text privately, then review its AI
-          Notes. Up to 100,000 characters and 1 MiB per file.
+          Notes. {policyReady?`Up to ${limits.maxTranscriptCharacters.toLocaleString()} characters and ${transcriptByteLabel(limits.maxTranscriptBytes)} per file.`:"Loading transcript limits…"}
         </p>
         <div className="mt-auto pt-5">
-          <Button onClick={() => setOpen(true)}>Add transcript</Button>
+          <Button disabled={!policyReady} onClick={() => setOpen(true)}>Add transcript</Button>
         </div>
       </section>
       {open && (
@@ -134,7 +137,7 @@ export function TranscriptUpload() {
               <span className="text-sm font-medium">
                 Choose a .txt file or drop it here
               </span>
-              <span className="text-xs text-muted">UTF-8 .txt up to 1 MiB</span>
+              <span className="text-xs text-muted">UTF-8 .txt up to {transcriptByteLabel(limits.maxTranscriptBytes)}</span>
               <input
                 type="file"
                 accept=".txt,text/plain"
@@ -152,7 +155,7 @@ export function TranscriptUpload() {
               Paste or preview transcript
               <textarea
                 value={text}
-                maxLength={MAX_TRANSCRIPT_LENGTH}
+                maxLength={limits.maxTranscriptCharacters}
                 rows={8}
                 disabled={locked || reading}
                 onChange={(e) => {
@@ -165,7 +168,7 @@ export function TranscriptUpload() {
               />
             </label>
             <p className="text-xs text-muted">
-              {text.length.toLocaleString()} / 100,000 characters. Imported text
+              {text.length.toLocaleString()} / {limits.maxTranscriptCharacters.toLocaleString()} characters. Imported text
               has no audio or time labels.
             </p>
             <label className="block text-sm">

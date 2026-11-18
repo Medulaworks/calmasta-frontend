@@ -12,6 +12,8 @@ export interface ProductPolicyValues {
     maxUploadDurationSeconds: number;
     maxUploadBytes: number;
     maxVideoBytes: number;
+    maxTranscriptCharacters: number;
+    maxTranscriptBytes: number;
     videoEnabled: boolean;
   };
   bot: {
@@ -145,6 +147,8 @@ export const fixtureEffectivePolicy: EffectiveProductPolicy = {
       maxUploadDurationSeconds: 3600,
       maxUploadBytes: 25000000,
       maxVideoBytes: 250000000,
+      maxTranscriptCharacters:100000,
+      maxTranscriptBytes:1048576,
       videoEnabled: true,
     },
     bot: { defaultName: "Joobah Notetaker" },

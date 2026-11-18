@@ -42,8 +42,8 @@ describe("formatDuration", () => {
 
 describe("formatBytes", () => {
   it("formats KB and MB", () => {
-    expect(formatBytes(2048)).toBe("2 KB");
-    expect(formatBytes(5 * 1024 * 1024)).toBe("5.0 MB");
+    expect(formatBytes(2048)).toBe("2 KiB");
+    expect(formatBytes(5 * 1024 * 1024)).toBe("5.0 MiB");
   });
 });
 

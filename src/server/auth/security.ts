@@ -52,7 +52,7 @@ export class HttpError extends Error {
 }
 export async function readJson(request: Request,maxBytes=16384): Promise<Record<string, unknown>> {
   if (!(request.headers.get("content-type") ?? "").toLowerCase().startsWith("application/json")) throw new HttpError(415, "JSON content type required");
-  if(!Number.isSafeInteger(maxBytes)||maxBytes<1||maxBytes>1048576)throw new HttpError(400,"Invalid JSON limit");
+  if(!Number.isSafeInteger(maxBytes)||maxBytes<1||maxBytes>8388608)throw new HttpError(400,"Invalid JSON limit");
   const reader = request.body?.getReader();
   if (!reader) throw new HttpError(400, "JSON body required");
   const chunks: Uint8Array[] = []; let size = 0;

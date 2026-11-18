@@ -201,7 +201,7 @@ export class AuthService {
       const transcriptImport=request.method==="POST"&&segments.length===2&&segments[0]==="captures"&&segments[1]==="transcripts";
       const bodylessInsight = request.method === "POST" && segments.length === 3 && segments[0] === "captures" && ["recap", "questions"].includes(segments[2]);
       if (bodylessInsight) await assertEmptyBody(request);
-      const body = request.method === "GET" || bodylessInsight || request.method === "DELETE" && !request.body ? undefined : await readJson(request,transcriptImport||transcriptEdit?1048576:16384);
+      const body = request.method === "GET" || bodylessInsight || request.method === "DELETE" && !request.body ? undefined : await readJson(request,transcriptImport||transcriptEdit?8388608:16384);
       const url = new URL(request.url);
       const pathAndQuery = "/" + segments.map(encodeURIComponent).join("/") + url.search;
       bffContext.getStore()!.stage="api_request";

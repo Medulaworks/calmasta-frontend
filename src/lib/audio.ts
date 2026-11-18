@@ -26,7 +26,7 @@ export function checkAudioFile(file: { name: string; type: string; size: number 
   if (maxBytes!==null && file.size > maxBytes) {
     return {
       ok: false,
-      reason: `This file is larger than ${Math.round(maxBytes / 1024 / 1024)} MB.`,
+      reason: `This file is larger than ${Math.round(maxBytes / 1024 / 1024)} MiB.`,
     };
   }
   const baseType = file.type.split(";")[0].trim().toLowerCase();
@@ -50,6 +50,6 @@ export function formatDuration(totalSeconds: number): string {
 }
 
 export function formatBytes(bytes: number): string {
-  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KiB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MiB`;
 }

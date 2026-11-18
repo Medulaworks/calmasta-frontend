@@ -90,7 +90,7 @@ export async function api<T>(url:string,init?:RequestInit):Promise<T>{
   throw new ApiError(res.status,message+(res.status>=500&&reference?` Reference: ${reference}`:""),body.code,reference);
  }return body as T;
 }
-export interface CapturePolicy {maxUploadBytes:number|null;maxVideoBytes?:number|null;maxUploadDurationSeconds:number|null;maxMeetingDurationSeconds:number|null;recordingLimitsOverride?:boolean;supportedAudioTypes:string[];uploadEnabled:boolean;meetingEnabled:boolean;videoEnabled:boolean;liveProcessingEnabled:boolean;botName:string;}
+export interface CapturePolicy {maxTranscriptCharacters?:number;maxTranscriptBytes?:number;maxUploadBytes:number|null;maxVideoBytes?:number|null;maxUploadDurationSeconds:number|null;maxMeetingDurationSeconds:number|null;recordingLimitsOverride?:boolean;supportedAudioTypes:string[];uploadEnabled:boolean;meetingEnabled:boolean;videoEnabled:boolean;liveProcessingEnabled:boolean;botName:string;}
 export const getCapturePolicy=(signal?:AbortSignal)=>api<CapturePolicy>("/api/uploads/policy",{signal});
 export interface PrivateAudio {url:string;expiresAt:string;contentType:string;sizeBytes:number;}
 export const getPrivateAudio=(id:string)=>api<PrivateAudio>(`/api/captures/${encodeURIComponent(id)}/audio`);

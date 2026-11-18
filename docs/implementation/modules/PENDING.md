@@ -1,5 +1,12 @@
 # PENDING consumption
 
+## 2026-11-18 — shared upload limits and floating recording settings Save
+
+- **What was done (files + behavior):** FE-C01/FE-ADM01 IMPLEMENTED locally: admin product-settings form edits existing voice/audio/video limits plus new transcript character/UTF-8 byte limits through versioned policy. Floating Save opens the shared required-reason Dialog; cancel preserves edits, confirmation retains capability/version/idempotency protections. Voice/transcript copy, file/text validation, counters and textarea limits consume shared policy; active foreground pages refresh on focus/every15seconds and admin Save invalidates the cache. Defaults remain unchanged; binary size labels use MiB. [Proof](../evidence/2026-11-18-dynamic-upload-limits.md).
+- **Proof (command + result + revision):** Frontendcb98aa2 + local diff: focused Vitest PASS84/84 across7files (latest affected components26/26; large-text BFF12/12), typecheck PASS, scoped changed-file ESLint PASS. Separate auth/BFF checks75/75. Backend67c2a8e + diff: disposable-PG41/41, TypeScript/OpenAPI156 PASS; follow-up large UTF-8 import/edit HTTP checks13/13 accept1.2MB text under configured limits. No real browser/provider acceptance inferred.
+- **What is NOT done:** Feature commit/push/deployment, shared policy writes and browser acceptance. voice-recorder.tsx retains its pre-existing set-state-in-effect lint baseline. Backend-only b0948ec publishes a preceding stale probe-fixture correction; its staging CI44373828290 is separate from this local feature.
+- **Next action (task ID + files):** FE-C01/FE-ADM01 — paired backend rollout first, including all API/worker/local readers of shared staging policy, then frontend release; no settings save before reader parity. Follow sibling calmasta-api/releases/2026-11-18-dynamic-upload-limits-rollout.md. WORK_PLAN.md remains canonical; default values, quota, live-processing and spending are not changed.
+
 Local agent session context: [2026-11-16 summary](../../../../calmasta-api/docs/implementation/SESSION_CONTEXT_2026-11-16.md) — completed admin/settings/runtime work, proof, uncommitted changes and remaining scope.
 
 ## 2026-11-16 — environment-scoped admin overview and jobs

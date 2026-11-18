@@ -1,6 +1,7 @@
 "use client";
 import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import {Dialog} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { fmtUtc } from "@/lib/admin-client";
@@ -65,18 +66,22 @@ export function ProductSettingsForm({ data, reload, onEdited }: { data: Effectiv
   const [maxExpiryDays, setMaxExpiryDays] = useState(() => sharing.maxExpiryDays != null ? String(sharing.maxExpiryDays) : "");
   const ai = data.values.ai;
   const [uploadMinutes, setUploadMinutes] = useState(() => (capture.maxUploadDurationSeconds != null ? String(capture.maxUploadDurationSeconds / 60) : ""));
-  const [uploadMb, setUploadMb] = useState(() => (capture.maxUploadBytes != null ? String(Math.round(capture.maxUploadBytes / 1_048_576)) : ""));
-  const [videoMb, setVideoMb] = useState(() => (capture.maxVideoBytes != null ? String(Math.round(capture.maxVideoBytes / 1_048_576)) : ""));
+  const [uploadMb, setUploadMb] = useState(() => (capture.maxUploadBytes != null ? String(Number((capture.maxUploadBytes / 1_048_576).toFixed(2))) : ""));
+  const [videoMb, setVideoMb] = useState(() => (capture.maxVideoBytes != null ? String(Number((capture.maxVideoBytes / 1_048_576).toFixed(2))) : ""));
   const [botName, setBotName] = useState(data.values.bot?.defaultName ?? "");
   const [insightsEnabled, setInsightsEnabled] = useState(ai?.insightsEnabled ?? false);
   const [templatesEnabled, setTemplatesEnabled] = useState(ai?.templatesEnabled ?? false);
   const [titleEnabled, setTitleEnabled] = useState(ai?.titleEnabled ?? false);
+  const [transcriptCharacters,setTranscriptCharacters]=useState(()=>String(capture.maxTranscriptCharacters??100000));
+  const [transcriptBytes,setTranscriptBytes]=useState(()=>String(capture.maxTranscriptBytes??1048576));
+  const [reasonOpen,setReasonOpen]=useState(false);
   const [reason, setReason] = useState("");
   const [conflict, setConflict] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const operation = useRef<{ fingerprint: string; key: string } | null>(null);
+  const submitting=useRef(false);
   const reasonInput = useRef<HTMLInputElement | null>(null);
   const defaultSeconds = Number(defaultMinutes) * 60;
   const maxSeconds = Number(maxMinutes) * 60;
@@ -99,17 +104,21 @@ export function ProductSettingsForm({ data, reload, onEdited }: { data: Effectiv
   const uploadSeconds = toNumber(uploadMinutes) === null ? null : Math.round(Number(uploadMinutes) * 60);
   const uploadBytes = toNumber(uploadMb) === null ? null : Math.round(Number(uploadMb) * 1_048_576);
   const videoBytes = toNumber(videoMb) === null ? null : Math.round(Number(videoMb) * 1_048_576);
-  // Compare what is shown, so a stored value that is not a whole number of MB is never rewritten by an unrelated save.
-  const shownMb = (bytes: number | undefined) => (bytes != null ? String(Math.round(bytes / 1_048_576)) : "");
-  const uploadSecondsChanged = uploadSeconds !== null && uploadMinutes !== (capture.maxUploadDurationSeconds != null ? String(capture.maxUploadDurationSeconds / 60) : "");
-  const uploadBytesChanged = uploadBytes !== null && uploadMb !== shownMb(capture.maxUploadBytes);
-  const videoBytesChanged = videoBytes !== null && videoMb !== shownMb(capture.maxVideoBytes);
-  const limitsChanged = uploadSecondsChanged || uploadBytesChanged || videoBytesChanged;
-  const limitsValidation = (uploadMinutes.trim() !== "" && (uploadSeconds === null || uploadSeconds < 60)) || (uploadMb.trim() !== "" && (uploadBytes === null || uploadBytes < 1_048_576)) || (videoMb.trim() !== "" && (videoBytes === null || videoBytes < 1_048_576))
-    ? "Upload limits need a number: at least 1 minute and at least 1 MB." : null;
+  // Compare what is shown, so a stored value that is not at the displayed MiB precision is never rewritten by an unrelated save.
+  const shownMb = (bytes: number | undefined) => (bytes != null ? String(Number((bytes / 1_048_576).toFixed(2))) : "");
+  const uploadSecondsChanged = uploadMinutes !== (capture.maxUploadDurationSeconds != null ? String(capture.maxUploadDurationSeconds / 60) : "");
+  const uploadBytesChanged = uploadMb !== shownMb(capture.maxUploadBytes);
+  const videoBytesChanged = videoMb !== shownMb(capture.maxVideoBytes);
+  const transcriptCharactersChanged=Number(transcriptCharacters)!==(capture.maxTranscriptCharacters??100000);
+  const transcriptBytesChanged=Number(transcriptBytes)!==(capture.maxTranscriptBytes??1048576);
+  const transcriptChanged=transcriptCharactersChanged||transcriptBytesChanged;
+  const transcriptValidation=!transcriptCharacters.trim()||!Number.isSafeInteger(Number(transcriptCharacters))||Number(transcriptCharacters)<1||Number(transcriptCharacters)>1000000||!transcriptBytes.trim()||!Number.isSafeInteger(Number(transcriptBytes))||Number(transcriptBytes)<1||Number(transcriptBytes)>4194304?"Transcript limits must be 1–1,000,000 characters and 1–4,194,304 bytes.":null;
+  const limitsChanged = uploadSecondsChanged || uploadBytesChanged || videoBytesChanged || transcriptChanged;
+  const limitsValidation = (uploadSecondsChanged && (uploadSeconds===null||uploadSeconds<1||uploadSeconds>36000))||(uploadBytesChanged&&(uploadBytes===null||uploadBytes<44||uploadBytes>100000000))||(videoBytesChanged&&(videoBytes===null||videoBytes<1024||videoBytes>500000000))
+    ? "Use an upload duration from 1 second to 600 minutes, audio up to 100,000,000 bytes, and video up to 500,000,000 bytes." : null;
   const botChanged = data.values.bot !== undefined && botName.trim() !== data.values.bot.defaultName;
   const botValidation = botChanged && (botName.trim().length < 1 || botName.trim().length > 60) ? "The bot name needs 1 to 60 characters." : null;
-  const validation = durationValidation ?? expiryValidation ?? limitsValidation ?? botValidation;
+  const validation = durationValidation ?? expiryValidation ?? limitsValidation ?? transcriptValidation ?? botValidation;
   const aiChanged = ai !== undefined && (insightsEnabled !== ai.insightsEnabled || templatesEnabled !== ai.templatesEnabled || titleEnabled !== ai.titleEnabled);
   const changed = captureChanged || limitsChanged || botChanged || aiChanged || operationsChanged || sharingChanged;
   const disabled = !can.allowed || saving || conflict;
@@ -120,6 +129,8 @@ export function ProductSettingsForm({ data, reload, onEdited }: { data: Effectiv
         ...(uploadSecondsChanged ? { maxUploadDurationSeconds: uploadSeconds! } : {}),
         ...(uploadBytesChanged ? { maxUploadBytes: uploadBytes! } : {}),
         ...(videoBytesChanged ? { maxVideoBytes: videoBytes! } : {}),
+        ...(transcriptCharactersChanged?{maxTranscriptCharacters:Number(transcriptCharacters)}:{}),
+        ...(transcriptBytesChanged?{maxTranscriptBytes:Number(transcriptBytes)}:{}),
       },
     } : {}),
     ...(botChanged ? { bot: { defaultName: botName.trim() } } : {}),
@@ -151,26 +162,26 @@ export function ProductSettingsForm({ data, reload, onEdited }: { data: Effectiv
     setError(cause instanceof Error ? cause.message : "We couldn’t update recording settings. Please try again.");
   }
   async function save() {
-    if (disabled || validation || !changed || saved) return;
-    if (!reason.trim()) {
-      setError("Enter a reason for this change before saving.");
+    if (submitting.current || disabled || validation || !changed || saved) return;
+    if (reason.trim().length < 3) {
+      setError("Enter a reason of at least 3 characters before saving.");
       reasonInput.current?.focus();
       return;
     }
-    setSaving(true); setError(null); setSaved(false);
+    submitting.current=true;setSaving(true); setError(null); setSaved(false);
     const fingerprint = JSON.stringify({ version: data.version, changes, reason: reason.trim() });
     if (operation.current?.fingerprint !== fingerprint) operation.current = { fingerprint, key: crypto.randomUUID() };
     try {
       await updatePolicy(data.version, changes, reason.trim(), operation.current.key);
       operation.current = null;
-      setSaved(true);
+      setSaved(true);setReasonOpen(false);
       reload();
     } catch (cause) { failed(cause); }
-    finally { setSaving(false); }
+    finally { submitting.current=false;setSaving(false); }
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pb-24">
       <div id="settings-recording" className="scroll-mt-20">
         <Card>
           <CardHeader title="Recording defaults" description="Control processing, duration and video options for this environment." />
@@ -223,24 +234,28 @@ export function ProductSettingsForm({ data, reload, onEdited }: { data: Effectiv
 
       <div id="settings-uploads" className="scroll-mt-20">
         <Card>
-          <CardHeader title="Uploads and meeting bot" description="How big an upload can be, and what the meeting bot is called." />
+          <CardHeader title="Uploads and meeting bot" description="Configure voice, audio, video and transcript limits, and the meeting bot name." />
           <div className="space-y-4 p-5 text-sm">
             <div className="grid gap-4 md:grid-cols-3">
               <label htmlFor="upload-max-mb" className="space-y-2">
-                <span className="text-sm font-medium">Largest audio file (MB)</span>
-                <input id="upload-max-mb" type="number" min={1} step={1} value={uploadMb} onChange={(e) => { setUploadMb(e.target.value); edited(); }} disabled={disabled} className={box} />
+                <span className="text-sm font-medium">Largest audio file (MiB)</span>
+                <input id="upload-max-mb" type="number" min={44/1048576} max={100000000/1048576} step="any" value={uploadMb} onChange={(e) => { setUploadMb(e.target.value); edited(); }} disabled={disabled} className={box} />
                 <span className="text-xs text-muted">Bigger files are turned away when someone uploads.</span>
               </label>
               <label htmlFor="upload-video-mb" className="space-y-2">
-                <span className="text-sm font-medium">Largest video file (MB)</span>
-                <input id="upload-video-mb" type="number" min={1} step={1} value={videoMb} onChange={(e) => { setVideoMb(e.target.value); edited(); }} disabled={disabled} className={box} />
+                <span className="text-sm font-medium">Largest video file (MiB)</span>
+                <input id="upload-video-mb" type="number" min={1024/1048576} max={500000000/1048576} step="any" value={videoMb} onChange={(e) => { setVideoMb(e.target.value); edited(); }} disabled={disabled} className={box} />
                 <span className="text-xs text-muted">The same, for videos.</span>
               </label>
               <label htmlFor="upload-max-minutes" className="space-y-2">
-                <span className="text-sm font-medium">Longest upload (minutes)</span>
-                <input id="upload-max-minutes" type="number" min={1} step={1} value={uploadMinutes} onChange={(e) => { setUploadMinutes(e.target.value); edited(); }} disabled={disabled} className={box} />
+                <span className="text-sm font-medium">Longest voice recording / audio upload (minutes)</span>
+                <input id="upload-max-minutes" type="number" min={1/60} max={600} step="any" value={uploadMinutes} onChange={(e) => { setUploadMinutes(e.target.value); edited(); }} disabled={disabled} className={box} />
                 <span className="text-xs text-muted">Longer recordings are turned away.</span>
               </label>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <label htmlFor="transcript-max-characters" className="space-y-2"><span className="text-sm font-medium">Largest transcript (characters)</span><input id="transcript-max-characters" type="number" min={1} max={1000000} step={1} value={transcriptCharacters} onChange={e=>{setTranscriptCharacters(e.target.value);edited();}} disabled={disabled} className={box}/><span className="text-xs text-muted">Applies to pasted text and uploaded .txt files. Up to 1,000,000 characters.</span></label>
+              <label htmlFor="transcript-max-bytes" className="space-y-2"><span className="text-sm font-medium">Largest transcript file (bytes)</span><input id="transcript-max-bytes" type="number" min={1} max={4194304} step={1} value={transcriptBytes} onChange={e=>{setTranscriptBytes(e.target.value);edited();}} disabled={disabled} className={box}/><span className="text-xs text-muted">UTF-8 text limit. 1 MiB = 1,048,576 bytes; maximum 4 MiB.</span></label>
             </div>
             <label htmlFor="bot-default-name" className="block max-w-sm space-y-2">
               <span className="text-sm font-medium">Meeting bot name</span>
@@ -298,21 +313,22 @@ export function ProductSettingsForm({ data, reload, onEdited }: { data: Effectiv
         </Card>
       </div>
 
-      <Card>
-        <div className="space-y-3 p-5 text-sm">
-          {validation && changed && <p role="alert" className="text-xs text-danger">{validation}</p>}
-          <label htmlFor="recording-change-reason" className="block space-y-2">
-            <span className="text-sm font-medium">Reason for change (required)</span>
-            <input ref={reasonInput} id="recording-change-reason" value={reason} onChange={event => { onEdited?.();setReason(event.target.value);setError(null); }} maxLength={500} aria-required={true} disabled={disabled} placeholder="Explain this update" className={inputClass} />
-          </label>
-          {error && <p role="alert" className="text-xs text-danger">{error}</p>}
-          {saved && <p role="status" className="text-xs text-success">Recording settings saved.</p>}
-          <div className="flex flex-wrap items-center gap-2">
-            <Button variant="primary" disabled={disabled || !changed || !!validation || saved} onClick={save}>{saving ? "Saving…" : "Save recording settings"}</Button>
-          </div>
-          <p className="text-xs text-muted">Changes are saved to this environment. Meetings already recording keep their accepted duration and video choice.</p>
+      {validation && changed && <p role="alert" className="text-xs text-danger">{validation}</p>}
+      {error && !reasonOpen && <p role="alert" className="text-xs text-danger">{error}</p>}
+      {saved && <p role="status" className="text-xs text-success">Recording settings saved.</p>}
+      <div className="fixed bottom-5 right-4 z-40 flex max-w-[calc(100vw-2rem)] items-center gap-3 rounded-2xl border border-border bg-background px-4 py-3 shadow-xl sm:right-8" aria-label="Recording settings actions">
+        <span className="text-xs text-muted">{changed&&!saved?"Unsaved changes":"Recording settings"}</span>
+        <Button variant="primary" disabled={disabled || !changed || !!validation || saved} onClick={()=>{if(disabled||!changed||validation||saved)return;setError(null);setReasonOpen(true);}}>{saving?"Saving…":"Save recording settings"}</Button>
+      </div>
+      {reasonOpen && <Dialog title="Save recording settings" onClose={()=>{if(!saving)setReasonOpen(false);}}>
+        <div className="space-y-4">
+          <p className="text-sm text-muted">Save to {data.environment}. Meetings already recording keep their accepted limits.</p>
+          <label htmlFor="recording-change-reason" className="block space-y-2"><span className="text-sm font-medium">Reason for change (required)</span><input ref={reasonInput} id="recording-change-reason" value={reason} onChange={event=>{onEdited?.();setReason(event.target.value);setError(null);}} maxLength={500} minLength={3} required aria-required={true} disabled={disabled} placeholder="Explain this update" className={inputClass}/></label>
+          {error&&<p role="alert" className="text-xs text-danger">{error}</p>}
+          <div className="flex justify-end gap-2"><Button variant="ghost" disabled={saving} onClick={()=>setReasonOpen(false)}>Cancel</Button><Button variant="primary" disabled={disabled||reason.trim().length<3||!!validation||!changed||saved} onClick={save}>{saving?"Saving…":"Confirm changes"}</Button></div>
         </div>
-      </Card>
+      </Dialog>}
+
     </div>
   );
 }
