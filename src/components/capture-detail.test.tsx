@@ -16,3 +16,9 @@ it("the capture route keeps imported text and AI Notes without a recording tab o
  expect(html).toContain("Review the plan");expect(html).toContain("AI Notes");expect(html).not.toContain("Recording playback");expect(html).not.toContain("still being uploaded");expect(html).not.toContain("Audio no longer available");expect(html).not.toContain('aria-controls="tabpanel-recording"');
  expect(h.panel).toHaveBeenCalledWith(expect.objectContaining({isMeeting:false,hasTimestamps:false,audioAvailable:false}));
 });
+it("shows roster display names in the details card instead of undefined", () => {
+ const client=new QueryClient();clients.push(client);
+ client.setQueryData(qk.capture("roster"),{id:"roster",source:"meeting",title:"Team sync",state:"completed",status:"completed",createdAt:"2026-11-16T20:38:40.777Z",platform:"google_meet",botName:"Josiah Bot",transcriptVersion:1,transcript:[],speakerNames:{},documents:[],actions:{state:"none",items:[]},audio:null,audioStatus:"none",events:[],participants:[{id:"100",displayName:"Josiah Arkson",role:"host",joinedAt:null,leftAt:null}]});
+ const html=renderToStaticMarkup(createElement(QueryClientProvider,{client},createElement(CaptureDetail,{id:"roster"})));
+ expect(html).toContain("Participants · 1");expect(html).toContain("Josiah Arkson");expect(html).toContain("host");expect(html).not.toContain("undefined");
+});

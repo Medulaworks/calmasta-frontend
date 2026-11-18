@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { DashboardItem } from "@/lib/dashboard-client";
 import { captureStatus, documentStatus, timeAgo, type StatusView } from "@/lib/status";
 import { useDisplayTitle } from "@/components/shell/use-display-title";
-import { CaptureTile, PLATFORM_NAME, meetingPlatform } from "@/components/ui/platform-logo";
+import { CaptureTile, platformName } from "@/components/ui/platform-logo";
 
 const KIND_LABEL = { recording: "Recording", meeting: "Meeting", document: "Document" } as const;
 
@@ -59,7 +59,7 @@ export function RowStatus({ status }: { status: StatusView }) {
 export function ItemRow({ item, showReason = false }: { item: DashboardItem; showReason?: boolean }) {
   const status = statusFor(item);
   const shownTitle = useDisplayTitle()(item);
-  const kind = item.kind === "meeting" ? PLATFORM_NAME[meetingPlatform(item.platform, item.title)] : item.title.trim().toLowerCase() === KIND_LABEL[item.kind].toLowerCase() ? null : KIND_LABEL[item.kind];
+  const kind = item.kind === "meeting" ? (platformName(item.platform, item.title) ?? KIND_LABEL.meeting) : item.title.trim().toLowerCase() === KIND_LABEL[item.kind].toLowerCase() ? null : KIND_LABEL[item.kind];
   // Remember that this row was running, so the moment it finishes can be celebrated (and only that moment).
   const [wasActive, setWasActive] = useState(status.active);
   if (status.active && !wasActive) setWasActive(true);

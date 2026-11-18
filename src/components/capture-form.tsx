@@ -3,8 +3,8 @@ import {
   CaptureTile,
   PLATFORM_NAME,
   PlatformLogo,
-  meetingPlatform,
   platformKey,
+  platformName,
 } from "@/components/ui/platform-logo";
 import { useDisplayTitle } from "@/components/shell/use-display-title";
 import { RowStatus } from "@/components/dashboard/item-row";
@@ -584,7 +584,7 @@ export function CaptureForm() {
                           })}
                         </span>
                         <span className="block truncate text-xs text-muted">
-                          {PLATFORM_NAME[meetingPlatform(c.platform)]} · started{" "}
+                          {platformName(c.platform) ? `${platformName(c.platform)} · ` : ""}started{" "}
                           {timeAgo(c.createdAt)}
                         </span>
                       </span>
@@ -721,7 +721,7 @@ export function CaptureForm() {
                             })}
                           </span>
                           <span className="block truncate text-xs text-muted">
-                            {PLATFORM_NAME[meetingPlatform(c.platform)]} ·{" "}
+                            {platformName(c.platform) ? `${platformName(c.platform)} · ` : ""}
                             {timeAgo(c.createdAt)}
                           </span>
                           {c.status === "failed" && c.failureReason && (

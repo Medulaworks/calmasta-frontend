@@ -28,16 +28,25 @@ describe("platform logos", () => {
     }
     expect(html(createElement(PlatformLogo, { platform: null }))).not.toContain("aria-label");
   });
-  it("a meeting whose platform the server did not send is treated as Google Meet, everywhere", () => {
+  it("a meeting whose platform the server did not send shows a neutral tile, never a guessed logo", () => {
     expect(meetingPlatform(null, "Meeting")).toBe("google_meet");
     expect(meetingPlatform("zoom")).toBe("zoom");
-    expect(html(createElement(CaptureTile, { kind: "meeting" }))).toContain('aria-label="Google Meet"');
+    const unknown = html(createElement(CaptureTile, { kind: "meeting" }));
+    expect(unknown).not.toContain("<img");
+    expect(unknown).not.toContain("aria-label");
+    expect(html(createElement(CaptureTile, { kind: "meeting", platform: "zoom" }))).toContain('aria-label="Zoom"');
     expect(html(createElement(CaptureTile, { kind: "recording" }))).not.toContain("<img");
   });
   it("a finished meeting row shows its platform’s logo and name", () => {
     const out = html(createElement(ItemRow, { item: { id: "1", kind: "meeting", title: "Design review", status: "completed", failureReason: null, at: "2026-10-29T10:00:00Z", href: "/dashboard/captures/1", platform: "zoom", source: "meeting_url", state: "completed" } }));
     expect(out).toContain('aria-label="Zoom"');
     expect(out).toContain("Zoom ·");
+  });
+  it("a meeting row without a platform says Meeting, never Google Meet", () => {
+    const out = html(createElement(ItemRow, { item: { id: "2", kind: "meeting", title: "Weekly sync", status: "completed", failureReason: null, at: "2026-10-29T10:00:00Z", href: "/dashboard/captures/2", platform: null, source: "meeting_url", state: "completed" } }));
+    expect(out).not.toContain("Google Meet");
+    expect(out).not.toContain("<img");
+    expect(out).toContain("Meeting ·");
   });
 });
 
