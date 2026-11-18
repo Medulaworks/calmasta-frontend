@@ -9,6 +9,7 @@ import {
   saveTranscript,
   findActions,
   setActionStatus,
+  archiveCapture,
   deleteCapture,
 } from "./upload-client";
 import { saveLibraryTranscript } from "./library-client";
@@ -149,6 +150,26 @@ export function useSaveLibraryTranscript() {
     mutationFn: ({ id, edit }: { id: string; edit: Parameters<typeof saveLibraryTranscript>[1] }) =>
       saveLibraryTranscript(id, edit),
     onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: qk.capture(vars.id) }),
+  });
+}
+
+export function useArchiveCapture() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => archiveCapture(id),
+    onSuccess: async (_data, id) => {
+      await Promise.all([
+        qc.cancelQueries({ queryKey: qk.capture(id) }),
+        qc.cancelQueries({ queryKey: qk.privateAudio(id) }),
+        qc.cancelQueries({ queryKey: qk.sharing(id) }),
+      ]);
+      qc.removeQueries({ queryKey: qk.capture(id) });
+      qc.removeQueries({ queryKey: qk.privateAudio(id) });
+      qc.removeQueries({ queryKey: qk.sharing(id) });
+      qc.invalidateQueries({ queryKey: ["library"] });
+      qc.invalidateQueries({ queryKey: ["captures"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+    },
   });
 }
 
