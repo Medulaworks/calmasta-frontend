@@ -52,7 +52,7 @@ type Ext = {
   meetingUrl?: string | null;
   meeting_url?: string | null;
   durationSeconds?: number | null;
-  participants?: Array<{ name: string; role?: string }>;
+  participants?: Array<{ name?: string; displayName?: string; role?: string | null }>;
   metadata?: Record<string, unknown>;
   createdAt: string;
   events?: Array<{
@@ -349,7 +349,7 @@ function RecordingAside({
                     <li
                       key={i}
                       className="rounded-full bg-surface px-3 py-1 text-xs ring-1 ring-inset ring-border">
-                      {String(p.name).slice(0, 80)}
+                      {String(p.displayName ?? p.name ?? "Unknown").slice(0, 80)}
                       {p.role ? ` · ${String(p.role).slice(0, 40)}` : ""}
                     </li>
                   ))}

@@ -83,7 +83,9 @@ export const profileQuery = queryOptions({
 export const capturePolicyQuery = queryOptions({
   queryKey: qk.capturePolicy(),
   queryFn: ({ signal }) => getCapturePolicy(signal),
-  staleTime: 5 * 60 * 1000,
+  staleTime: 0,
+  refetchInterval:15000,
+  refetchOnWindowFocus:true,
   gcTime: 10 * 60 * 1000,
 });
 

@@ -27,6 +27,12 @@ export function platformKey(raw?: string | null, hint?: string | null): MeetingP
 export const meetingPlatform = (raw?: string | null, hint?: string | null): MeetingPlatform => platformKey(raw, hint) ?? "google_meet";
 
 export const PLATFORM_NAME: Record<MeetingPlatform, string> = { google_meet: "Google Meet", microsoft_teams: "Microsoft Teams", zoom: "Zoom" };
+
+/** "Google Meet", "Microsoft Teams", "Zoom", or null when we can't tell — never a guess. */
+export const platformName = (raw?: string | null, hint?: string | null): string | null => {
+  const p = platformKey(raw, hint);
+  return p ? PLATFORM_NAME[p] : null;
+};
 const FILE: Record<MeetingPlatform, string> = { google_meet: "/icons/icons8-google-meet-96.png", microsoft_teams: "/icons/icons8-teams-96.png", zoom: "/icons/icons8-zoom-96.png" };
 
 /**
@@ -50,11 +56,12 @@ export function PlatformLogo({ platform, size = 40, className = "" }: { platform
 type TileKind = "meeting" | "recording" | "document";
 
 /**
- * The leading tile of any capture row, so every list looks the same: a meeting shows its platform's logo, a recording a
- * microphone, a document a page.
+ * The leading tile of any capture row, so every list looks the same: a meeting shows its platform's logo (a neutral
+ * video mark when the server didn't say which app), a recording a microphone, a document a page. Unknown is never
+ * rendered as Google Meet.
  */
 export function CaptureTile({ kind, platform, hint, size = 40 }: { kind: TileKind; platform?: string | null; hint?: string | null; size?: number }) {
-  if (kind === "meeting") return <PlatformLogo platform={meetingPlatform(platform, hint)} size={size} />;
+  if (kind === "meeting") return <PlatformLogo platform={platformKey(platform, hint)} size={size} />;
   const Icon = kind === "document" ? FileText : Mic;
   return (
     <span aria-hidden className="inline-grid shrink-0 place-items-center rounded-xl border border-border bg-surface text-muted" style={{ width: size, height: size }}>

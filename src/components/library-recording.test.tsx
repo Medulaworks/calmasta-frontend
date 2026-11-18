@@ -239,6 +239,11 @@ it("video renewal resumes playing intent but respects an explicit user pause",()
  video.props.onLoadedMetadata?.({currentTarget:media} as never);expect(media.play).toHaveBeenCalledOnce();
 });
 
+it("shows roster display names for meeting participants instead of undefined", async () => {
+ const tree=await mount("meeting",{participants:[{id:"100",displayName:"Josiah Arkson",role:"host",joinedAt:null,leftAt:null}]});
+ const html=markup(tree);
+ expect(html).toContain("Participants");expect(html).toContain("Josiah Arkson");expect(html).not.toContain("undefined");
+});
 it("selecting a non-meeting summary format never requests generation", async () => {
  const tree=await mount("upload"); const panel=find<ComponentProps<typeof MeetingInsights>>(tree,MeetingInsights)!;
  hooks.cleanup.forEach(cleanup=>cleanup?.());hooks.cleanup=[];hooks.deps=[];hooks.pending=[];hooks.values=[];

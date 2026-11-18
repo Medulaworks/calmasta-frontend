@@ -273,7 +273,7 @@ export function CaptureDetail({
       </header>
 
       {!importedText && (() => {
-        const ext = cap as unknown as {botName?:string|null;meetingUrl?:string|null;meeting_url?:string|null;durationSeconds?:number|null;participants?:Array<{name:string;role?:string}>;metadata?:Record<string,unknown>};
+        const ext = cap as unknown as {botName?:string|null;meetingUrl?:string|null;meeting_url?:string|null;durationSeconds?:number|null;participants?:Array<{name?:string;displayName?:string;role?:string|null}>;metadata?:Record<string,unknown>};
         const meetingUrl = ext.meetingUrl ?? ext.meeting_url ?? null;
         const usage = ext.durationSeconds != null ? formatDuration(ext.durationSeconds) : null;
         const joinAt = new Date(cap.createdAt).toLocaleString();
@@ -290,7 +290,7 @@ export function CaptureDetail({
                 <div className="grid grid-cols-[8rem_1fr] gap-3 px-4 py-3"><dt className="text-muted">Assistant name</dt><dd>{ext.botName ?? "—"}</dd></div>
                 <div className="grid grid-cols-[8rem_1fr] gap-3 px-4 py-3"><dt className="text-muted">Metadata</dt><dd>{ext.metadata ? `${Object.keys(ext.metadata).length} field${Object.keys(ext.metadata).length===1?"":"s"}` : "—"}</dd></div>
                 <div className="grid grid-cols-[8rem_1fr] gap-3 px-4 py-3"><dt className="text-muted">Meeting</dt><dd className="truncate">{meetingUrl ? <a href={meetingUrl} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">{meetingUrl}</a> : "—"}</dd></div>
-                <div className="px-4 py-3"><p className="text-muted">Participants · {(ext.participants?.length ?? 0) || 0}</p>{ext.participants?.length ? <ul className="mt-2 flex flex-wrap gap-2">{ext.participants.map((p,i)=><li key={i} className="rounded-full bg-surface px-3 py-1 text-xs">{p.name}{p.role ? ` · ${p.role}` : ""}</li>)}</ul> : <p className="mt-1 text-muted">No participant list yet.</p>}</div>
+                <div className="px-4 py-3"><p className="text-muted">Participants · {(ext.participants?.length ?? 0) || 0}</p>{ext.participants?.length ? <ul className="mt-2 flex flex-wrap gap-2">{ext.participants.map((p,i)=><li key={i} className="rounded-full bg-surface px-3 py-1 text-xs">{p.displayName ?? p.name ?? "Unknown"}{p.role ? ` · ${p.role}` : ""}</li>)}</ul> : <p className="mt-1 text-muted">No participant list yet.</p>}</div>
               </dl>
               {cap.events?.length ? <ul className="space-y-1 text-xs text-muted">{cap.events.slice(0,4).map((e,i)=><li key={i}>{e.at ? new Date(e.at).toLocaleString() : ""} — {e.status}{e.detail ? `: ${e.detail}` : ""}</li>)}</ul> : null}
             </div>

@@ -46,22 +46,22 @@ it("rejects a streaming payload at its first nonempty chunk without buffering it
 
 it("forwards bounded transcript imports with their idempotency key and preserves auth and origin guards",async()=>{
  const fetcher=vi.fn().mockResolvedValue(Response.json({captureId:"text",state:"completed"},{status:201}));vi.stubGlobal("fetch",fetcher);
- const request=(origin=app,cookie="sid=fixture",text="x".repeat(100000))=>new Request(`${app}/api/captures/transcripts`,{method:"POST",headers:{Origin:origin,Cookie:cookie,"Content-Type":"application/json","Idempotency-Key":"import-key"},body:JSON.stringify({text,consent:true})});
+ const request=(origin=app,cookie="sid=fixture",text="界".repeat(400000))=>new Request(`${app}/api/captures/transcripts`,{method:"POST",headers:{Origin:origin,Cookie:cookie,"Content-Type":"application/json","Idempotency-Key":"import-key"},body:JSON.stringify({text,consent:true})});
  expect((await auth.proxy(request(),["captures","transcripts"])).status).toBe(201);
- expect(fetcher.mock.calls[0][1].headers["Idempotency-Key"]).toBe("import-key"); expect(JSON.parse(fetcher.mock.calls[0][1].body).text).toHaveLength(100000);
+ expect(fetcher.mock.calls[0][1].headers["Idempotency-Key"]).toBe("import-key"); expect(JSON.parse(fetcher.mock.calls[0][1].body).text).toHaveLength(400000);
  fetcher.mockClear();
  expect((await auth.proxy(request(),["captures","transcripts","extra"])).status).toBe(413);
  expect((await auth.proxy(request("https://foreign.test"),["captures","transcripts"])).status).toBe(403);
  expect((await auth.proxy(request(app,""),["captures","transcripts"])).status).toBe(401);
- expect((await auth.proxy(request(app,"sid=fixture","x".repeat(1048577)),["captures","transcripts"])).status).toBe(413);
+ expect((await auth.proxy(request(app,"sid=fixture","x".repeat(8388609)),["captures","transcripts"])).status).toBe(413);
  expect(fetcher).not.toHaveBeenCalled();
 });
 
-it("forwards max-length multibyte imported transcript edits within a bounded 1MiB allowance",async()=>{
+it("forwards large multibyte imported transcript edits within a bounded 8MiB transport allowance",async()=>{
  const fetcher=vi.fn().mockResolvedValue(Response.json({version:2}));vi.stubGlobal("fetch",fetcher);
- const text="界".repeat(100000),segments=Array.from({length:13},(_,i)=>({id:`segment-${i}`,text:text.slice(i*8000,(i+1)*8000)}));
+ const text="界".repeat(400000),segments=Array.from({length:50},(_,i)=>({id:`segment-${i}`,text:text.slice(i*8000,(i+1)*8000)}));
  const request=(size?:number)=>new Request(`${app}/api/library/captures/text/transcript`,{method:"PATCH",headers:{Origin:app,Cookie:"sid=fixture","Content-Type":"application/json"},body:JSON.stringify(size?{text:"x".repeat(size)}:{baseVersion:1,segments,speakers:{}})});
  expect((await auth.proxy(request(),["library","captures","text","transcript"])).status).toBe(200);
  expect(JSON.parse(fetcher.mock.calls[0][1].body).segments.map((s:{text:string})=>s.text).join("")).toBe(text);
- fetcher.mockClear();expect((await auth.proxy(request(1048577),["library","captures","text","transcript"])).status).toBe(413);expect(fetcher).not.toHaveBeenCalled();
+ fetcher.mockClear();expect((await auth.proxy(request(8388609),["library","captures","text","transcript"])).status).toBe(413);expect(fetcher).not.toHaveBeenCalled();
 });
