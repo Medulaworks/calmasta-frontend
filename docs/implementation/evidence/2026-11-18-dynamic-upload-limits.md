@@ -9,3 +9,7 @@ Revision: frontendcb98aa2 plus local diff, paired with backend67c2a8e plus local
 - Existing defaults100,000characters/1MiB remain; settings support bounded1,000,000characters/4MiB safety ceilings. Draft text is not truncated on refresh. Shared policy query invalidates after Save, revalidates on focus and polls every15seconds while active.
 
 Feature is not published. Upgrade all API/workers sharing a policy before saving new keys; use sibling backend releases/2026-11-18-dynamic-upload-limits-rollout.md. No user data, credentials or signed URLs were recorded.
+
+## Publication and local runtime verification
+
+Frontend feature09dcf4ac4f95e229d94a239a3e2b2d469c0b2987 is on both configured staging remotes. Fresh84/84 focused checks plus typecheck/scoped lint passed. Backend80d2e2e3a2a976dcfb7ff8236c08b32da4117c04 is published; fresh41/41 disposable-PG/build/OpenAPI156 passed. Local API restarted through its existing nodemon supervisor: child31313 under supervisor31308; health/ready200 and staging environment observed. No local worker was running; compiled worker source is updated without starting one. CI/deployment and hosted reader parity remain pending. No saved policy value changed.

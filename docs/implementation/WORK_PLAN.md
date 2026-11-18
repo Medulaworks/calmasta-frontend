@@ -1,3 +1,10 @@
+## 2026-11-18 — dynamic upload settings published to staging
+
+- **What was done (files + behavior):** FE-C01/FE-ADM01: user authorized backend publication and local runtime/frontend publication (steps1/3). Frontend feature09dcf4a is already committed on both configured staging remotes; preserved the concurrent commit. Backend80d2e2e3a2a976dcfb7ff8236c08b32da4117c04 is pushed with policy/OpenAPI/transport enforcement and rollout instructions. Local API restarted onto compiled code; local worker code compiled, with no previously running local worker to restart. No shared policy values changed.
+- **Proof (command + result + revision):** Fresh frontend09dcf4a checks:84/84 Vitest across7files, typecheck/scoped ESLint/diff checks PASS. Remote staging SHA verified09dcf4ac4f95e229d94a239a3e2b2d469c0b2987 on Medulaworks and personal deployment mirror. Backend80d2e2e tree: disposable-PG41/41/build/OpenAPI156 PASS; local new API supervisor31308/child31313, health200(environment staging), ready200. Backend CI44375179115 queued; frontend CI44374817363 in progress at checkpoint.
+- **What is NOT done:** Hosted API/worker release adoption, UI settings-save/browser acceptance or production promotion. No local worker started, live provider dispatch requested, saved limit/processing/quota/budget/credential change made. Publication and local health do not establish hosted compatibility.
+- **Next action (task ID + files):** FE-C01/FE-ADM01 — server agent verifies backend80d2e2e on all staging API/worker readers before any new limit save; follow sibling calmasta-api/releases/2026-11-18-dynamic-upload-limits-rollout.md. Verify /uploads/policy and frontend deployment, then owner-intended limit/reason behavior; production remains separate.
+
 # Frontend API-consumption work plan
 
 ## 2026-11-18 — shared upload limits and floating recording settings Save
