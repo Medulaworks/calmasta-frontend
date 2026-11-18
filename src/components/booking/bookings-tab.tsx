@@ -41,7 +41,7 @@ export function BookingsTab() {
       await cancelM.mutateAsync(confirm.id);
       setConfirm(null);
     } catch (err) {
-      setLocalError(err instanceof Error ? err.message : "Could not cancel.");
+      setLocalError(err instanceof Error ? err.message : "We couldn’t cancel. Please try again.");
     }
   }
   async function move() {
@@ -52,7 +52,7 @@ export function BookingsTab() {
       setMoving(null);
       setSlot(null);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Could not move the booking.";
+      const msg = err instanceof Error ? err.message : "We couldn’t move the booking. Please try again.";
       // slot_conflict -> clear selection and let picker reload on next open
       if (msg.toLowerCase().includes("slot") || msg.toLowerCase().includes("conflict") || msg.toLowerCase().includes("taken")) setSlot(null);
       setLocalError(msg);
@@ -88,7 +88,7 @@ export function BookingsTab() {
       {confirm && (
         <Confirm
           title={`Cancel the booking with ${confirm.guestName}?`}
-          text="The time is given back and the booking is removed from your calendar. Their link will show it as cancelled. They are not emailed (email isn't set up), so let them know yourself."
+          text="The time is given back and the booking is removed from your calendar. Their link will show it as cancelled. They are not emailed (email isn’t set up), so let them know yourself."
           action="Cancel booking"
           busy={busy}
           onConfirm={() => void cancel()}
@@ -100,7 +100,7 @@ export function BookingsTab() {
         <Card>
           <div className="space-y-4 p-5">
             <div>
-              <p className="text-base font-semibold">Move {moving.guestName}&apos;s booking</p>
+              <p className="text-base font-semibold">Move {moving.guestName}’s booking</p>
               <p className="mt-1 text-sm text-muted">
                 Now: {formatDateTime(moving.startAt, timeZone)}. Times are shown in your time zone ({timeZone.replace(/_/g, " ")}).
               </p>
@@ -117,7 +117,7 @@ export function BookingsTab() {
               </Button>
               <Button variant="ghost" disabled={busy} onClick={() => { setMoving(null); setSlot(null); }}>Back</Button>
             </div>
-            <p className="text-xs text-muted">The guest is not emailed (email isn&apos;t set up). Their link shows the new time.</p>
+            <p className="text-xs text-muted">The guest is not emailed (email isn’t set up). Their link shows the new time.</p>
           </div>
         </Card>
       )}
@@ -162,15 +162,15 @@ export function BookingsTab() {
                       {b.rescheduled && !cancelled && <Badge tone="info">Rescheduled</Badge>}
                     </div>
                     <p className="text-muted tabular-nums">{formatDateTime(b.startAt, timeZone)} to {formatTime(b.endAt, timeZone)} · {b.durationMin} min</p>
-                    <p className="text-xs text-muted">{b.guestEmail} · guest&apos;s time zone {b.guestTimezone.replace(/_/g, " ")}</p>
+                    <p className="text-xs text-muted">{b.guestEmail} · guest’s time zone {b.guestTimezone.replace(/_/g, " ")}</p>
                     {b.guestNote && <p className="rounded-xl bg-surface px-4 py-3 text-muted">&ldquo;{b.guestNote}&rdquo;</p>}
                     <ul className="space-y-1 text-xs text-muted">
-                      {!cancelled && b.emailStatus === "not_configured" && <li>The guest was not emailed (email isn&apos;t set up). They have a link to manage the booking.</li>}
+                      {!cancelled && b.emailStatus === "not_configured" && <li>The guest was not emailed (email isn’t set up). They have a link to manage the booking.</li>}
                       {!cancelled && b.calendarStatus === "failed" && <li className="text-warning">Could not be added to your calendar. The booking itself is confirmed.</li>}
                       {!cancelled && b.calendarStatus === "created" && <li className="flex items-center gap-1.5"><Check aria-hidden className="size-3.5 text-success" strokeWidth={3} /> Added to your calendar.</li>}
                       {b.captureId && (
                         <li className="flex items-center gap-2">
-                          <Video aria-hidden className="size-4" /> The Jooba Assistant is scheduled to join.{" "}
+                          <Video aria-hidden className="size-4" /> The Joobah Assistant is scheduled to join.{" "}
                           <Link href={`/dashboard/captures/${b.captureId}`} className="font-medium text-accent hover:underline">View</Link>
                         </li>
                       )}

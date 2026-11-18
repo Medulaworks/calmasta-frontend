@@ -1,5 +1,6 @@
 "use client";
 
+import { Activity, Banknote, Clock, DollarSign, FileAudio, Users, UserCheck, Video, CreditCard } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -50,17 +51,17 @@ function BusinessMetrics({ o, period, fetching }: { o: Data; period: Period; fet
   const rev = b?.revenue ?? null;
   return (
     <div aria-busy={fetching} className={`space-y-3 transition-opacity ${fetching ? "opacity-60" : ""}`}>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Metric label={all ? "Users" : "New users"} value={n(b?.newUsers)} hint={b?.newUsers == null ? NA : all ? undefined : `${n(b.totalUsers)} in total`} />
-        <Metric label="Active users" value={n(b?.activeUsers)} hint={b?.activeUsers == null ? NA : b.totalUsers != null ? `of ${n(b.totalUsers)} users` : undefined} />
-        <Metric label="Paid subscribers" value={n(b?.paidSubscribers?.total)} hint={b?.paidSubscribers ? `Pro ${n(b.paidSubscribers.pro)} · Business ${n(b.paidSubscribers.business)}` : NA} trend={b?.paidSubscribers?.newInPeriod ? { text: `+${n(b.paidSubscribers.newInPeriod)} ${all ? "so far" : "new"}`, good: true } : undefined} />
-        <Metric label="Money made" value={rev ? dollars(rev.cents) : "–"} trend={rev ? compare(rev.cents, rev.previousCents, period.key) : undefined} hint={rev ? undefined : NA} />
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <Metric icon={Users} label={all ? "Users" : "New users"} value={n(b?.newUsers)} hint={b?.newUsers == null ? NA : all ? undefined : `${n(b.totalUsers)} in total`} />
+        <Metric icon={UserCheck} label="Active users" value={n(b?.activeUsers)} hint={b?.activeUsers == null ? NA : b.totalUsers != null ? `of ${n(b.totalUsers)} users` : undefined} />
+        <Metric icon={CreditCard} label="Paid subscribers" value={n(b?.paidSubscribers?.total)} hint={b?.paidSubscribers ? `Pro ${n(b.paidSubscribers.pro)} · Business ${n(b.paidSubscribers.business)}` : NA} trend={b?.paidSubscribers?.newInPeriod ? { text: `+${n(b.paidSubscribers.newInPeriod)} ${all ? "so far" : "new"}`, good: true } : undefined} />
+        <Metric icon={Banknote} label="Money made" value={rev ? dollars(rev.cents) : "–"} trend={rev ? compare(rev.cents, rev.previousCents, period.key) : undefined} hint={rev ? undefined : NA} />
       </div>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Metric label="Meetings" value={n(b?.meetings?.total)} hint={b?.meetings ? (b.meetings.failed > 0 ? `${n(b.meetings.failed)} didn’t finish` : "All finished") : NA} tone={b?.meetings && b.meetings.failed > 0 ? "warning" : undefined} />
-        <Metric label="Recordings" value={n(b?.recordings)} hint={b?.recordings == null ? NA : undefined} />
-        <Metric label="Hours processed" value={b?.minutes != null ? formatMinutes(b.minutes) : "–"} hint={b?.minutes == null ? NA : undefined} />
-        <Metric label="Processing cost" value={cost !== null ? dollars(cost) : "–"} tone={over ? "warning" : undefined} hint={cost === null ? NA : b?.costTargetCents != null ? `Target ${dollars(b.costTargetCents)}` : undefined} />
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <Metric icon={Video} label="Meetings" value={n(b?.meetings?.total)} hint={b?.meetings ? (b.meetings.failed > 0 ? `${n(b.meetings.failed)} didn’t finish` : "All finished") : NA} tone={b?.meetings && b.meetings.failed > 0 ? "warning" : undefined} />
+        <Metric icon={FileAudio} label="Recordings" value={n(b?.recordings)} hint={b?.recordings == null ? NA : undefined} />
+        <Metric icon={Clock} label="Hours processed" value={b?.minutes != null ? formatMinutes(b.minutes) : "–"} hint={b?.minutes == null ? NA : undefined} />
+        <Metric icon={DollarSign} label="Processing cost" value={cost !== null ? dollars(cost) : "–"} tone={over ? "warning" : undefined} hint={cost === null ? NA : b?.costTargetCents != null ? `Target ${dollars(b.costTargetCents)}` : undefined} />
       </div>
     </div>
   );
@@ -84,37 +85,45 @@ export function OverviewView() {
         if (isNew) {
           const no = o as unknown as NewOverview;
           return (
-            <div className="space-y-5">
-              {no.environment && <p className="text-sm text-muted">Meeting, active capture and job totals are for {no.environment}. Account, usage and spend totals cover this database.</p>}
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                <Metric label="Users" value={n(no.users)} />
-                <Metric label="Active captures" value={n(no.activeCaptures)} />
-                <Metric label="Active users" value={no.activeUsers === null ? "–" : n(no.activeUsers)} hint={no.activeUsers === null ? (no.activeUsersReason ?? "Not available yet") : undefined} />
-              </div>
-              <p className="text-sm text-muted">All-time totals. Active captures show the current state; active users cover the last 7 days.</p>
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                <Metric label="Users" value={n(no.users)} hint="Total" />
-                <Metric label="Paid subscribers" value="–" hint={NA} />
-                <Metric label="Money made" value="–" hint={NA} />
-                <Metric label="Meetings" value={n(no.meetings?.total)} hint={no.meetings ? `${n(no.meetings.failed)} failed` : NA} />
-                <Metric label="Recordings" value="–" hint={NA} />
-                <Metric label="Hours processed" value={no.minutes == null ? "–" : formatMinutes(no.minutes)} hint="Shared database usage" />
-                <Metric label="Processing cost" value={no.cost ? fmtMoney(Number(no.cost.settledMicros) / 10000) : "–"} hint={no.cost ? "Settled · shared database" : NA} />
-              </div>
-              <section className="space-y-3">
-                <h2 className="text-sm font-semibold">Problems to fix</h2>
-                <Card><EmptyState title="Nothing needs you" body="Nothing has failed or got stuck." /></Card>
+            <div className="space-y-6">
+              {no.environment && <p className="text-sm text-muted">Meetings, active recordings and background work are for {no.environment}. Accounts, usage and spend cover this whole database.</p>}
+
+              <section aria-labelledby="now" className="space-y-3">
+                <h2 id="now" className="text-sm font-semibold">Right now</h2>
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                  <Metric icon={Activity} label="Active recordings" value={n(no.activeCaptures)} hint="In progress at the moment" />
+                  <Metric icon={UserCheck} label="Active users" value={no.activeUsers === null ? "–" : n(no.activeUsers)} hint={no.activeUsers === null ? (no.activeUsersReason ?? "Not available yet") : "In the last 7 days"} />
+                </div>
               </section>
-              <section className="space-y-3">
-                <h2 className="text-sm font-semibold">Jobs by kind and state</h2>
-                {no.jobs.length === 0 ? <Card><EmptyState title="No jobs" /></Card> : (
-                  <DataTable label="Jobs">
-                    <thead><tr><Th>Kind</Th><Th>State</Th><Th>Count</Th></tr></thead>
-                    <tbody>{no.jobs.map((j, i) => <tr key={i}><Td>{taskName(j.kind)}</Td><Td>{j.state}</Td><Td>{j.count}</Td></tr>)}</tbody>
+
+              <section aria-labelledby="alltime" className="space-y-3">
+                <h2 id="alltime" className="text-sm font-semibold">All time</h2>
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                  <Metric icon={Users} label="Users" value={n(no.users)} hint="Total accounts" />
+                  <Metric icon={CreditCard} label="Paid subscribers" value="–" hint={NA} />
+                  <Metric icon={Banknote} label="Money made" value="–" hint={NA} />
+                  <Metric icon={Video} label="Meetings" value={n(no.meetings?.total)} hint={no.meetings ? `${n(no.meetings.failed)} didn’t finish` : NA} />
+                  <Metric icon={FileAudio} label="Recordings" value="–" hint={NA} />
+                  <Metric icon={Clock} label="Hours processed" value={no.minutes == null ? "–" : formatMinutes(no.minutes)} hint="Across the shared database" />
+                  <Metric icon={DollarSign} label="Processing cost" value={no.cost ? fmtMoney(Number(no.cost.settledMicros) / 10000) : "–"} hint={no.cost ? "Paid so far" : NA} />
+                </div>
+              </section>
+
+              <section aria-labelledby="problems" className="space-y-3">
+                <h2 id="problems" className="text-sm font-semibold">Needs attention</h2>
+                <Card><EmptyState title="All clear" body="Nothing has failed or got stuck." /></Card>
+              </section>
+
+              <section aria-labelledby="work" className="space-y-3">
+                <h2 id="work" className="text-sm font-semibold">Background work</h2>
+                {no.jobs.length === 0 ? <Card><EmptyState title="Nothing running" body="No background work right now." /></Card> : (
+                  <DataTable label="Background work">
+                    <thead><tr><Th>Task</Th><Th>Status</Th><Th>How many</Th></tr></thead>
+                    <tbody>{no.jobs.map((j, i) => <tr key={i}><Td>{taskName(j.kind)}</Td><Td className="capitalize">{j.state.replace(/_/g, " ")}</Td><Td className="tabular-nums">{j.count}</Td></tr>)}</tbody>
                   </DataTable>
                 )}
               </section>
-              <p className="text-xs text-muted"><button type="button" onClick={res.reload} className="underline">Refresh</button></p>
+              <p className="text-xs text-muted"><Button variant="ghost" size="sm" onClick={res.reload}>Refresh</Button></p>
               <ToastStack items={toasts.items} onDismiss={toasts.dismiss} />
             </div>
           );
@@ -136,11 +145,11 @@ export function OverviewView() {
             </div>
 
             <section aria-labelledby="p" className="space-y-3">
-              <h2 id="p" className="text-sm font-semibold">Problems to fix</h2>
+              <h2 id="p" className="text-sm font-semibold">Needs attention</h2>
               {o.problems.length === 0 ? (
-                <Card><EmptyState title="Nothing needs you" body="Nothing has failed or got stuck." /></Card>
+                <Card><EmptyState title="All clear" body="Nothing has failed or got stuck." /></Card>
               ) : (
-                <DataTable label="Problems to fix">
+                <DataTable label="Needs attention">
                   <thead><tr><Th>What</Th><Th>Status</Th><Th wide>Last change</Th><Th><span className="sr-only">Actions</span></Th></tr></thead>
                   <tbody>
                     {o.problems.map((j) => (
@@ -162,7 +171,7 @@ export function OverviewView() {
                   More numbers <span className="ml-1 text-xs font-normal text-muted group-open:hidden">Show</span><span className="ml-1 hidden text-xs font-normal text-muted group-open:inline">Hide</span>
                 </summary>
                 <div className="space-y-5 border-t border-border p-5">
-                  <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                  <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                     <Metric label="In line" value={o.queue.queued} hint="Waiting to be processed" />
                     <Metric label="Processing now" value={o.queue.running} />
                     <Metric label="Trying again" value={o.queue.retrying} />

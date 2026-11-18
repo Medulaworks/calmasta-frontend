@@ -1,6 +1,6 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,17 +8,25 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ToastStack, useToasts } from "@/components/ui/toast";
 import { type Json, fmtUtc } from "@/lib/admin-client";
+import { actionLabel } from "@/lib/admin-words";
 import type { AuditEntry, AuditPage } from "@/lib/admin-types";
 import type { Tone } from "@/lib/status";
-import { ClickRow, DetailsDialog, MenuTd, RowMenu, RowOpen } from "./row-menu";
-import { AdminUnavailable, DataTable, Notice, Td, Th, usePaged } from "./ui";
+import { ClickRow, DetailsDialog } from "./row-menu";
+import { AdminUnavailable, DataTable, FilterSelect, Notice, SearchField, Td, Th, usePaged } from "./ui";
 
 type Page = Json<AuditPage>;
 type Entry = Page["entries"][number];
 const TONE: Record<AuditEntry["outcome"], Tone> = { success: "success", denied: "warning", failed: "danger" };
 const RESULT: Record<AuditEntry["outcome"], string> = { success: "Done", denied: "Refused", failed: "Failed" };
-const ACTIONS = ["Opened an account", "Added minutes", "Tried a task again", "Ran a store message again", "Changed settings", "Changed keys", "Suspended account", "Reactivated account", "Signed a user out everywhere", "Edited profile", "Sent a password reset email", "Sent a confirm email", "Tested a connection", "Invited an admin", "Resent an admin invite", "Cancelled an admin invite", "Removed an admin", "Changed a plan", "Changed a plan's price", "Changed the yearly discount", "Added an extra-hours pack", "Changed an extra-hours pack", "Deleted an extra-hours pack"];
-const field = "h-9 rounded-lg border border-border bg-background px-3 text-sm";
+const ACTIONS = ["Opened an account", "Added minutes", "Tried a task again", "Ran a store message again", "Changed settings", "Changed keys", "Suspended account", "Reactivated account", "Signed a user out everywhere", "Edited profile", "Sent a password reset email", "Sent a confirm email", "Tested a connection", "Invited an admin", "Resent an admin invite", "Cancelled an admin invite", "Removed an admin", "Changed a plan", "Changed a plan’s price", "Changed the yearly discount", "Added an extra-hours pack", "Changed an extra-hours pack", "Deleted an extra-hours pack"];
+const friendly = (v: unknown) => {
+  const d = v ? new Date(v as string) : null;
+  return d && !Number.isNaN(d.getTime()) ? new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(d) : "Not recorded";
+};
+/** The server's field names have varied (at / createdAt, actor / actorEmail). Read whichever is there, never show a blank. */
+const when = (e: Entry) => friendly(e.at ?? (e as unknown as { createdAt?: string; occurredAt?: string }).createdAt ?? (e as unknown as { occurredAt?: string }).occurredAt);
+const who = (e: Entry) => e.actor ?? (e as unknown as { actorEmail?: string | null }).actorEmail ?? null;
+const result = (e: Entry) => (e.outcome && RESULT[e.outcome] ? e.outcome : null);
 
 /** Who did what, newest first. Click a row for the full note and the reference to quote when asking for help. */
 export function AuditView() {
@@ -35,40 +43,16 @@ export function AuditView() {
   const { rows, status: state, message, more, hasMore, loadMore } = list;
   const filtered = applied.q !== "" || applied.outcome !== "all" || applied.action !== "all";
 
-  async function copy(text: string) {
-    try {
-      await navigator.clipboard.writeText(text);
-      toasts.push({ tone: "success", message: "Copied." });
-    } catch {
-      toasts.push({ tone: "warning", message: "Couldn’t copy. Select it from the details instead." });
-    }
-  }
-  const menu = (e: Entry) => [
-    { label: "See details", onSelect: () => setOpen(e) },
-    ...(e.customerId ? [{ label: "Open account", href: `/admin/customers/${e.customerId}` }] : []),
-    { label: "Copy reference", onSelect: () => void copy(e.correlationId), divider: true },
-  ];
 
   if (state === "unavailable") return <AdminUnavailable />;
   return (
     <div className="space-y-4">
       <form role="search" aria-label="Search activity" onSubmit={(e) => { e.preventDefault(); setApplied((a) => ({ ...a, q: q.trim() })); }} className="flex flex-wrap items-center gap-2">
-        <label className="min-w-48 flex-1 sm:max-w-sm">
-          <span className="sr-only">Search activity</span>
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by person or what they did" maxLength={100} className={`${field} block w-full`} />
-        </label>
-        <label><span className="sr-only">Result</span>
-          <select value={applied.outcome} onChange={(e) => setApplied((a) => ({ ...a, outcome: e.target.value }))} className={field}>
-            <option value="all">Any result</option><option value="success">Done</option><option value="denied">Refused</option><option value="failed">Failed</option>
-          </select>
-        </label>
-        <label><span className="sr-only">What was done</span>
-          <select value={applied.action} onChange={(e) => setApplied((a) => ({ ...a, action: e.target.value }))} className={field}>
-            <option value="all">Anything</option>{ACTIONS.map((a) => <option key={a}>{a}</option>)}
-          </select>
-        </label>
-        <Button type="submit"><Search aria-hidden className="size-4" /> Search</Button>
-        {filtered && <Button variant="ghost" onClick={() => { setQ(""); setApplied({ q: "", outcome: "all", action: "all" }); }}>Clear</Button>}
+        <SearchField label="Search activity" placeholder="Search by person or what they did" value={q} onChange={setQ} />
+        <FilterSelect label="Result" value={applied.outcome} onChange={(v) => setApplied((a) => ({ ...a, outcome: v }))} options={[{ value: "all", label: "Any" }, { value: "success", label: "Done" }, { value: "denied", label: "Refused" }, { value: "failed", label: "Failed" }]} />
+        <FilterSelect label="Action" value={applied.action} onChange={(v) => setApplied((a) => ({ ...a, action: v }))} options={[{ value: "all", label: "Anything" }, ...ACTIONS.map((a) => ({ value: a, label: a }))]} />
+        <Button type="submit" variant="primary" className="h-10">Search</Button>
+        {filtered && <Button variant="ghost" className="h-10" onClick={() => { setQ(""); setApplied({ q: "", outcome: "all", action: "all" }); }}>Clear</Button>}
       </form>
 
       {state === "error" && <Notice tone="danger">{message}</Notice>}
@@ -77,21 +61,26 @@ export function AuditView() {
       {state === "ready" && rows.length > 0 && (
         <>
           <DataTable label="Activity">
-            <thead><tr><Th>When</Th><Th wide>Who</Th><Th>What</Th><Th>Result</Th><Th><span className="sr-only">Actions</span></Th></tr></thead>
+            <thead><tr><Th>What happened</Th><Th>Who</Th><Th>When</Th><Th wide>Result</Th><Th><span className="sr-only">Details</span></Th></tr></thead>
             <tbody>
-              {rows.map((e) => (
-                <ClickRow key={e.id} onOpen={() => setOpen(e)}>
-                  <Td className="whitespace-nowrap"><RowOpen onOpen={() => setOpen(e)}>{fmtUtc(e.at)}</RowOpen></Td>
-                  <Td wide>{e.actor ?? "System"}</Td>
-                  <Td>{e.action}</Td>
-                  <Td><Badge tone={TONE[e.outcome]}>{RESULT[e.outcome]}</Badge></Td>
-                  <MenuTd><RowMenu label="Actions for this entry" items={menu(e)} /></MenuTd>
-                </ClickRow>
-              ))}
+              {rows.map((e) => {
+                const r = result(e);
+                return (
+                  <ClickRow key={e.id} onOpen={() => setOpen(e)}>
+                    <Td className="font-medium">{actionLabel(e.action)}{e.target && <span className="block text-xs font-normal text-muted">{e.target}</span>}</Td>
+                    <Td className="whitespace-nowrap">{who(e) ?? <span className="text-muted">Joobah (automatic)</span>}</Td>
+                    <Td className="whitespace-nowrap text-muted">{when(e)}</Td>
+                    <Td wide>{r ? <Badge tone={TONE[r]}>{RESULT[r]}</Badge> : <span className="text-muted">–</span>}</Td>
+                    <td className="w-10 border-b border-border px-2 py-2 text-right align-middle">
+                      <button type="button" onClick={() => setOpen(e)} aria-label={`See details: ${actionLabel(e.action)}`} className="grid size-8 place-items-center rounded-lg text-muted transition-colors hover:bg-surface hover:text-foreground"><ChevronRight aria-hidden className="size-4" /></button>
+                    </td>
+                  </ClickRow>
+                );
+              })}
             </tbody>
           </DataTable>
           <div className="flex items-center justify-between text-xs text-muted">
-            <span>Showing {rows.length}{hasMore ? " so far" : ""}</span>
+            <span>Showing the latest {rows.length}{hasMore ? " (more available)" : ""}. Select a row to see all of its details.</span>
             {hasMore && <Button onClick={() => void loadMore()} disabled={more}>{more ? "Loading…" : "Show more"}</Button>}
           </div>
         </>
@@ -99,15 +88,16 @@ export function AuditView() {
 
       {open && (
         <DetailsDialog
-          title={open.action}
+          title={actionLabel(open.action)}
           onClose={() => setOpen(null)}
           rows={[
-            ["When", fmtUtc(open.at)],
-            ["Who", open.actor ?? "System"],
-            ["Result", RESULT[open.outcome]],
+            ["When", `${when(open)}${open.at ? ` (${fmtUtc(open.at)})` : ""}`],
+            ["Who", who(open) ?? "Joobah (automatic)"],
+            ["Result", result(open) ? RESULT[result(open)!] : "Not recorded"],
+            ["Technical name", <code key="a" className="text-xs">{open.action}</code>],
             ["About", open.customerId ? <code key="c" className="break-all text-xs">{open.customerId}</code> : open.target ?? "–"],
             ["Why", open.reason ?? "No reason given"],
-            ["Reference (quote this when asking for help)", <code key="r" className="break-all text-xs">{open.correlationId}</code>],
+            ...(open.correlationId ? [["Reference (quote this when asking for help)", <code key="r" className="break-all text-xs">{open.correlationId}</code>] as [string, React.ReactNode]] : []),
           ]}
           actions={open.customerId ? <a href={`/admin/customers/${open.customerId}`} className="inline-flex min-h-9 items-center rounded-lg border border-border px-4 text-sm font-medium hover:bg-surface">Open account</a> : null}
         />

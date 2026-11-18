@@ -47,33 +47,54 @@
   --shadow-2xl: 0 28px 64px -16px rgb(0 0 0 / 0.28);
 }
 
-/* Defaults, used until the theme script has run: theme A, light. The real values per theme are below. */
+/* The Joobah palette: maroon #7A2438 (the sign-up button colour) and orange #FAA21B from the brand kit, with ink text. There is one palette; only light or
+   dark mode is a choice. Every text and background pair here meets WCAG AA (4.5:1). */
 :root {
   --background: #ffffff;
-  --foreground: #171717;
-  --muted: #5f6672;
-  --border: #e5e7eb;
-  --surface: #f8f8f9;
-  --accent: #3E2833;
-  --accent-solid: #FFAC34;
+  --foreground: #1a1a1a;
+  --muted: #5f6368;
+  --border: #e9e3e4;
+  --surface: #faf7f7;
+  --accent: #7a2438;
+  --accent-solid: #faa21b;
   --on-accent: #1a1a1a;
   --success: #166534;
   --warning: #92400e;
   --danger: #b91c1c;
   --danger-solid: #b91c1c;
-  --sidebar: #3E2833;
-  --sidebar-fg: #f6eff2;
-  --sidebar-muted: #cdbcc5;
-  --sidebar-active: color-mix(in srgb, #000000 25%, #3E2833);
-  --sidebar-active-fg: #FFAC34;
-  --sidebar-border: color-mix(in srgb, #f6eff2 14%, #3E2833);
+  --sidebar: #7a2438;
+  --sidebar-fg: #fff6f1;
+  --sidebar-muted: #ebc7cc;
+  --sidebar-active: color-mix(in srgb, #000000 24%, #7a2438);
+  --sidebar-active-fg: #faa21b;
+  --sidebar-border: color-mix(in srgb, #fff6f1 16%, #7a2438);
   --topbar: #ffffff;
-  --topbar-fg: #171717;
-  --leaf-a: #FFAC34;
-  --leaf-b: #3E2833;
+  --topbar-fg: #1a1a1a;
   color-scheme: light;
 }
-:root[data-mode="dark"] { color-scheme: dark; }
+:root[data-mode="dark"] {
+  --background: #150a0c;
+  --foreground: #f2eaeb;
+  --muted: #b5a6a9;
+  --border: #321c20;
+  --surface: #1e1115;
+  --accent: #faa21b;
+  --accent-solid: #faa21b;
+  --on-accent: #1a1a1a;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --danger-solid: #b91c1c;
+  --sidebar: #2b0a11;
+  --sidebar-fg: #f5ebec;
+  --sidebar-muted: #bba5aa;
+  --sidebar-active: color-mix(in srgb, #faa21b 18%, #2b0a11);
+  --sidebar-active-fg: #faa21b;
+  --sidebar-border: color-mix(in srgb, #f5ebec 14%, #2b0a11);
+  --topbar: #150a0c;
+  --topbar-fg: #f2eaeb;
+  color-scheme: dark;
+}
 
 @theme inline {
   --color-background: var(--background);
@@ -100,236 +121,10 @@
   --font-mono: var(--font-geist-mono);
 }
 
-/* The five themes. Every colour pair here is checked for WCAG AA (4.5:1) in both modes. */
-/* Orange + Plum: Warm and professional */
-:root[data-theme="a"] {
-  --background: #ffffff;
-  --foreground: #171717;
-  --muted: #5f6672;
-  --border: #e5e7eb;
-  --surface: #f8f8f9;
-  --accent: #3E2833;
-  --accent-solid: #FFAC34;
-  --on-accent: #1a1a1a;
-  --success: #166534;
-  --warning: #92400e;
-  --danger: #b91c1c;
-  --sidebar: #3E2833;
-  --sidebar-fg: #f6eff2;
-  --sidebar-muted: #cdbcc5;
-  --sidebar-active: color-mix(in srgb, #000000 25%, #3E2833);
-  --sidebar-active-fg: #FFAC34;
-  --sidebar-border: color-mix(in srgb, #f6eff2 14%, #3E2833);
-  --topbar: #ffffff;
-  --topbar-fg: #171717;
-  --leaf-a: #FFAC34;
-  --leaf-b: #3E2833;
-}
-:root[data-theme="a"][data-mode="dark"] {
-  --background: #151013;
-  --foreground: #ededed;
-  --muted: #a3a8b1;
-  --border: #2e2429;
-  --surface: #1e161a;
-  --accent: #FFAC34;
-  --accent-solid: #FFAC34;
-  --on-accent: #1a1a1a;
-  --success: #4ade80;
-  --warning: #fbbf24;
-  --danger: #f87171;
-  --sidebar: #26181f;
-  --sidebar-fg: #f3ecef;
-  --sidebar-muted: #b9a8b0;
-  --sidebar-active: color-mix(in srgb, #FFAC34 18%, #26181f);
-  --sidebar-active-fg: #FFAC34;
-  --sidebar-border: color-mix(in srgb, #f3ecef 14%, #26181f);
-  --topbar: #151013;
-  --topbar-fg: #ededed;
-}
 
-/* Orange + Slate: Calm and technical */
-:root[data-theme="b"] {
-  --background: #ffffff;
-  --foreground: #171717;
-  --muted: #5f6672;
-  --border: #e5e7eb;
-  --surface: #f8f8f9;
-  --accent: #283642;
-  --accent-solid: #FFAC34;
-  --on-accent: #1a1a1a;
-  --success: #166534;
-  --warning: #92400e;
-  --danger: #b91c1c;
-  --sidebar: #283642;
-  --sidebar-fg: #f1f4f7;
-  --sidebar-muted: #bcc7d1;
-  --sidebar-active: color-mix(in srgb, #000000 25%, #283642);
-  --sidebar-active-fg: #FFAC34;
-  --sidebar-border: color-mix(in srgb, #f1f4f7 14%, #283642);
-  --topbar: #ffffff;
-  --topbar-fg: #171717;
-  --leaf-a: #FFAC34;
-  --leaf-b: #283642;
-}
-:root[data-theme="b"][data-mode="dark"] {
-  --background: #0f1419;
-  --foreground: #ededed;
-  --muted: #a3a8b1;
-  --border: #26313b;
-  --surface: #161d24;
-  --accent: #FFAC34;
-  --accent-solid: #FFAC34;
-  --on-accent: #1a1a1a;
-  --success: #4ade80;
-  --warning: #fbbf24;
-  --danger: #f87171;
-  --sidebar: #1b252e;
-  --sidebar-fg: #eef2f5;
-  --sidebar-muted: #a9b6c2;
-  --sidebar-active: color-mix(in srgb, #FFAC34 18%, #1b252e);
-  --sidebar-active-fg: #FFAC34;
-  --sidebar-border: color-mix(in srgb, #eef2f5 14%, #1b252e);
-  --topbar: #0f1419;
-  --topbar-fg: #ededed;
-}
 
-/* Maroon + Silver: Premium and editorial */
-:root[data-theme="d"] {
-  --background: #ffffff;
-  --foreground: #171717;
-  --muted: #5f6672;
-  --border: #e5e7eb;
-  --surface: #f8f8f9;
-  --accent: #5B0D35;
-  --accent-solid: #5B0D35;
-  --on-accent: #ffffff;
-  --success: #166534;
-  --warning: #92400e;
-  --danger: #b91c1c;
-  --sidebar: #5B0D35;
-  --sidebar-fg: #f9f0f5;
-  --sidebar-muted: #e0c6d4;
-  --sidebar-active: color-mix(in srgb, #B9BDC4 24%, #5B0D35);
-  --sidebar-active-fg: #ffffff;
-  --sidebar-border: color-mix(in srgb, #f9f0f5 14%, #5B0D35);
-  --topbar: #B9BDC4;
-  --topbar-fg: #1a1a1a;
-  --leaf-a: #B9BDC4;
-  --leaf-b: #5B0D35;
-}
-:root[data-theme="d"][data-mode="dark"] {
-  --background: #130b0f;
-  --foreground: #ededed;
-  --muted: #a3a8b1;
-  --border: #2f2229;
-  --surface: #1c1217;
-  --accent: #D3D6DB;
-  --accent-solid: #8a1d56;
-  --on-accent: #ffffff;
-  --success: #4ade80;
-  --warning: #fbbf24;
-  --danger: #f87171;
-  --sidebar: #3c0a23;
-  --sidebar-fg: #f4ecf0;
-  --sidebar-muted: #cdb5c2;
-  --sidebar-active: color-mix(in srgb, #B9BDC4 20%, #3c0a23);
-  --sidebar-active-fg: #ffffff;
-  --sidebar-border: color-mix(in srgb, #f4ecf0 14%, #3c0a23);
-  --topbar: #25282d;
-  --topbar-fg: #e9ebee;
-}
 
-/* Orange + Forest: Fresh and bold */
-:root[data-theme="e"] {
-  --background: #ffffff;
-  --foreground: #171717;
-  --muted: #5f6672;
-  --border: #e5e7eb;
-  --surface: #f8f8f9;
-  --accent: #1E5B40;
-  --accent-solid: #FFAC34;
-  --on-accent: #1a1a1a;
-  --success: #166534;
-  --warning: #92400e;
-  --danger: #b91c1c;
-  --sidebar: #1E5B40;
-  --sidebar-fg: #f0f7f3;
-  --sidebar-muted: #bcd6c8;
-  --sidebar-active: color-mix(in srgb, #000000 25%, #1E5B40);
-  --sidebar-active-fg: #FFAC34;
-  --sidebar-border: color-mix(in srgb, #f0f7f3 14%, #1E5B40);
-  --topbar: #ffffff;
-  --topbar-fg: #171717;
-  --leaf-a: #FFAC34;
-  --leaf-b: #1E5B40;
-}
-:root[data-theme="e"][data-mode="dark"] {
-  --background: #0d1410;
-  --foreground: #ededed;
-  --muted: #a3a8b1;
-  --border: #25312a;
-  --surface: #141d18;
-  --accent: #FFAC34;
-  --accent-solid: #FFAC34;
-  --on-accent: #1a1a1a;
-  --success: #4ade80;
-  --warning: #fbbf24;
-  --danger: #f87171;
-  --sidebar: #14291f;
-  --sidebar-fg: #eef5f1;
-  --sidebar-muted: #a9c2b4;
-  --sidebar-active: color-mix(in srgb, #FFAC34 18%, #14291f);
-  --sidebar-active-fg: #FFAC34;
-  --sidebar-border: color-mix(in srgb, #eef5f1 14%, #14291f);
-  --topbar: #0d1410;
-  --topbar-fg: #ededed;
-}
 
-/* Gold + Pine: Heritage and trusted */
-:root[data-theme="f"] {
-  --background: #ffffff;
-  --foreground: #171717;
-  --muted: #5f6672;
-  --border: #e5e7eb;
-  --surface: #f8f8f9;
-  --accent: #143C26;
-  --accent-solid: #C9A227;
-  --on-accent: #10281a;
-  --success: #166534;
-  --warning: #92400e;
-  --danger: #b91c1c;
-  --sidebar: #143C26;
-  --sidebar-fg: #eff6f1;
-  --sidebar-muted: #b4cdbd;
-  --sidebar-active: color-mix(in srgb, #C9A227 22%, #143C26);
-  --sidebar-active-fg: #E3C45A;
-  --sidebar-border: color-mix(in srgb, #eff6f1 14%, #143C26);
-  --topbar: #ffffff;
-  --topbar-fg: #171717;
-  --leaf-a: #C9A227;
-  --leaf-b: #143C26;
-}
-:root[data-theme="f"][data-mode="dark"] {
-  --background: #0c130f;
-  --foreground: #ededed;
-  --muted: #a3a8b1;
-  --border: #243029;
-  --surface: #131c16;
-  --accent: #DDBA48;
-  --accent-solid: #C9A227;
-  --on-accent: #10281a;
-  --success: #4ade80;
-  --warning: #fbbf24;
-  --danger: #f87171;
-  --sidebar: #0f2a1b;
-  --sidebar-fg: #eef5f0;
-  --sidebar-muted: #a6c0b0;
-  --sidebar-active: color-mix(in srgb, #C9A227 20%, #0f2a1b);
-  --sidebar-active-fg: #E3C45A;
-  --sidebar-border: color-mix(in srgb, #eef5f0 14%, #0f2a1b);
-  --topbar: #0c130f;
-  --topbar-fg: #ededed;
-}
 
 
 /* Form controls share one look; utilities on an element still win where a control needs to differ.
@@ -533,3 +328,20 @@ svg.lucide { stroke-width: 1.75; }
 @keyframes jb-indeterminate { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
 .jb-indeterminate { animation: jb-indeterminate 1.6s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .jb-indeterminate { animation: none !important; width: 100%; opacity: 0.5; } }
+
+/* The sign-in showcase: one 9 second story told in order (a line is said, an action is found, a summary is ready), then it repeats. */
+@keyframes jb-s1 { 0%, 3% { opacity: 0; transform: translateY(8px); } 9%, 90% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+@keyframes jb-s2 { 0%, 12% { opacity: 0; transform: translateY(8px); } 19%, 90% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+@keyframes jb-s3 { 0%, 34% { opacity: 0; transform: translateY(8px); } 41%, 90% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+@keyframes jb-s4 { 0%, 52% { opacity: 0; transform: translateY(8px); } 59%, 90% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.jb-s1 { animation: jb-s1 9s ease-out infinite; }
+.jb-s2 { animation: jb-s2 9s ease-out infinite; }
+.jb-s3 { animation: jb-s3 9s ease-out infinite; }
+.jb-s4 { animation: jb-s4 9s ease-out infinite; }
+@keyframes jb-step1 { 0%, 30% { opacity: 1; } 36%, 96% { opacity: 0.4; } 100% { opacity: 1; } }
+@keyframes jb-step2 { 0%, 28% { opacity: 0.4; } 36%, 56% { opacity: 1; } 62%, 100% { opacity: 0.4; } }
+@keyframes jb-step3 { 0%, 54% { opacity: 0.4; } 62%, 92% { opacity: 1; } 100% { opacity: 0.4; } }
+.jb-step1 { animation: jb-step1 9s ease-in-out infinite; }
+.jb-step2 { animation: jb-step2 9s ease-in-out infinite; }
+.jb-step3 { animation: jb-step3 9s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .jb-s1, .jb-s2, .jb-s3, .jb-s4, .jb-step1, .jb-step2, .jb-step3 { animation: none !important; opacity: 1; } }

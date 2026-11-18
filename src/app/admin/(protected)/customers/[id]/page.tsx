@@ -11,7 +11,7 @@ async function Detail({ params }: { params: PageProps<"/admin/customers/[id]">["
 export default function CustomerPage({ params }: PageProps<"/admin/customers/[id]">) {
   return (
     <div className="space-y-5">
-      <Breadcrumb items={[{ label: "Users", href: "/admin/customers" }, { label: "Account" }]} />
+      <Breadcrumb items={[{ label: "Users", href: "/admin/customers" }, { label: "User details" }]} />
       <Suspense fallback={<SkeletonDetail label="Loading user" />}>
         <Detail params={params} />
       </Suspense>

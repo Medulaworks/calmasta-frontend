@@ -18,9 +18,9 @@ export const SECTIONS = [
   },
   {
     id: "captures",
-    label: "Captures",
+    label: "Recordings",
     Icon: Video,
-    tabs: [{ href: `${A}/captures`, label: "Captures" }],
+    tabs: [{ href: `${A}/captures`, label: "Recordings" }],
   },
   {
     id: "users",
@@ -37,9 +37,8 @@ export const SECTIONS = [
     label: "Billing",
     Icon: CreditCard,
     tabs: [
-      { href: `${A}/plans`, label: "Plans" },
-      { href: `${A}/usage`, label: "Usage and cost" },
-      { href: `${A}/dunning`, label: "Failed payments" },
+      { href: `${A}/money`, label: "Payments" },
+      { href: `${A}/usage`, label: "Credit usage" },
       { href: `${A}/webhooks`, label: "Store messages" },
       { href: `${A}/reconciliation`, label: "Mismatches" },
     ],
@@ -49,8 +48,9 @@ export const SECTIONS = [
     label: "Settings",
     Icon: Settings2,
     tabs: [
-      { href: `${A}/settings`, label: "Limits and switches" },
-      { href: `${A}/integrations`, label: "Connected services" },
+      { href: `${A}/plans`, label: "Plans and pricing", hint: "Prices, hours, extra packs" },
+      { href: `${A}/settings`, label: "Limits and switches", hint: "Recording, uploads, sharing, AI" },
+      { href: `${A}/integrations`, label: "Connected services", hint: "Meeting bot, storage, email" },
     ],
   },
   {
@@ -67,7 +67,7 @@ export const SECTIONS = [
   },
 ] as const;
 
-type Tab = { href: string; label: string; exact?: boolean };
+type Tab = { href: string; label: string; exact?: boolean; hint?: string };
 
 export const tabActive = (pathname: string, t: Tab) => (t.exact ? pathname === t.href : pathname === t.href || pathname.startsWith(`${t.href}/`));
 
@@ -75,3 +75,11 @@ export const tabActive = (pathname: string, t: Tab) => (t.exact ? pathname === t
 export function sectionFor(pathname: string) {
   return SECTIONS.find((s) => (s.tabs as readonly Tab[]).some((t) => tabActive(pathname, t))) ?? null;
 }
+
+/** The side menu is grouped so it reads as a map of the staff area, not a flat list. */
+export const NAV_GROUPS: ReadonlyArray<{ label: string; ids: ReadonlyArray<(typeof SECTIONS)[number]["id"]> }> = [
+  { label: "Overview", ids: ["home"] },
+  { label: "Customers", ids: ["users", "captures"] },
+  { label: "Money", ids: ["billing"] },
+  { label: "System", ids: ["settings", "activity", "admins"] },
+];

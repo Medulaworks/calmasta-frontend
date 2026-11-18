@@ -21,7 +21,7 @@ import { ApiError } from "@/lib/upload-client";
 export function catalogErrorMessage(error: unknown): string {
   return error instanceof ApiError && error.status === 401
     ? "Your session ended. Please sign in again."
-    : "Failed to load catalog";
+    : "We couldn’t load the plans. Please try again.";
 }
 
 /**
@@ -71,7 +71,7 @@ export function BillingView() {
       }
       // Unknown outcomes (network loss, 5xx) keep the same key so a retry
       // resumes the same attempt instead of creating another order.
-      setErr(e instanceof Error ? e.message : "Checkout failed");
+      setErr(e instanceof Error ? e.message : "We couldn’t start checkout");
     } finally {
       setBusy(null);
     }
@@ -81,9 +81,9 @@ export function BillingView() {
     try {
       const r = await getPortal();
       if (r.url) window.location.href = r.url;
-      else setErr("The billing portal isn't available yet. Your plan and usage are unchanged.");
+      else setErr("The billing portal isn’t available yet. Your plan and usage are unchanged.");
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Portal failed");
+      setErr(e instanceof Error ? e.message : "We couldn’t open billing");
     }
   }
 

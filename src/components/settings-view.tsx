@@ -7,12 +7,12 @@ import { useProfile } from "@/components/shell/profile-context";
 import { SoundSwitch } from "@/components/sound-switch";
 import { Card, CardHeader } from "@/components/ui/card";
 import { ConnectionsCard, DataPrivacyCard, DeleteAccountCard } from "@/components/settings-data";
-import { ModeOptions, ThemeOptions } from "@/components/theme/theme-picker";
+import { ModeOptions } from "@/components/theme/theme-picker";
 
 const PRIVACY = [
   "Recordings, transcripts and documents are private to you.",
-  "Meeting assistants join as visible participants using the configured assistant name.",
-  "You confirm you have the right to record every meeting. Nothing records automatically.",
+  "Meeting assistants join as visible participants, using the assistant name you choose.",
+  "You confirm you have permission to record every meeting. Nothing records automatically.",
   "Deleting a recording deletes its audio and transcript. Documents you made from it are kept.",
 ];
 
@@ -45,7 +45,7 @@ function useActiveSection() {
 
 /**
  * Settings: a list of sections on the left (it follows you down the page) and the sections themselves on the right, each a card
- * with the same shape. Usage and your details are on your profile; this page is for how Jooba behaves.
+ * with the same shape. Usage and your details are on your profile; this page is for how Joobah behaves.
  */
 export function SettingsView() {
   const profile = useProfile();
@@ -79,11 +79,6 @@ export function SettingsView() {
                 <p className="mb-3 mt-1 text-sm text-muted">Light, dark, or follow your device.</p>
                 <ModeOptions variant="page" />
               </div>
-              <div>
-                <h3 className="text-sm font-medium">Colour theme</h3>
-                <p className="mb-3 mt-1 text-sm text-muted">Works in light and dark. Saved to your account across devices.</p>
-                <ThemeOptions variant="page" />
-              </div>
             </div>
           </Card>
         </section>
@@ -102,7 +97,7 @@ export function SettingsView() {
         <section id="privacy" className="scroll-mt-24 space-y-5">
           <DataPrivacyCard />
           <Card>
-            <CardHeader title="How Jooba handles recording" />
+            <CardHeader title="How Joobah handles recording" />
             <ul className="space-y-3 p-5 text-sm">
               {PRIVACY.map((line) => (
                 <li key={line} className="flex gap-3">

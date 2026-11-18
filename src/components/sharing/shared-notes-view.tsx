@@ -9,8 +9,8 @@ function NotesRenderer({ data }: { data: PublicNotes }) {
     <div className="mx-auto max-w-3xl space-y-5 p-6">
       <header className="space-y-2">
         <h1 className="text-2xl font-semibold">{data.title ?? "Shared notes"}</h1>
-        <p className="text-sm text-muted">Published {fmtUtc(data.publishedAt)} · snapshot v{data.publicationVersion}</p>
-        <p className="text-xs text-muted">View-only — no editing, media, participant roster or account data. Later private edits are not automatically shared.</p>
+        <p className="text-sm text-muted">Shared {fmtUtc(data.publishedAt)} · version {data.publicationVersion}</p>
+        <p className="text-xs text-muted">View only. Later edits you make to the notes aren’t shared automatically.</p>
       </header>
       {data.notes.map((n, i) => (
         <Card key={i}><CardHeader title={n.templateLabel || n.kind} />
@@ -22,7 +22,7 @@ function NotesRenderer({ data }: { data: PublicNotes }) {
           <div className="p-5 whitespace-pre-wrap text-sm">{data.transcript.text}</div>
         </Card>
       )}
-      {data.notes.length === 0 && !data.transcript && <p className="text-sm text-muted">No notes in this publication.</p>}
+      {data.notes.length === 0 && !data.transcript && <p className="text-sm text-muted">No notes were shared here.</p>}
     </div>
   );
 }
@@ -30,7 +30,7 @@ function NotesRenderer({ data }: { data: PublicNotes }) {
 export function PublicSharedView({ token }: { token: string }) {
   const res = useResource<PublicNotes>(`/api/public/notes/${encodeURIComponent(token)}`);
   if (res.error) {
-    return <div className="mx-auto max-w-xl p-10 text-center"><h1 className="text-lg font-semibold">Not found</h1><p className="mt-2 text-sm text-muted">This link is invalid, revoked or expired.</p></div>;
+    return <div className="mx-auto max-w-xl p-10 text-center"><h1 className="text-lg font-semibold">Not found</h1><p className="mt-2 text-sm text-muted">This link isn’t valid. It may have been turned off or expired.</p></div>;
   }
   return (
     <ResourceBoundary resource={res}>
@@ -42,7 +42,7 @@ export function PublicSharedView({ token }: { token: string }) {
 export function RecipientSharedView({ grantId }: { grantId: string }) {
   const res = useResource<PublicNotes>(`/api/shared-notes/${encodeURIComponent(grantId)}`);
   if (res.error) {
-    return <div className="mx-auto max-w-xl p-10 text-center"><h1 className="text-lg font-semibold">Access denied</h1><p className="mt-2 text-sm text-muted">You don’t have access with this account. Try switching accounts.</p></div>;
+    return <div className="mx-auto max-w-xl p-10 text-center"><h1 className="text-lg font-semibold">Access denied</h1><p className="mt-2 text-sm text-muted">This account can’t view these notes. Try signing in with a different account.</p></div>;
   }
   return (
     <ResourceBoundary resource={res}>

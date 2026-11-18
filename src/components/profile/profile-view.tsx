@@ -61,7 +61,7 @@ function PhotoEditor() {
       } else if (err instanceof ApiError && (err.code === "invalid_avatar" || err.code === "invalid_image")) {
         setPendingBlob(null);
       }
-      setPhotoError(err instanceof Error ? err.message : "Could not upload photo.");
+      setPhotoError(err instanceof Error ? err.message : "We couldn’t upload photo. Please try again.");
     } finally {
       setBusy(null);
     }
@@ -79,7 +79,7 @@ function PhotoEditor() {
       await runUpload(blob);
     } catch (err) {
       setPendingBlob(null);
-      setPhotoError(err instanceof Error ? err.message : "That picture couldn't be prepared.");
+      setPhotoError(err instanceof Error ? err.message : "That picture couldn’t be prepared.");
     }
   }
 
@@ -101,7 +101,7 @@ function PhotoEditor() {
       if (err instanceof ApiError && (err.code === "avatar_version_conflict" || err.code === "avatar_superseded")) {
         await getProfile().then(setProfile).catch(() => undefined);
       }
-      setPhotoError(err instanceof Error ? err.message : "Could not remove photo.");
+      setPhotoError(err instanceof Error ? err.message : "We couldn’t remove photo. Please try again.");
     } finally {
       setBusy(null);
     }
@@ -160,7 +160,7 @@ function EditProfileDialog({ onClose, onSaved }: { onClose: () => void; onSaved:
       onSaved();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save.");
+      setError(err instanceof Error ? err.message : "We couldn’t save. Please try again.");
       setSaving(false);
     }
   }
@@ -185,7 +185,7 @@ function EditProfileDialog({ onClose, onSaved }: { onClose: () => void; onSaved:
             {zones.map((z) => <option key={z} value={z}>{z.replace(/_/g, " ")}</option>)}
           </select>
           <span className="mt-2 block text-xs text-muted">
-            Used for &ldquo;this month&rdquo; and every time you see.{" "}
+            Used for your monthly allowance and for every time shown in Joobah.{" "}
             {browserTz && browserTz !== timezone && zones.includes(browserTz) && <button type="button" onClick={() => setTimezone(browserTz)} className="font-medium text-accent underline">Use my browser&rsquo;s ({browserTz.replace(/_/g, " ")})</button>}
           </span>
         </label>

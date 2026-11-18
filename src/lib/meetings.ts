@@ -19,7 +19,7 @@ export const PLATFORM_LABEL: Record<Platform, string> = {
 export const RECORDING_LABEL: Record<RecordingState, string> = {
   recorded: "Recorded",
   in_progress: "Assistant joining or recording",
-  didnt_happen: "Capture didn't happen",
+  didnt_happen: "Capture didn’t happen",
   not_recorded: "Not recorded",
 };
 export const DURATION_LABEL: Record<DurationBucket, string> = { lt15: "Under 15 min", "15to30": "15 to 30 min", "30to60": "30 to 60 min", gt60: "Over 60 min" };

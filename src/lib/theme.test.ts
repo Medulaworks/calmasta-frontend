@@ -2,9 +2,8 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { THEME_BOOT_SCRIPT } from "./theme-boot";
-import { THEMES } from "./theme";
 
-// Every theme, in both modes, must keep text readable (WCAG AA, 4.5:1). This reads the real stylesheet, so editing a
+// The palette, in both modes, must keep text readable (WCAG AA, 4.5:1). This reads the real stylesheet, so editing a
 // colour in globals.css can't quietly break contrast.
 const css = readFileSync(path.join(__dirname, "../app/globals.css"), "utf8");
 
@@ -71,34 +70,30 @@ const PAIRS: Array<[string, string]> = [
   ["danger", "background"],
 ];
 
-describe("themes", () => {
-  for (const t of THEMES) {
-    for (const mode of ["light", "dark"] as const) {
-      it(`${t.label} (${mode}) keeps every text colour readable`, () => {
-        const v = vars(
-          mode === "dark"
-            ? `:root[data-theme="${t.id}"][data-mode="dark"]`
-            : `:root[data-theme="${t.id}"]`,
-        );
-        for (const [fg, bg] of PAIRS)
-          expect(
-            ratio(colour(v[fg]), colour(v[bg])),
-            `${fg} on ${bg}`,
-          ).toBeGreaterThanOrEqual(4.5);
-      });
-    }
+describe("palette", () => {
+  for (const mode of ["light", "dark"] as const) {
+    it(`maroon and orange (${mode}) keeps every text colour readable`, () => {
+      const v = vars(mode === "dark" ? ':root[data-mode="dark"]' : ":root");
+      for (const [fg, bg] of PAIRS)
+        expect(ratio(colour(v[fg]), colour(v[bg])), `${fg} on ${bg}`).toBeGreaterThanOrEqual(4.5);
+    });
   }
+
+  it("is the Joobah brand: maroon #7A2438 and orange #FAA21B", () => {
+    const light = vars(":root");
+    expect(light["accent"].toLowerCase()).toBe("#7a2438");
+    expect(light["accent-solid"].toLowerCase()).toBe("#faa21b");
+    expect(light["sidebar"].toLowerCase()).toBe("#7a2438");
+  });
+
+  it("has no colour themes to choose between", () => {
+    expect(css).not.toContain("data-theme");
+  });
 
   it("white text on the danger fill stays readable", () => {
     expect(
       ratio("#ffffff", vars(":root")["danger-solid"]),
     ).toBeGreaterThanOrEqual(4.5);
-  });
-
-  it("every theme has a block for both modes and the same list the picker offers", () => {
-    for (const t of THEMES)
-      expect(css).toContain(`:root[data-theme="${t.id}"][data-mode="dark"]`);
-    expect(THEMES.map((t) => t.id)).toEqual(["a", "b", "d", "e", "f"]);
   });
 
   it("the boot script restores the sidebar state, and anything unexpected means expanded", () => {
@@ -116,7 +111,7 @@ describe("themes", () => {
     expect(side({ "MyJooba-sidebar": "<x>" })).toBe("expanded");
   });
 
-  it("the boot script only accepts known themes and modes", () => {
+  it("the boot script always uses the one palette and only accepts known modes", () => {
     const run = (store: Record<string, string>, dark: boolean) => {
       const root = { dataset: {} as Record<string, string> };
       new Function("document", "localStorage", "window", THEME_BOOT_SCRIPT)(
@@ -126,16 +121,12 @@ describe("themes", () => {
       );
       return `${root.dataset.theme}/${root.dataset.mode}`;
     };
-    expect(run({}, false)).toBe("a/light"); // defaults: theme A, system mode following the device
+    expect(run({}, false)).toBe("a/light"); // system mode follows the device
     expect(run({}, true)).toBe("a/dark");
-    expect(run({ "MyJooba-theme": "d", "MyJooba-mode": "dark" }, false)).toBe(
-      "d/dark",
-    );
-    expect(run({ "MyJooba-theme": "f", "MyJooba-mode": "light" }, true)).toBe(
-      "f/light",
-    );
-    expect(
-      run({ "MyJooba-theme": "<script>", "MyJooba-mode": "neon" }, false),
-    ).toBe("a/light");
+    expect(run({ "MyJooba-mode": "dark" }, false)).toBe("a/dark");
+    expect(run({ "MyJooba-mode": "light" }, true)).toBe("a/light");
+    // an old saved colour theme is ignored
+    expect(run({ "MyJooba-theme": "d", "MyJooba-mode": "dark" }, false)).toBe("a/dark");
+    expect(run({ "MyJooba-theme": "<script>", "MyJooba-mode": "neon" }, false)).toBe("a/light");
   });
 });

@@ -25,7 +25,7 @@ export function MeetingVideo({ cap, compact = false }: { cap: Pick<CaptureView, 
             if (position.current > 0) e.currentTarget.currentTime = Math.min(position.current, e.currentTarget.duration || position.current);
             if (playing.current) void e.currentTarget.play().catch(() => {});
           }} />
-        <p className="text-xs text-muted">Video · {formatBytes(cap.video.sizeBytes)}{compact ? "" : ". Only you can watch this. If it's ever removed, the transcript and your documents stay."}</p>
+        <p className="text-xs text-muted">Video · {formatBytes(cap.video.sizeBytes)}{compact ? "" : ". Only you can watch this. If it’s ever removed, the transcript and your documents stay."}</p>
       </div>
     );
   }

@@ -13,8 +13,8 @@ function CallbackInner() {
     const code = params.get("code");
     const state = params.get("state");
     const stored = (() => { try { return sessionStorage.getItem("microsoft_oauth_state") || sessionStorage.getItem("oauth_state"); } catch { return null; } })();
-    if (!code || !state) { setError("Missing code or state. Please try signing in again."); return; }
-    if (stored && stored !== state) { setError("Invalid state. Please try signing in again."); return; }
+    if (!code || !state) { setError("Sign-in didn’t finish. Please try again."); return; }
+    if (stored && stored !== state) { setError("Sign-in didn’t finish. Please try again."); return; }
     // Prefer BFF POST that sets HttpOnly session cookie, then route to dashboard
     fetch("/api/auth/microsoft/callback", {
       method: "POST",
@@ -34,8 +34,8 @@ function CallbackInner() {
         return;
       }
       const data = await res.json().catch(() => ({}));
-      setError(data.error || "Microsoft sign-in failed. Please try again.");
-    }).catch(() => setError("Network error. Please try again."));
+      setError(data.error || "Microsoft sign-in didn’t work. Please try again.");
+    }).catch(() => setError("We can’t connect right now. Check your connection and try again."));
   }, [params, router]);
 
   if (error) return <div className="p-8 text-center text-sm text-danger" role="alert">{error}</div>;

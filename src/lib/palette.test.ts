@@ -24,13 +24,13 @@ describe("matchCommands", () => {
     expect(matchCommands("  CALEN ")[0].href).toBe("/dashboard/calendar");
   });
 
-  it("finds a page by a keyword that isn't in its name", () => {
+  it("finds a page by a keyword that isn’t in its name", () => {
     expect(matchCommands("billing")[0].href).toBe("/dashboard/plan");
     expect(matchCommands("password")[0].href).toBe("/dashboard/profile");
   });
 
   it("puts a label match ahead of a keyword match", () => {
-    // "record" is the start of the action "Record your voice" and only a keyword of "Capture a meeting".
+    // "record" is the start of the action "Record your voice" and only a keyword of "Join a meeting".
     const found = matchCommands("record").map((c) => c.id);
     expect(found[0]).toBe("a-record");
     expect(found).toContain("a-capture");

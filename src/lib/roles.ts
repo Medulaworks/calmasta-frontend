@@ -1,4 +1,4 @@
-// Who MyJooba is for at launch (blueprint §2.1). Regulated fields such as healthcare and legal are
+// Who Joobah is for at launch (blueprint §2.1). Regulated fields such as healthcare and legal are
 // deliberately not offered yet: they need consent, retention and access controls we haven't built.
 
 export const ROLES = [

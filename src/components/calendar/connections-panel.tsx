@@ -42,7 +42,7 @@ export function ConnectionsPanel({
       queryClient.invalidateQueries({ queryKey: qk.calendarConnections() });
       onChanged();
     },
-    onError: (err) => onError(err instanceof Error ? err.message : "Could not connect."),
+    onError: (err) => onError(err instanceof Error ? err.message : "We couldn’t connect. Please try again."),
   });
   const connectGoogleMut = useMutation({
     mutationFn: () => connectGoogleCalendar(),
@@ -50,9 +50,9 @@ export function ConnectionsPanel({
       window.location.assign(res.authorizationUrl);
     },
     onError: (err) => {
-      const msg = err instanceof Error ? err.message : "Could not connect.";
+      const msg = err instanceof Error ? err.message : "We couldn’t connect. Please try again.";
       if (msg.includes("calendar_provider_not_configured") || (err as unknown as { code?: string })?.code === "calendar_provider_not_configured") {
-        onError("Calendar provider is not configured. Please contact support.");
+        onError("Calendar connections aren’t set up yet. Please contact support.");
       } else onError(msg);
     },
   });
@@ -62,9 +62,9 @@ export function ConnectionsPanel({
       window.location.assign(res.authorizationUrl);
     },
     onError: (err) => {
-      const msg = err instanceof Error ? err.message : "Could not connect.";
+      const msg = err instanceof Error ? err.message : "We couldn’t connect. Please try again.";
       if (msg.includes("calendar_provider_not_configured") || (err as unknown as { code?: string })?.code === "calendar_provider_not_configured") {
-        onError("Calendar provider is not configured. Please contact support.");
+        onError("Calendar connections aren’t set up yet. Please contact support.");
       } else onError(msg);
     },
   });
@@ -76,7 +76,7 @@ export function ConnectionsPanel({
       queryClient.invalidateQueries({ queryKey: ["calendar", "agenda"] });
       onChanged();
     },
-    onError: (err) => onError(err instanceof Error ? err.message : "Could not disconnect."),
+    onError: (err) => onError(err instanceof Error ? err.message : "We couldn’t disconnect. Please try again."),
   });
   const busy = connectDevMut.isPending || connectGoogleMut.isPending || connectMicrosoftMut.isPending || disconnectMut.isPending;
 
@@ -107,7 +107,7 @@ export function ConnectionsPanel({
           <EmptyState
             icon={<CalendarDays className="h-5 w-5" />}
             title="Connect your calendar"
-            body="See your day in one place and keep people from booking over your other events. Connecting only reads your calendar: it never starts a recording, and Jooba does not change your existing events."
+            body="See your day in one place and keep people from booking over your other events. Connecting only reads your calendar: it never starts a recording, and Joobah does not change your existing events."
             action={
               showDevConnect ? (
                 <div className="space-y-2">
@@ -188,7 +188,7 @@ export function ConnectionsPanel({
                       aria-hidden
                       className="mt-1 h-4 w-4 shrink-0"
                     />{" "}
-                    Jooba lost access to this calendar. Its events aren&apos;t
+                    Joobah lost access to this calendar. Its events aren’t
                     shown, and booking pages that check it are paused so nobody
                     is booked over your events. Reconnect to fix it.
                   </p>

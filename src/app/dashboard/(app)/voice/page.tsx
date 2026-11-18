@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { VoiceRecorder } from "@/components/voice-recorder";
 import { PageHeader } from "@/components/ui/page-header";
 
-export const metadata = { title: "Record · Jooba" };
+export const metadata = { title: "Record · Joobah" };
 
 type Props = {
   searchParams: Promise<{ tab?: string; link?: string }>;
@@ -15,7 +15,7 @@ async function ThinkPageInner({ searchParams }: Props) {
   if (tab === "bot" || tab === "meeting") redirect(`/dashboard/capture${link ? `?link=${encodeURIComponent(link)}` : ""}`);
   return (
     <div className="space-y-6">
-      <PageHeader title="Record" description="Say it out loud, or upload a recording. Jooba turns it into a transcript, then into notes, a plan or reminders." />
+      <PageHeader title="Record" description="Say it out loud, or upload a recording. Joobah turns it into a transcript, then into notes, a plan or reminders." />
       <VoiceRecorder />
     </div>
   );

@@ -41,7 +41,7 @@ function VoiceArt() {
   );
 }
 
-/** The three meeting apps on raised tiles, with a small "Jooba joined" pill under them. */
+/** The three meeting apps on raised tiles, with a small "Joobah joined" pill under them. */
 function MeetingArt() {
   return (
     <span className="flex flex-col items-center gap-2">
@@ -50,7 +50,7 @@ function MeetingArt() {
           <span key={p} className={`jb-bob rounded-xl shadow-md ${i === 1 ? "-translate-y-1" : ""}`} style={{ animationDelay: `${-i * 1.4}s` }}><PlatformLogo platform={p} size={44} /></span>
         ))}
       </span>
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1 text-xs font-medium text-foreground shadow-sm"><span className="size-1.5 rounded-full bg-success" /> Jooba joined</span>
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1 text-xs font-medium text-foreground shadow-sm"><span className="size-1.5 rounded-full bg-success" /> Joobah joined</span>
     </span>
   );
 }
@@ -96,7 +96,7 @@ export function ActionCards() {
 
       <Link href="/dashboard/capture?focus=link" style={delay(0.06)} className={card}>
         <Stage><MeetingArt /></Stage>
-        <Body title="Capture a meeting" body="Paste a Meet, Teams or Zoom link. Jooba joins and takes notes."><span className={secondary}>Add a link <ArrowRight aria-hidden className="size-4 transition-transform duration-200 group-hover:translate-x-0.5" /></span></Body>
+        <Body title="Join a meeting" body="Paste a Meet, Teams or Zoom link. Joobah joins and takes notes."><span className={secondary}>Paste a link <ArrowRight aria-hidden className="size-4 transition-transform duration-200 group-hover:translate-x-0.5" /></span></Body>
       </Link>
 
       <button type="button" onClick={() => file.current?.click()} style={delay(0.12)} className={card}>

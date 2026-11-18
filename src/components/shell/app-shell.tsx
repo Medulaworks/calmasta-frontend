@@ -130,9 +130,9 @@ function HomeLink() {
   return (
     <Link
       href="/dashboard"
-      aria-label="Jooba home"
+      aria-label="Joobah home"
       className="text-lg text-sidebar-fg">
-      <Brand size={32} tile="paper" labelClassName="sc:md:hidden" />
+      <Brand size={32} tile="paper" labelClassName="sc:md:hidden" collapsible />
     </Link>
   );
 }

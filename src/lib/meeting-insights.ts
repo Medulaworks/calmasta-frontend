@@ -3,18 +3,18 @@ import type { InsightArtifact, InsightKind, InsightRequest, MeetingInsights, Mee
 
 const active = new Set(["pending", "queued", "running"]);
 const reasons: Record<string, string> = {
-  summary_templates_not_ready:"Summary formats are not enabled by the service owner yet.",
+  summary_templates_not_ready:"Summary formats aren’t available yet.",
   insight_generation_in_progress:"Another summary is still processing. You can view a saved format while it finishes.",
   invalid_summary_template:"This summary format is unavailable.",
-  insight_provider_not_configured: "Meeting insights need to be configured by the service owner.",
-  insight_cost_not_configured: "Meeting insights need to be configured by the service owner.",
-  insight_cost_limit_exceeded: "This request exceeds the processing limit. Contact support.",
-  insight_input_too_large: "This transcript is too large for meeting insights.",
-  quota_exceeded: "Your processing allowance is used up.",
-  quota_parent_unavailable: "Your processing allowance is temporarily unavailable.",
-  spend_guard_exceeded: "Processing is temporarily paused by the service owner.",
-  usage_reconciliation_required: "Processing needs operator review before more work can start.",
-  insight_admission_failed: "Processing could not be admitted. Contact support if this continues.",
+  insight_provider_not_configured: "Meeting insights aren’t set up yet. Please contact support.",
+  insight_cost_not_configured: "Meeting insights aren’t set up yet. Please contact support.",
+  insight_cost_limit_exceeded: "This is more than we can process at once. Please contact support.",
+  insight_input_too_large: "This transcript is too long for meeting insights.",
+  quota_exceeded: "You’ve used all your processing time for this month.",
+  quota_parent_unavailable: "We can’t check your processing time right now. Please try again shortly.",
+  spend_guard_exceeded: "Processing is paused for a short while.",
+  usage_reconciliation_required: "Processing is on hold while we look into it. Please try again later.",
+  insight_admission_failed: "We couldn’t start processing. Contact support if this keeps happening.",
   transcript_not_ready: "The transcript is not ready yet.",
   meeting_insights_disabled: "Meeting insights are currently unavailable.",
   email_not_verified: "Verify your email address to use meeting insights.",
@@ -25,22 +25,22 @@ export function insightErrorMessage(error: unknown): string {
     if (error.status === 401) return "Your session ended. Please sign in again.";
     const reason = error.code ?? error.message;
     if (Object.hasOwn(reasons, reason)) return reasons[reason];
-    if (error.status === 403) return "A verified email and access to this workspace are required.";
-    if (error.status === 404) return "This recording or meeting insights service is unavailable.";
+    if (error.status === 403) return "Verify your email address to use this.";
+    if (error.status === 404) return "Meeting insights aren’t available for this recording right now.";
     if (error.status === 409) return reasons.transcript_not_ready;
     if (error.status === 503) return "Meeting insights are temporarily unavailable. Try refreshing later.";
   }
-  return "Could not load or save meeting insights. Please try again.";
+  return "We couldn’t load or save meeting insights. Please try again.";
 }
 export function insightMessage(artifact: Pick<InsightRequest, "state" | "failureReason">): string {
   switch (artifact.state) {
-    case "pending": return "Awaiting processing admission.";
+    case "pending": return "Waiting to start.";
     case "queued": return "Queued for processing.";
     case "running": return "Processing meeting insights.";
     case "ready": return "Ready to review.";
-    case "blocked": return artifact.failureReason && Object.hasOwn(reasons, artifact.failureReason) ? reasons[artifact.failureReason] : "Processing needs attention. Contact support before trying again.";
-    case "failed": return artifact.failureReason==="insight_dispatch_blocked"?"Processing did not start. You can try again.":artifact.failureReason==="insight_summary_format_changed"?"A newer summary format is available. Generate a current recap when you are ready.":"Generation stopped. This transcript version will not be retried automatically.";
-    case "reconciliation_required": return "The processing outcome is uncertain. Operator review is required; no request will be retried automatically.";
+    case "blocked": return artifact.failureReason && Object.hasOwn(reasons, artifact.failureReason) ? reasons[artifact.failureReason] : "Something needs attention. Please contact support before trying again.";
+    case "failed": return artifact.failureReason==="insight_dispatch_blocked"?"Processing did not start. You can try again.":artifact.failureReason==="insight_summary_format_changed"?"A newer summary format is available. Generate a current recap when you are ready.":"This stopped before it finished, and it won’t be retried automatically.";
+    case "reconciliation_required": return "We’re not sure whether this finished. We’re looking into it and won’t retry automatically.";
     default: return "Processing status is unavailable. Refresh to check again.";
   }
 }
@@ -69,6 +69,6 @@ export const emailStatusMessage: Record<InsightArtifact<unknown>["emailStatus"],
   pending: "Completion email is pending.",
   sending: "Completion email is being sent.",
   sent: "Completion email was sent.",
-  unknown: "Email delivery is uncertain and will not be retried automatically.",
+  unknown: "We’re not sure the email was delivered, and we won’t send it again automatically.",
   skipped: "Completion email was skipped.",
 };

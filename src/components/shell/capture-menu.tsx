@@ -29,7 +29,7 @@ import { useDismiss } from "@/components/ui/use-dismiss";
 import { capturePolicyQuery } from "@/lib/queries";
 import { requestMeetingCapture } from "@/lib/upload-client";
 
-// Where each calendar opens its "new event" page. Jooba doesn't write to either calendar: the person schedules the
+// Where each calendar opens its "new event" page. Joobah doesn't write to either calendar: the person schedules the
 // meeting there as usual, and it then shows up under Calendar once their calendar is connected.
 const GOOGLE_NEW_EVENT = "https://calendar.google.com/calendar/r/eventedit";
 const OUTLOOK_NEW_EVENT =
@@ -61,7 +61,7 @@ function LiveMeetingDialog({ onClose }: { onClose: () => void }) {
   const blocker = !url.trim()
     ? "Add a meeting link to continue."
     : !consent
-      ? "Confirm you have the right to record to continue."
+      ? "Confirm you have permission to record to continue."
       : null;
   const field =
     "w-full rounded-xl border border-border bg-background px-4 text-sm shadow-sm placeholder:text-muted focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent-solid/20";
@@ -211,7 +211,7 @@ function LiveMeetingDialog({ onClose }: { onClose: () => void }) {
                   placeholder={
                     defaultBotName(policy?.botName) ??
                     policy?.botName ??
-                    "Jooba Notetaker"
+                    "Joobah Notetaker"
                   }
                   autoComplete="off"
                   className={`${field} mt-2 min-h-10`}
@@ -260,9 +260,7 @@ function LiveMeetingDialog({ onClose }: { onClose: () => void }) {
               className="mt-1 size-4 shrink-0 accent-[var(--accent-solid)]"
             />
             <span>
-              i have the permission torecord this meetingand I will tell its
-              participants. A visible assistant named “{assistant}” will join
-              and may need to be admitted by the host.
+              I have permission to record this meeting{video ? ", including its video," : ""} and I will tell the participants. A visible assistant named “{assistant}” will join, and the host may need to let it in.
             </span>
           </label>
 
@@ -312,7 +310,7 @@ function LiveMeetingDialog({ onClose }: { onClose: () => void }) {
   );
 }
 
-/** "Schedule new meeting": choose where to schedule it. Jooba never edits the calendar itself. */
+/** "Schedule new meeting": choose where to schedule it. Joobah never edits the calendar itself. */
 function ScheduleDialog({ onClose }: { onClose: () => void }) {
   const opt =
     "flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-surface/50 px-4 py-4 text-base font-medium transition-colors hover:bg-surface";
@@ -350,7 +348,7 @@ function ScheduleDialog({ onClose }: { onClose: () => void }) {
         </div>
         <p className="text-xs text-muted">
           Google Calendar events show up under Calendar once you connect it.
-          Outlook isn&rsquo;t connected to Jooba yet, so for an Outlook meeting
+          Outlook isn&rsquo;t connected to Joobah yet, so for an Outlook meeting
           paste its link into{" "}
           <span className="font-medium">Join a meeting</span> when it starts.
         </p>

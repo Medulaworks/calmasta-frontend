@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeSync } from "@/components/theme/theme-sync";
 import { THEME_BOOT_SCRIPT } from "@/lib/theme-boot";
@@ -15,9 +15,19 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Jooba",
+  title: "Joobah",
   description: "Your conversations, turned into useful work.",
+  applicationName: "Joobah",
+  icons: {
+    icon: [{ url: "/favicon.ico", sizes: "any" }, { url: "/favicon.svg", type: "image/svg+xml" }],
+    apple: "/apple-touch-icon.png",
+  },
+  manifest: "/site.webmanifest",
+  openGraph: { title: "Joobah", description: "Your conversations, turned into useful work.", siteName: "Joobah", images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Joobah" }] },
+  twitter: { card: "summary_large_image", title: "Joobah", description: "Your conversations, turned into useful work.", images: ["/og-image.png"] },
 };
+
+export const viewport: Viewport = { themeColor: "#7A2438" };
 
 import { QueryProvider } from "@/components/query-provider";
 

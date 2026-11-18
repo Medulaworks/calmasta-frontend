@@ -119,8 +119,8 @@ export function MeetingOutcome({
         <p className="text-xs font-medium text-muted">Results</p>
         <p className="mt-1 text-muted">
           {captureStatus === "completed"
-            ? "The transcript isn't ready yet."
-            : "The meeting is still being recorded or processed. The transcript, summary and action items appear here when it's done."}
+            ? "The transcript isn’t ready yet."
+            : "The meeting is still being recorded or processed. The transcript, summary and action items appear here when it’s done."}
         </p>
         <Link
           href={open}
@@ -181,7 +181,7 @@ function Summary({ cap, text }: { cap: CaptureView; text: string | null }) {
       const r = await createDocument(cap.id, "summary_and_actions");
       router.push(`/dashboard/library/${r.documentId}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't start the summary.");
+      setError(e instanceof Error ? e.message : "Couldn’t start the summary.");
       setBusy(false);
     }
   }
@@ -217,7 +217,7 @@ function Summary({ cap, text }: { cap: CaptureView; text: string | null }) {
   return (
     <div className="space-y-2">
       <p className="text-muted">
-        No summary yet. Jooba can write one from the transcript, which you can
+        No summary yet. Joobah can write one from the transcript, which you can
         edit freely afterwards.
       </p>
       <Button size="sm" onClick={() => void write()} disabled={busy}>

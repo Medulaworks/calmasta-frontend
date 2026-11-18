@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { CheckoutStatusView } from "@/components/billing/checkout-status-view";
 
-export const metadata = { title: "Confirming payment · Jooba" };
+export const metadata = { title: "Confirming payment · Joobah" };
 
 type Props = {
   searchParams: Promise<{ intent?: string; status?: string }>;
@@ -21,7 +21,7 @@ async function BillingReturnInner({ searchParams }: Props) {
     <div className="space-y-6">
       <PageHeader
         title="Confirming your payment"
-        description="We're checking with the store to confirm your payment."
+        description="We’re checking with the store to confirm your payment."
       />
       <CheckoutStatusView intentId={intentId} />
     </div>

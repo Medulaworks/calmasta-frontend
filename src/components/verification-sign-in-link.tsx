@@ -12,7 +12,7 @@ export function VerificationSignInLink({ disabled = false }: { disabled?: boolea
     setPending(true);
     setError("");
     try { await signOut(); }
-    catch { setError("Could not return to sign in. Please try again."); setPending(false); }
+    catch { setError("We couldn’t return to sign in. Please try again."); setPending(false); }
   }
   return <>
     <button type="button" disabled={pending || disabled} aria-busy={pending} onClick={back} className="mt-6 block w-full text-center text-xs font-medium text-foreground underline hover:no-underline disabled:opacity-50">

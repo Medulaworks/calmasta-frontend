@@ -1,11 +1,6 @@
-import { AdminHeader } from "@/components/admin/section-tabs";
-import { DunningView } from "@/components/admin/dunning-view";
+import { redirect } from "next/navigation";
 
+/** Payment problems now live on the Payments page. This keeps old links working. */
 export default function Page() {
-  return (
-    <div className="space-y-5">
-      <AdminHeader title="Failed payments" />
-      <DunningView />
-    </div>
-  );
+  redirect("/admin/money");
 }

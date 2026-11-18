@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/ui/page-header";
 import { PlanView } from "@/components/plan/plan-view";
 
-export const metadata = { title: "Plan and usage · Jooba" };
+export const metadata = { title: "Plan and usage · Joobah" };
 
 type Props = {
   searchParams: Promise<{ purchase?: string }>;
@@ -13,7 +13,7 @@ export default async function PlanPage({ searchParams }: Props) {
     <div className="space-y-6">
       <PageHeader
         title="Plan and usage"
-        description="What your plan includes and how much of this month you've used."
+        description="What your plan includes and how much of this month you’ve used."
       />
       {purchase === "success" && (
         <p

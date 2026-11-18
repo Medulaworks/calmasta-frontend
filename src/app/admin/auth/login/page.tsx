@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { AdminLogin } from "@/components/admin/admin-login";
 
 export const metadata: Metadata = {
-  title: "Admin sign in · Jooba",
+  title: "Admin sign in · Joobah",
   robots: { index: false, follow: false },
   referrer: "no-referrer",
 };

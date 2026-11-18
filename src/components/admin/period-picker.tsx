@@ -5,9 +5,10 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useDismiss } from "@/components/ui/use-dismiss";
 import { type Period, type PeriodKey, PERIOD_LABEL, periodTitle, today, validDay } from "@/lib/admin-period";
+import { inputClass } from "./ui";
 
 const OPTIONS: Array<Exclude<PeriodKey, "range">> = ["day", "week", "month", "all"];
-const field = "mt-1 block h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-accent focus:ring-4 focus:ring-accent-solid/15";
+const field = `mt-1 ${inputClass}`;
 
 /**
  * A small filter button: pick Today, Last 7 days, Last 30 days, All time, or your own dates. The picked window is the

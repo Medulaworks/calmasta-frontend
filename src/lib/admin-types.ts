@@ -25,7 +25,7 @@ export interface BusinessNumbers {
   newUsers: number | null;
   /** Everyone with an account right now, whatever the window. */
   totalUsers: number | null;
-  /** People who used Jooba in the window. */
+  /** People who used Joobah in the window. */
   activeUsers: number | null;
   /** `total` is as of now; `newInPeriod` is how many started paying in the window. */
   paidSubscribers: { total: number; pro: number; business: number; newInPeriod: number | null } | null;

@@ -115,7 +115,7 @@ export function CaptureForm() {
   const listError = captures.isError
     ? captures.error instanceof Error
       ? captures.error.message
-      : "Could not load your captures."
+      : "We couldn’t load your meetings. Please try again."
     : null;
   const isLive = (c: CaptureListItem) =>
     isMeetingActive(c.status) ||
@@ -174,9 +174,9 @@ export function CaptureForm() {
         policy?.maxMeetingDurationSeconds !== null &&
         seconds > (policy?.maxMeetingDurationSeconds ?? 7200)
       )
-        throw new Error("Duration exceeds maximum allowed.");
+        throw new Error("That’s longer than your plan allows.");
       if (seconds < 30)
-        throw new Error("Duration must be at least 30 seconds.");
+        throw new Error("Choose at least 30 seconds.");
       const result = await requestMutation.mutateAsync({
         url,
         consent,
@@ -226,7 +226,7 @@ export function CaptureForm() {
     try {
       await cancelMutation.mutateAsync(id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not cancel.");
+      setError(err instanceof Error ? err.message : "We couldn’t cancel. Please try again.");
     }
   }
 
@@ -241,7 +241,7 @@ export function CaptureForm() {
     : !url.trim()
       ? "Add a meeting link to continue."
       : !consent
-        ? "Confirm you have the right to record to continue."
+        ? "Confirm you have permission to record to continue."
         : null;
   return (
     <div className="grid gap-5 lg:grid-cols-2">
@@ -335,7 +335,7 @@ export function CaptureForm() {
                     placeholder={
                       defaultBotName(policy?.botName) ??
                       policy?.botName ??
-                      "Jooba Notetaker"
+                      "Joobah Notetaker"
                     }
                     autoComplete="off"
                     aria-describedby="meeting-bot-name-help"
@@ -364,7 +364,7 @@ export function CaptureForm() {
                       }
                       className={`${field} min-h-10 w-auto`}>
                       <option value="auto">
-                        Auto-generated — date until transcript ready
+                        Auto-generated (shows the date until the transcript is ready)
                       </option>
                       <option value="manual">Choose a title</option>
                     </select>
@@ -468,7 +468,7 @@ export function CaptureForm() {
                     disabled={!policy?.videoEnabled}
                     title={
                       !policy?.videoEnabled
-                        ? "Video recording is not enabled for this account yet — see backend doc"
+                        ? "Video recording isn’t available on your account yet."
                         : undefined
                     }
                     className="mt-1 size-4 shrink-0 accent-[var(--accent-solid)] disabled:cursor-not-allowed"
@@ -478,7 +478,7 @@ export function CaptureForm() {
                     <span className="mt-1 block text-xs text-muted">
                       {policy?.videoEnabled
                         ? "Off unless you choose it. Private to you, and removed on the same schedule as audio."
-                        : "Video recording is not enabled for this account yet."}
+                        : "Video recording isn’t available on your account yet."}
                     </span>
                   </span>
                 </label>
@@ -493,10 +493,7 @@ export function CaptureForm() {
                 className="mt-1 size-4 shrink-0 accent-[var(--accent-solid)]"
               />
               <span>
-                i have the permission torecord this meeting
-                {recordVideo ? ", including its video," : ""} and I will tell
-                its participants. A visible assistant named “{assistant}” will
-                join and may need to be admitted by the host.
+                I have permission to record this meeting{recordVideo ? ", including its video," : ""} and I will tell the participants. A visible assistant named “{assistant}” will join, and the host may need to let it in.
               </span>
             </label>
 
@@ -537,12 +534,12 @@ export function CaptureForm() {
             <p className="flex items-start gap-2 border-t border-border pt-4 text-xs text-muted">
               <ShieldCheck aria-hidden className="mt-0.5 size-4 shrink-0" />
               <span>
-                Jooba never bypasses waiting rooms or host controls.
+                Joobah never bypasses waiting rooms or host controls.
                 {policy?.meetingEnabled &&
                   policy.maxMeetingDurationSeconds === null &&
                   " There is no recording time limit, and you can stop the assistant from this page."}
                 {(!policy || !policy.meetingEnabled) &&
-                  ` ${policyError ?? (policy ? "Meeting capture is not enabled for this account yet." : "Checking what is available…")}`}
+                  ` ${policyError ?? (policy ? "Meeting recording isn’t available on your account yet." : "Checking what is available…")}`}
               </span>
             </p>
           </form>

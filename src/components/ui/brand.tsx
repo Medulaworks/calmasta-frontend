@@ -1,64 +1,54 @@
-import type { CSSProperties } from "react";
+import { Fragment } from "react";
 
-const leaf = (src: string, color: string): CSSProperties => ({
-  position: "absolute",
-  inset: 0,
-  backgroundColor: color,
-  WebkitMaskImage: `url(${src})`,
-  maskImage: `url(${src})`,
-  WebkitMaskSize: "contain",
-  maskSize: "contain",
-  WebkitMaskRepeat: "no-repeat",
-  maskRepeat: "no-repeat",
-  WebkitMaskPosition: "center",
-  maskPosition: "center",
-});
+// The Joobah logo files live in /public/brand. The lockup (mark and wordmark) is 3.98 times as wide as it is tall.
+const LOCKUP_RATIO = 395.73 / 99.46;
+
+type Tone = "paper" | "auto";
 
 /**
- * The Jooba mark, drawn as two masks so each theme can re-ink the leaves (--leaf-a, --leaf-b).
- * `tile="paper"` always sits it on a light tile (for dark sidebars); `"auto"` only does in dark mode, where the dark
- * leaves would otherwise vanish.
+ * One logo file, in the right colours. Pass `tile="paper"` on a dark surface (the sidebar) to get the version whose burgundy
+ * drops are white. With `"auto"` (a light surface) it uses the standard logo, and swaps to the on-dark one in dark mode.
  */
-export function BrandMark({
-  size = 28,
-  tile = "auto",
-}: {
-  size?: number;
-  tile?: "paper" | "auto";
-}) {
-  const pad = Math.max(2, Math.round(size * 0.08));
+function Logo({ kind, height, tone }: { kind: "horizontal" | "mark"; height: number; tone: Tone }) {
+  const width = kind === "horizontal" ? Math.round(height * LOCKUP_RATIO) : height;
+  const base = `/brand/joobah-${kind}`;
+  const common = { width, height, draggable: false as const, style: { height, width } };
+  /* eslint-disable @next/next/no-img-element */
+  return tone === "paper" ? (
+    <img src={`${base}-on-dark.svg`} alt="Joobah" {...common} className="shrink-0" />
+  ) : (
+    <Fragment>
+      <img src={`${base}.svg`} alt="Joobah" {...common} className="shrink-0 dark:hidden" />
+      <img src={`${base}-on-dark.svg`} alt="" aria-hidden {...common} className="hidden shrink-0 dark:block" />
+    </Fragment>
+  );
+  /* eslint-enable @next/next/no-img-element */
+}
+
+/** The Joobah mark on its own (the two drops). */
+export function BrandMark({ size = 28, tile = "auto", className = "" }: { size?: number; tile?: Tone; className?: string }) {
   return (
-    <span
-      aria-hidden
-      className={`inline-block shrink-0 rounded-lg ${tile === "paper" ? "bg-[#f7f5f1]" : "dark:bg-[#f7f5f1]"}`}
-      style={{ width: size, height: size, padding: pad }}>
-      <span className="relative block h-full w-full">
-        <span style={leaf("/MyJooba-leaf-a.png", "var(--leaf-a)")} />
-        <span style={leaf("/MyJooba-leaf-b.png", "var(--leaf-b)")} />
-      </span>
+    <span className={`inline-flex shrink-0 ${className}`}>
+      <Logo kind="mark" height={size} tone={tile} />
     </span>
   );
 }
 
-/** Mark plus the name, set in lower case like the logo. The name is real text, so it scales and is read aloud. */
-export function Brand({
-  size = 28,
-  tile = "auto",
-  className = "",
-  labelClassName = "",
-}: {
-  size?: number;
-  tile?: "paper" | "auto";
-  className?: string;
-  labelClassName?: string;
-}) {
+/**
+ * The Joobah logo: mark and wordmark together. `size` is the height. With `collapsible`, the full logo gives way to just the mark
+ * when the sidebar is narrowed to its icon rail.
+ */
+export function Brand({ size = 28, tile = "auto", className = "", labelClassName = "", collapsible = false }: { size?: number; tile?: Tone; className?: string; labelClassName?: string; collapsible?: boolean }) {
   return (
-    <span
-      className={`inline-flex items-center gap-2 font-bold tracking-tight ${className}`}>
-      <BrandMark size={size} tile={tile} />
-      <span aria-label="Jooba" className={labelClassName}>
-        Jooba
+    <span className={`inline-flex items-center ${className}`}>
+      <span className={`inline-flex ${labelClassName}`}>
+        <Logo kind="horizontal" height={size} tone={tile} />
       </span>
+      {collapsible && (
+        <span className="hidden sc:md:inline-flex">
+          <Logo kind="mark" height={size} tone={tile} />
+        </span>
+      )}
     </span>
   );
 }

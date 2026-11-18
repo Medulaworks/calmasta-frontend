@@ -52,7 +52,7 @@ function Item({
 
 /**
  * Action items found in the conversation. They are suggestions: a person confirms, dismisses or finishes each one.
- * Jooba does not guess an owner or a date, and nothing here is sent to anyone.
+ * Joobah does not guess an owner or a date, and nothing here is sent to anyone.
  */
 export function ActionsPanel({
   cap,
@@ -75,7 +75,7 @@ export function ActionsPanel({
       setProblem(
         err instanceof Error
           ? err.message
-          : "Could not start looking for action items.",
+          : "We couldn’t start looking for action items. Please try again.",
       );
     }
     setBusy(false);
@@ -87,7 +87,7 @@ export function ActionsPanel({
       await setActionStatus(item.id, status);
     } catch (err) {
       setProblem(
-        err instanceof Error ? err.message : "Could not update that item.",
+        err instanceof Error ? err.message : "We couldn’t update that item. Please try again.",
       );
     }
     onChanged();
@@ -119,7 +119,7 @@ export function ActionsPanel({
           className="flex items-start gap-3 rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
           <TriangleAlert aria-hidden className="mt-1 h-4 w-4 shrink-0" />
           <p>
-            {error ?? "Looking for action items failed."} Your existing items
+            {error ?? "We couldn’t finish looking for action items."} Your existing items
             are unchanged. You can try again.
           </p>
         </div>
@@ -147,7 +147,7 @@ export function ActionsPanel({
                   ? "Available once the transcript is ready."
                   : state === "ready"
                     ? "Nothing in this conversation sounded like something someone agreed to do."
-                    : "Jooba can look through the transcript for things people said they would do. They are only suggestions: you decide what to keep."
+                    : "Joobah can look through the transcript for things people said they would do. They are only suggestions: you decide what to keep."
               }
               action={
                 ready
@@ -164,7 +164,7 @@ export function ActionsPanel({
           <Card>
             <CardHeader title="To review" action={finder("Look again")} />
             <p className="border-b border-border px-5 py-3 text-xs text-muted">
-              Suggestions from the transcript, as it was said. Jooba does not
+              Suggestions from the transcript, as it was said. Joobah does not
               guess who owns an item or when it is due, and nothing is sent to
               anyone.
             </p>

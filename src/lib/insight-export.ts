@@ -16,9 +16,9 @@ export function formatInsightExport(result:RecapResult|null,meeting:MeetingMetad
  const list=(items:string[])=>{for(const item of items)lines.push(`- ${item}`);lines.push("");};
  if(result){
   if(result.formatVersion===3){for(const s of result.sections){heading(s.title);lines.push(...s.paragraphs,"");for(const p of s.points){lines.push(`- ${p.text}`);for(const detail of p.details)lines.push(`  - ${detail}`);}lines.push("");}}
-  else if(result.formatVersion===2){heading(context.isMeeting===false?"Purpose":"Meeting Purpose");lines.push(result.meetingPurpose,"");heading("Key Takeaways");list(result.highlights);heading("Topics");for(const topic of result.topics){lines.push(`${md?"### ":""}${topic.title}`);for(const point of topic.points){lines.push(`- ${point.text}`);for(const detail of point.details)lines.push(`  - ${detail}`);}lines.push("");}if(result.technicalNotes.length){heading("Technical & Admin Notes");list(result.technicalNotes);}}
-  else{heading(context.isMeeting===false?"Purpose":"Meeting Purpose");lines.push(result.briefSummary,"");heading("Discussion");lines.push(result.detailedSummary,"");heading("Key Takeaways");list(result.highlights);}
-  if(result.decisions.length){heading("Decisions");list(result.decisions);}heading("Next Steps");
+  else if(result.formatVersion===2){heading(context.isMeeting===false?"Purpose":"Meeting purpose");lines.push(result.meetingPurpose,"");heading("Key takeaways");list(result.highlights);heading("Topics");for(const topic of result.topics){lines.push(`${md?"### ":""}${topic.title}`);for(const point of topic.points){lines.push(`- ${point.text}`);for(const detail of point.details)lines.push(`  - ${detail}`);}lines.push("");}if(result.technicalNotes.length){heading("Technical and admin notes");list(result.technicalNotes);}}
+  else{heading(context.isMeeting===false?"Purpose":"Meeting purpose");lines.push(result.briefSummary,"");heading("Discussion");lines.push(result.detailedSummary,"");heading("Key takeaways");list(result.highlights);}
+  if(result.decisions.length){heading("Decisions");list(result.decisions);}heading("Next steps");
   if(result.formatVersion===2||result.formatVersion===3)list(result.actionItems.map(a=>`${a.owner?`${a.owner}: `:""}${a.task}${a.due?` (${a.due})`:""}`));else list(result.nextSteps);
  }if(questions)lines.push(...questionExportLines(questions,md,context));return lines.join("\n").trim()+"\n";
 }

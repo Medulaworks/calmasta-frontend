@@ -36,7 +36,7 @@ export const MEETING_OUTCOMES: Record<string, { title: string; text: string }> =
       text: "The host did not let the recording assistant in, so nothing was recorded. If that was a mistake, ask the host to admit the recording assistant and send it again. It will not try again on its own.",
     },
     timed_out: {
-      title: "Not let in in time",
+      title: "Not admitted in time",
       text: "The host did not admit the recording assistant before the wait ended, so nothing was recorded. Ask the host to watch for it, then send it again. It will not try again on its own.",
     },
     failed: {

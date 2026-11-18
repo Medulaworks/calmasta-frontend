@@ -57,8 +57,8 @@ const unsetPrefs = {
   version: 1,
   botName: null,
   promptState: "unset",
-  effectiveBotName: "Jooba Notetaker",
-  adminDefaultBotName: "Jooba Notetaker",
+  effectiveBotName: "Joobah Notetaker",
+  adminDefaultBotName: "Joobah Notetaker",
   policyVersion: 1,
 };
 const savedPrefs = {
@@ -105,12 +105,12 @@ afterEach(() => vi.unstubAllGlobals());
 
 it("prefills the assistant name from the first preferences load", () => {
   screen().applyPrefs(unsetPrefs);
-  expect(screen().fieldValue).toBe("Jooba Notetaker");
+  expect(screen().fieldValue).toBe("Joobah Notetaker");
 });
 
 it("refills the assistant name after the name modal saves, without a page refresh", () => {
   screen().applyPrefs(unsetPrefs);
-  expect(screen().fieldValue).toBe("Jooba Notetaker");
+  expect(screen().fieldValue).toBe("Joobah Notetaker");
   // The modal PATCH answers with the newly saved name.
   screen().applyPrefs(savedPrefs);
   expect(screen().fieldValue).toBe("MyBot");

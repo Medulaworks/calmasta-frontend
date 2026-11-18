@@ -37,7 +37,7 @@ export const COMMANDS: readonly Command[] = [
   },
   {
     id: "a-capture",
-    label: "Capture a meeting",
+    label: "Join a meeting",
     href: "/dashboard/capture",
     group: "action",
     icon: "video",

@@ -14,7 +14,7 @@ export function stepOf(stage: UploadStage, state?: string): number {
   return ["transcribing", "processing", "recorded"].includes(state ?? "") ? 2 : 1;
 }
 
-/** Five small sound bars that move while Jooba works on the audio. */
+/** Five small sound bars that move while Joobah works on the audio. */
 function Working() {
   return (
     <span aria-hidden className="flex h-6 items-center gap-1">
@@ -50,7 +50,7 @@ export function UploadProgress({ stage, progress = 0, totalBytes, state, message
   const body =
     stage === "uploading" ? `${pct}% · ${formatBytes(Math.round(totalBytes * progress))} of ${formatBytes(totalBytes)}`
     : stage === "done" ? "Your recording has been turned into text."
-    : step === 2 ? "Turning speech into text. You can keep using Jooba while this runs."
+    : step === 2 ? "Turning speech into text. You can keep using Joobah while this runs."
     : "Getting it ready for transcription.";
   const tile = stage === "done" ? "bg-success text-white" : "bg-accent-solid/15 text-accent";
 

@@ -11,7 +11,7 @@ export function createEmailVerifier() {
           method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token }),
         });
       } catch {
-        throw new Error("Unable to connect. Please try again.");
+        throw new Error("We can’t connect right now. Check your connection and try again.");
       }
       if (!response.ok) throw new Error(response.status === 400
         ? "This verification link has expired or has already been used. Request a new verification email."

@@ -44,7 +44,7 @@ export function TranscriptUpload() {
     } catch (err) {
       if (sequence === fileRead.current)
         setError(
-          err instanceof Error ? err.message : "Could not read this file.",
+          err instanceof Error ? err.message : "We couldn’t read this file. Please try again.",
         );
     } finally {
       if (sequence === fileRead.current) setReading(false);
@@ -95,7 +95,7 @@ export function TranscriptUpload() {
         <h2
           id="upload-transcript-heading"
           className="mt-4 text-base font-medium">
-          Upload Transcript
+          Upload transcript
         </h2>
         <p className="mt-1 text-sm text-muted">
           Save a UTF-8 .txt file or pasted text privately, then review its AI
@@ -186,7 +186,7 @@ export function TranscriptUpload() {
                 onChange={(e) => setConsent(e.target.checked)}
                 className="mt-1 size-4 shrink-0 accent-accent"
               />
-              i have the permission tosave and process this transcript.
+              I have permission to save and process this transcript.
             </label>
             {error && (
               <p

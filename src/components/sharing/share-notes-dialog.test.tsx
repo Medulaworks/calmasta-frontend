@@ -66,7 +66,7 @@ describe("ShareNotesDialog", () => {
     expect(result).not.toBeNull();
     const all = elements(result);
     const text = all.map(e => typeof e.props.children === "string" ? e.props.children : "").join(" ");
-    expect(all.some(e => e.props.title === "Publish snapshot")).toBe(true);
+    expect(all.some(e => e.props.title === "Choose what to share")).toBe(true);
     expect(all.some(e => e.props.title === "People with access")).toBe(true);
     expect(all.some(e => e.props.title === "Link visibility")).toBe(true);
   });
@@ -86,6 +86,6 @@ describe("ShareNotesDialog", () => {
     const all = elements(result);
     const alert = all.find(e => e.props.role === "alert");
     expect(alert).toBeDefined();
-    expect(JSON.stringify(alert)).toContain("Sharing is disabled by system policy");
+    expect(JSON.stringify(alert)).toContain("Sharing is turned off");
   });
 });

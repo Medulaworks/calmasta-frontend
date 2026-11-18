@@ -110,12 +110,12 @@ it("sends PATCH /api/me with proper json payload and headers", async () => {
   expect(updated.onboarded).toBe(true);
 });
 
-it("saves appearance fields and normalizes absent preferences",async()=>{
+it("saves the mode, ignores any older colour theme from the server, and normalizes absent preferences",async()=>{
  vi.stubGlobal("fetch",fetcher);
  fetcher.mockResolvedValueOnce(Response.json({theme:"f",mode:"dark"}));
- const saved=await saveProfile({theme:"f",mode:"dark"});
- expect(saved).toMatchObject({theme:"f",mode:"dark"});
- expect(fetcher).toHaveBeenCalledWith("/api/me",expect.objectContaining({body:JSON.stringify({theme:"f",mode:"dark"})}));
+ const saved=await saveProfile({mode:"dark"});
+ expect(saved).toMatchObject({theme:"a",mode:"dark"});
+ expect(fetcher).toHaveBeenCalledWith("/api/me",expect.objectContaining({body:JSON.stringify({mode:"dark"})}));
  fetcher.mockResolvedValueOnce(Response.json({}));
  expect(await getProfile()).toMatchObject({theme:"a",mode:"system"});
 });

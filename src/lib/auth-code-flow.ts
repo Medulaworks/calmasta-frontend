@@ -21,20 +21,20 @@ export function createAuthCodeFlow(purpose: CodePurpose, send: Send = post, now 
       if (res.status === 401) update({ signedOut: true });
       if (res.status === 429) update({ resendAt: now() + 60000 });
       if (error === "invalid_or_expired_token" && purpose === "recovery") { resetToken = ""; update({ step: "email" }); }
-      throw new CodeFlowError(res.status === 404 || res.status >= 500 ? "Code authentication is currently unavailable. Please try again later."
+      throw new CodeFlowError(res.status === 404 || res.status >= 500 ? "Email codes aren’t available right now. Please try again later."
         : res.status === 401 || error === "unauthorized" ? "Please sign in again to verify your email."
-        : res.status === 429 || error === "too_many_attempts" || error === "too_many_auth_attempts" ? "Too many attempts. Wait before trying again or requesting another code."
+        : res.status === 429 || error === "too_many_attempts" || error === "too_many_auth_attempts" ? "Too many attempts. Wait a minute, then try again or ask for a new code."
         : error === "expired_code" ? "That code has expired. Request a new code."
-        : error === "invalid_code" ? "That code is incorrect or no longer valid. Check it or request another code."
-        : error === "invalid_or_expired_token" ? "Your reset session has expired or was used. Request a new code."
-        : "This request could not be completed. Please try again.");
+        : error === "invalid_code" ? "That code isn’t right or has expired. Check it, or ask for a new one."
+        : error === "invalid_or_expired_token" ? "This reset has expired or was already used. Ask for a new code."
+        : "That didn’t work. Please try again.");
     }
     return data;
   }
   async function run(work: () => Promise<void>) {
     if (state.busy || state.step === "done") return;
     update({ busy: true, error: "", notice: "" });
-    try { await work(); } catch (e) { update({ error: e instanceof CodeFlowError ? e.message : "Unable to connect. Please try again." }); }
+    try { await work(); } catch (e) { update({ error: e instanceof CodeFlowError ? e.message : "We can’t connect right now. Check your connection and try again." }); }
     finally { update({ busy: false }); }
   }
   return {
@@ -47,7 +47,7 @@ export function createAuthCodeFlow(purpose: CodePurpose, send: Send = post, now 
         if (purpose === "recovery") email = address ?? email;
         await request(purpose === "recovery" ? "/api/auth/forgot-password" : "/api/auth/verify-email/resend", purpose === "recovery" ? { email, delivery: "code" } : { delivery: "code" });
         resetToken = "";
-        update({ step: "code", resendAt: now() + 60000, notice: purpose === "recovery" ? "If an account exists for that email, a recovery code has been requested. Check your inbox; delivery may be delayed. Codes expire in 10 minutes." : "A verification code was requested. Check your inbox. Codes expire in 10 minutes." });
+        update({ step: "code", resendAt: now() + 60000, notice: purpose === "recovery" ? "If there’s an account with that email, we’ve sent a code. Check your inbox (it can take a minute). Codes expire in 10 minutes." : "We’ve sent you a code. Check your inbox. It expires in 10 minutes." });
       });
     },
     verify: async (code: string) => {
@@ -56,7 +56,7 @@ export function createAuthCodeFlow(purpose: CodePurpose, send: Send = post, now 
       await run(async () => {
         const data = await request(purpose === "recovery" ? "/api/auth/verify-reset-code" : "/api/auth/verify-email", purpose === "recovery" ? { email, code } : { code });
         if (purpose === "recovery") {
-          if (typeof data.resetToken !== "string" || !/^[a-f0-9]{64}$/.test(data.resetToken)) throw new CodeFlowError("This request could not be completed. Please try again.");
+          if (typeof data.resetToken !== "string" || !/^[a-f0-9]{64}$/.test(data.resetToken)) throw new CodeFlowError("That didn’t work. Please try again.");
           resetToken = data.resetToken; update({ step: "password" });
         } else update({ step: "done", notice: "Your email is verified." });
       });

@@ -22,7 +22,7 @@ it("keeps the last good screen quietly while refreshing after activation", () =>
   const tree = render(resource({ data: "profiles", fetching: true }));
   const text = JSON.stringify(tree);
   expect(text).toContain(childMarker);
-  expect(text).not.toContain("Couldn't load this");
+  expect(text).not.toContain("Couldn’t load this");
   expect(tree.some((e) => e.props.role === "status")).toBe(false);
 });
 
@@ -31,7 +31,7 @@ it("keeps stale data with an inline retry when a refresh fails mid-restart", () 
   const tree = render(resource({ data: "profiles", error: new ApiError(503, "We could not check your sign-in. Please try again."), reload }));
   const text = JSON.stringify(tree);
   expect(text).toContain(childMarker);
-  expect(text).not.toContain("Couldn't load this");
+  expect(text).not.toContain("Couldn’t load this");
   expect(text).toContain("last saved status");
   const retry = tree.find((e) => e.props.children === "Try again");
   expect(retry).toBeDefined();
@@ -43,14 +43,14 @@ it("still shows the full-page error when there is nothing to keep", () => {
   const tree = render(resource({ error: new ApiError(503, "We could not check your sign-in. Please try again.") }));
   const text = JSON.stringify(tree);
   expect(text).not.toContain(childMarker);
-  expect(text).toContain("Couldn't load this");
+  expect(text).toContain("Couldn’t load this");
 });
 
 it("still replaces stale data when access is revoked", () => {
   const tree = render(resource({ data: "profiles", error: new ApiError(403, "Forbidden") }));
   const text = JSON.stringify(tree);
   expect(text).not.toContain(childMarker);
-  expect(text).toContain("You don't have access to this.");
+  expect(text).toContain("You don’t have access to this.");
 });
 
 it("keeps one stable wrapper while refreshing so open dialogs are never remounted", () => {

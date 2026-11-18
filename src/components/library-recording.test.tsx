@@ -134,7 +134,7 @@ it("a transcript save refreshes the version and marks the existing recap stale",
   expect(find<ComponentProps<typeof MeetingInsights>>(updated, MeetingInsights)?.props.transcriptVersion).toBe(4);
   expect(markup(updated)).toContain("Based on an older transcript");
 });
-it("question seeking uses this player's loaded audio and disappears when audio becomes unavailable", async () => {
+it("question seeking uses this player’s loaded audio and disappears when audio becomes unavailable", async () => {
   let tree = await mount();
   let panel = find<ComponentProps<typeof MeetingInsights>>(tree, MeetingInsights)!;
   expect(panel.props.audioAvailable).toBe(false); expect(markup(tree)).not.toContain("Seek audio to");

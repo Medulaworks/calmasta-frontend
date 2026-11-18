@@ -32,9 +32,9 @@ export function ConnectionsCard() {
       denied: { ok: false, text: "Calendar connection was cancelled." },
       missing_scope: { ok: false, text: "Required calendar permissions were not granted. Please reconnect and allow them." },
       missing_grant: { ok: false, text: "Google did not return the credentials needed to keep the calendar connected. Please reconnect." },
-      error: { ok: false, text: "Could not connect your calendar. Please try again." },
+      error: { ok: false, text: "We couldn’t connect your calendar. Please try again." },
     };
-    setCalendarOutcome(map[cal] ?? { ok: false, text: "Could not connect your calendar. Please try again." });
+    setCalendarOutcome(map[cal] ?? { ok: false, text: "We couldn’t connect your calendar. Please try again." });
     const url = new URL(window.location.href);
     url.searchParams.delete("calendar");
     window.history.replaceState(null, "", url.pathname + url.search + url.hash);
@@ -71,7 +71,7 @@ export function ConnectionsCard() {
             <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-xl bg-surface text-muted"><CalendarDays className="size-5" /></span>
             <div className="min-w-0 flex-1">
               <p className="font-medium">No calendar connected</p>
-              <p className="mt-1 text-muted">Connect one to see your agenda, avoid double-booking and have meetings captured.</p>
+              <p className="mt-1 text-muted">Connect one to see your agenda, avoid double-booking and send the assistant to meetings.</p>
             </div>
             <ButtonLink href="/dashboard/calendar" variant="secondary">Connect a calendar</ButtonLink>
           </div>
@@ -111,7 +111,7 @@ export function DataPrivacyCard() {
     try {
       setProfile(await saveProfile({ outputsOnly: next }));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save.");
+      setError(err instanceof Error ? err.message : "We couldn’t save. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -147,7 +147,7 @@ const WILL_REMOVE = [
   "Your recordings, including the original audio and video files",
   "Transcripts, documents and action items",
   "Your booking pages, meeting types and bookings (upcoming guests are told their booking was cancelled)",
-  "Connected calendars and any meeting assistants that haven't joined yet",
+  "Connected calendars and any meeting assistants that haven’t joined yet",
   "Your plan record, usage history and sign-in sessions",
 ];
 
@@ -192,7 +192,7 @@ export function DeleteAccountCard() {
       setOpen(false);
       setTyped("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not start deletion.");
+      setError(err instanceof Error ? err.message : "We couldn’t start deletion. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -204,7 +204,7 @@ export function DeleteAccountCard() {
       await cancelDeletion();
       setDeletion(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not cancel.");
+      setError(err instanceof Error ? err.message : "We couldn’t cancel. Please try again.");
       setDeletion(await fetchDeletion().catch(() => deletion));
     } finally {
       setBusy(false);

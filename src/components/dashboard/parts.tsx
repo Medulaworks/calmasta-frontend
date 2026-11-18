@@ -97,7 +97,7 @@ export function DropAnywhere() {
         </span>
         <p className="text-xl font-semibold">Drop your audio to upload</p>
         <p className="text-sm text-muted">
-          Jooba will turn it into a transcript you can edit.
+          Joobah will turn it into a transcript you can edit.
         </p>
       </div>
     </div>
@@ -107,7 +107,7 @@ export function DropAnywhere() {
 const LINK =
   /^(https?:\/\/)?([\w-]+\.)*(zoom\.us|zoomgov\.com|teams\.microsoft\.com|teams\.live\.com|meet\.google\.com)\//i;
 
-/** A single line: paste a call link and send Jooba to it, with no modal. The consent step happens on the next screen. */
+/** A single line: paste a call link and send Joobah to it, with no modal. The consent step happens on the next screen. */
 export function MeetingLinkField({ compact = false }: { compact?: boolean }) {
   const router = useRouter();
   const [url, setUrl] = useState("");
@@ -150,7 +150,7 @@ export function MeetingLinkField({ compact = false }: { compact?: boolean }) {
       <button
         type="submit"
         className={`${buttonClass("secondary", compact ? "" : "w-full", "lg")} group`}>
-        <Video aria-hidden className="size-5" /> Send Jooba to the call{" "}
+        <Video aria-hidden className="size-5" /> Send Joobah to the call{" "}
         <ArrowRight
           aria-hidden
           className="size-4 transition-transform group-hover:translate-x-1"
@@ -177,14 +177,14 @@ export function ActionDock() {
         </span>
         <h2 className="mt-6 text-xl font-semibold">Think out loud</h2>
         <p className="mt-2 flex-1 text-sm text-on-accent/80">
-          Have an idea, thought, reminder or plan? Speak naturally. Jooba helps
+          Have an idea, thought, reminder or plan? Speak naturally. Joobah helps
           organise your thoughts into useful notes and actionable information.
         </p>
         <Link
           href="/dashboard/voice"
           onClick={() => playSound("recordStart")}
           className="group mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-on-accent px-5 text-base font-medium text-accent-solid shadow-sm transition-all hover:-translate-y-px hover:shadow-md active:scale-[0.98]">
-          <Mic aria-hidden className="size-5" /> Start Recording
+          <Mic aria-hidden className="size-5" /> Start recording
         </Link>
       </section>
 
@@ -195,9 +195,9 @@ export function ActionDock() {
           className="grid size-12 place-items-center rounded-2xl bg-accent-solid/15 text-accent">
           <Video className="size-6" />
         </span>
-        <h2 className="mt-6 text-xl font-semibold">Capture a meeting</h2>
+        <h2 className="mt-6 text-xl font-semibold">Join a meeting</h2>
         <p className="mb-6 mt-2 flex-1 text-sm text-muted">
-          Bring Jooba into your next meeting. Capture the discussion, generate a
+          Bring Joobah into your next meeting. Capture the discussion, generate a
           transcript, identify decisions and extract follow-up actions.
         </p>
         <MeetingLinkField />
@@ -214,7 +214,7 @@ export function ActionDock() {
           <div className="min-w-0 flex-1">
             <h2 className="text-lg font-semibold">Upload audio</h2>
             <p className="mt-1 text-sm text-muted">
-              Already have a recording? Upload it and let Jooba handle the
+              Already have a recording? Upload it and let Joobah handle the
               transcription, summaries and key takeaways.
             </p>
             <input
@@ -238,7 +238,7 @@ export function ActionDock() {
               type="button"
               onClick={() => file.current?.click()}
               className={`${buttonClass("secondary", "mt-4", "md")}`}>
-              Upload Audio
+              Upload audio
             </button>
             <p className="mt-3 text-xs text-muted">
               Or drop an audio file anywhere on this page
@@ -264,7 +264,7 @@ export function ActionDock() {
               href="/dashboard/library"
               variant="secondary"
               className="mt-4">
-              Create a Document
+              Create a document
             </ButtonLink>
           </div>
         </div>
@@ -285,7 +285,7 @@ export function CaptureBar() {
         href="/dashboard/voice"
         onClick={() => playSound("recordStart")}
         className={`${buttonClass("primary", "", "lg")} shrink-0`}>
-        <Mic aria-hidden className="size-5" /> Start Recording
+        <Mic aria-hidden className="size-5" /> Start recording
       </Link>
       <MeetingLinkField compact />
       <input
@@ -440,7 +440,7 @@ export function SampleResult() {
   );
 }
 
-/** Calendar prompt: shown until a calendar is connected. Jooba only ever joins the meetings the person approves. */
+/** Calendar prompt: shown until a calendar is connected. Joobah only ever joins the meetings the person approves. */
 export function CalendarPrompt() {
   return (
     <Card>
@@ -449,10 +449,10 @@ export function CalendarPrompt() {
           <CalendarIllustration />
         </div>
         <h2 className="mt-2 text-center text-base font-semibold">
-          Let Jooba find your calls
+          Let Joobah find your calls
         </h2>
         <p className="mt-2 text-center text-sm text-muted">
-          Connect your calendar and Jooba joins the calls you choose. You will
+          Connect your calendar and Joobah joins the calls you choose. You will
           approve each one.
         </p>
         <ButtonLink
@@ -511,7 +511,7 @@ function ProgressRing({ done, total }: { done: number; total: number }) {
   );
 }
 
-/** Three steps, ending in "turn it into something useful": the step that teaches what Jooba is for. */
+/** Three steps, ending in "turn it into something useful": the step that teaches what Joobah is for. */
 export function Checklist({ d, seen }: { d: Dashboard; seen: boolean }) {
   const captured = d.progress.hasRecording || d.progress.hasMeetingCapture;
   const latest =
@@ -522,7 +522,7 @@ export function Checklist({ d, seen }: { d: Dashboard; seen: boolean }) {
       done: captured,
       Icon: Mic,
       title: "Capture something",
-      body: "Record your voice, upload audio or send Jooba to a call.",
+      body: "Record your voice, upload audio or send Joobah to a call.",
       href: "/dashboard/voice",
     },
     {

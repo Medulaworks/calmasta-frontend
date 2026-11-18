@@ -74,6 +74,6 @@ it("shows an expired session instead of a generic failure", async () => {
   expect(catalogErrorMessage(new ApiError(401, "Signed out", "unauthorized"))).toBe(
     "Your session ended. Please sign in again.",
   );
-  expect(catalogErrorMessage(new ApiError(503, "Down"))).toBe("Failed to load catalog");
-  expect(catalogErrorMessage(new Error("boom"))).toBe("Failed to load catalog");
+  expect(catalogErrorMessage(new ApiError(503, "Down"))).toBe("We couldn’t load the plans. Please try again.");
+  expect(catalogErrorMessage(new Error("boom"))).toBe("We couldn’t load the plans. Please try again.");
 });

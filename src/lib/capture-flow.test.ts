@@ -56,8 +56,8 @@ it("retains a meeting key after an uncertain response and retires it after confi
 it("rejects operations when policy disables upload or meeting capture",async()=>{
  setup();const disabledPolicy={...policy,uploadEnabled:false,meetingEnabled:false};
  fetcher.mockResolvedValue(json(disabledPolicy));
- await expect(uploadAudio({blob:new Blob(["data"],{type:"audio/webm"}),filename:"rec.webm",title:"T",source:"voice_recording",consent:true},()=>{})).rejects.toThrow("Uploading is not enabled for this account yet.");
- await expect(requestMeetingCapture("https://meet.google.com/abc-defg-hij",true)).rejects.toThrow("Meeting capture is not available yet.");
+ await expect(uploadAudio({blob:new Blob(["data"],{type:"audio/webm"}),filename:"rec.webm",title:"T",source:"voice_recording",consent:true},()=>{})).rejects.toThrow("Uploading isn’t available on your account yet.");
+ await expect(requestMeetingCapture("https://meet.google.com/abc-defg-hij",true)).rejects.toThrow("Meeting recording isn’t available yet.");
 });
 
 it("sends meeting cancellation and handles capture states",async()=>{

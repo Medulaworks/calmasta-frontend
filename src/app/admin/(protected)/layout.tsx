@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { AdminShell } from "@/components/admin/admin-shell";
 
 export const metadata: Metadata = {
-  title: "Admin · Jooba",
+  title: "Admin · Joobah",
   robots: { index: false, follow: false },
 };
 

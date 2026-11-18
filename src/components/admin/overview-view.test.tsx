@@ -21,14 +21,14 @@ it("shows the API meeting total and explains environment versus shared totals", 
     cost: { settledMicros: "2500000", reservedMicros: "1000000" } }));
   const metric = (label: string) => tree.find(e => e.type === Metric && e.props.label === label)?.props;
   expect(metric("Meetings")?.value).toBe("5");
-  expect(metric("Meetings")?.hint).toBe("2 failed");
+  expect(metric("Meetings")?.hint).toBe("2 didn’t finish");
   expect(metric("Hours processed")?.value).toBe(formatMinutes(120));
   expect(metric("Processing cost")?.value).toBe("$2.50");
   expect(metric("Paid subscribers")?.value).toBe("–");
   expect(metric("Recordings")?.value).toBe("–");
   const content = JSON.stringify(tree);
   expect(content).toContain("staging");
-  expect(content).toContain("Account, usage and spend totals cover this database");
-  expect(content).toContain("All-time totals");
+  expect(content).toContain("Accounts, usage and spend cover this whole database");
+  expect(content).toContain("All time");
   expect(tree.some(e => e.type === PeriodPicker)).toBe(false);
 });

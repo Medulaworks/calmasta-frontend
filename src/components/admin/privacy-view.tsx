@@ -33,7 +33,7 @@ export function PrivacyView() {
   return (
     <ResourceBoundary resource={res}>
       {(d: Data & { available?: boolean; reason?: string }) => {
-        if ((d as { available?: boolean }).available === false) return <AdminUnavailable title="Deletions unavailable"><p className="text-sm text-muted">{(d as { reason?: string }).reason ?? "Not available yet."} — deletion not implemented.</p></AdminUnavailable>;
+        if ((d as { available?: boolean }).available === false) return <AdminUnavailable title="Deletion requests aren’t available yet"><p className="text-sm text-muted">They will appear here once this feature is switched on.</p></AdminUnavailable>;
         return (
         <div className="space-y-5">
           <Notice>Done means every stored file is gone.</Notice>

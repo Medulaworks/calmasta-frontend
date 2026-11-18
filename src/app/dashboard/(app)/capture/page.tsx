@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { CaptureForm } from "@/components/capture-form";
 import { PageHeader } from "@/components/ui/page-header";
 
-export const metadata = { title: "Meet · Jooba" };
+export const metadata = { title: "Meet · Joobah" };
 
 type Props = {
   searchParams: Promise<{ tab?: string }>;

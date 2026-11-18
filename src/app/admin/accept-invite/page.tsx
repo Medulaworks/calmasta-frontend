@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import AcceptInviteClient from "./client";
 
-export const metadata = { title: "Accept invite · Jooba", robots: { index: false, follow: false } };
+export const metadata = { title: "Accept invite · Joobah", robots: { index: false, follow: false } };
 
 export default function Page({ searchParams }: { searchParams: { token?: string } }) {
   const token = typeof searchParams.token === "string" ? searchParams.token : "";

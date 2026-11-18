@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Brand } from "@/components/ui/brand";
 
 export const metadata = {
-  title: "Account deleted · Jooba",
+  title: "Account deleted · Joobah",
   robots: { index: false, follow: false },
 };
 

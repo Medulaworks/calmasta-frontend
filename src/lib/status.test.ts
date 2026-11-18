@@ -29,8 +29,8 @@ describe("captureStatus", () => {
 
 describe("meeting outcomes", () => {
   it("says a host decline or a timeout plainly, never as success or as a generic failure", () => {
-    expect(captureStatus({ source: "meeting_url", state: "ended", status: "denied" })).toMatchObject({ label: "Host declined", tone: "warning", active: false });
-    expect(captureStatus({ source: "meeting_url", state: "ended", status: "timed_out" })).toMatchObject({ label: "Not let in in time", tone: "warning", active: false });
+    expect(captureStatus({ source: "meeting_url", state: "ended", status: "denied" })).toMatchObject({ label: "Declined by host", tone: "warning", active: false });
+    expect(captureStatus({ source: "meeting_url", state: "ended", status: "timed_out" })).toMatchObject({ label: "Not admitted in time", tone: "warning", active: false });
   });
   it("waiting to be let in never looks like recording", () => {
     const waiting = captureStatus({ source: "meeting_url", state: "processing_audio", status: "waiting_for_admission" });

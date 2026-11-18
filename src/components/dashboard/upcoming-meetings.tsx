@@ -64,7 +64,7 @@ export function UpcomingMeetings({ timeZone }: { timeZone: string }) {
       ) : state.error ? (
         <p role="alert" className="px-5 py-5 text-sm text-danger">Couldn&rsquo;t load your calendar just now. Try refreshing in a moment.</p>
       ) : !state.data?.connected ? (
-        <EmptyState illustration={<CalendarIllustration />} title="Connect your calendar" body="See what's coming up here, avoid double-booking, and send the assistant to a meeting in one click." action={<ButtonLink href="/dashboard/calendar" variant="primary">Connect a calendar</ButtonLink>} />
+        <EmptyState illustration={<CalendarIllustration />} title="Connect your calendar" body="See what’s coming up here, avoid double-booking, and send the assistant to a meeting in one click." action={<ButtonLink href="/dashboard/calendar" variant="primary">Connect a calendar</ButtonLink>} />
       ) : shown.length === 0 ? (
         <EmptyState illustration={<CalendarIllustration />} title="Nothing in the next week" body="Meetings from your calendars and bookings will show up here." action={<ButtonLink href="/dashboard/booking" variant="secondary">Set up booking</ButtonLink>} />
       ) : (

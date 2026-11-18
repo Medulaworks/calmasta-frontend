@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { SkeletonDetail } from "@/components/ui/skeleton";
 import { LibraryRecording } from "@/components/library-recording";
 
-export const metadata = { title: "Transcript · Jooba" };
+export const metadata = { title: "Transcript · Joobah" };
 
 async function Detail(props: PageProps<"/dashboard/library/recordings/[id]">) {
   const { id } = await props.params;

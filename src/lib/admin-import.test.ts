@@ -21,5 +21,5 @@ it("groups existing and new staff pages under /admin without losing admin routes
  expect(sectionFor("/admin/health")?.id).toBe("home");
  expect(sectionFor("/admin/audit")?.id).toBe("activity");
  const paths=SECTIONS.flatMap(s=>s.tabs.map(t=>t.href));
- for(const suffix of ["","/customers","/entitlements","/usage","/webhooks","/reconciliation","/dunning","/privacy","/plans","/settings","/integrations","/admins","/audit","/health"])expect(paths).toContain(`/admin${suffix}`);
+ for(const suffix of ["","/customers","/entitlements","/usage","/webhooks","/reconciliation","/money","/privacy","/plans","/settings","/integrations","/admins","/audit","/health"])expect(paths).toContain(`/admin${suffix}`);
 });

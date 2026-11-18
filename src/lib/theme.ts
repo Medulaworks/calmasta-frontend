@@ -1,57 +1,14 @@
 import { useSyncExternalStore } from "react";
 
-// Theme = which colours (five palettes). Mode = light, dark, or follow the device. Both are a personal choice kept in
-// the account backend, with a browser cache applied before first paint (see app/layout.tsx).
+// Mode = light, dark, or follow the device: a personal choice kept in the account backend, with a browser cache applied
+// before first paint (see app/layout.tsx).
 
-export type ThemeId = "a" | "b" | "d" | "e" | "f";
+// There is one colour palette (maroon and orange). Mode is the only appearance choice: light, dark, or follow the device.
+// The theme id stays "a" so older saved values and the account backend keep working; anything else is ignored.
+
+/** The one palette. Kept as a type so saved profiles that still carry a theme id keep working. */
+export type ThemeId = "a";
 export type Mode = "light" | "dark" | "system";
-
-export interface ThemeInfo {
-  id: ThemeId;
-  label: string;
-  note: string;
-  /** The two colours shown on its swatch. */
-  hero: string;
-  anchor: string;
-}
-
-export const THEMES: readonly ThemeInfo[] = [
-  {
-    id: "a",
-    label: "Orange + Plum",
-    note: "Warm and professional",
-    hero: "#FFAC34",
-    anchor: "#3E2833",
-  },
-  {
-    id: "b",
-    label: "Orange + Slate",
-    note: "Calm and technical",
-    hero: "#FFAC34",
-    anchor: "#283642",
-  },
-  {
-    id: "d",
-    label: "Maroon + Silver",
-    note: "Premium and editorial",
-    hero: "#B9BDC4",
-    anchor: "#5B0D35",
-  },
-  {
-    id: "e",
-    label: "Orange + Forest",
-    note: "Fresh and bold",
-    hero: "#FFAC34",
-    anchor: "#1E5B40",
-  },
-  {
-    id: "f",
-    label: "Gold + Pine",
-    note: "Heritage and trusted",
-    hero: "#C9A227",
-    anchor: "#143C26",
-  },
-];
 
 export const MODES: readonly { id: Mode; label: string }[] = [
   { id: "light", label: "Light" },
@@ -63,7 +20,7 @@ import { DEFAULT_MODE, DEFAULT_THEME, MODE_KEY, THEME_KEY } from "./theme-boot";
 
 const EVENT = "MyJooba:theme-changed";
 
-const isTheme = (v: unknown): v is ThemeId => THEMES.some((t) => t.id === v);
+const isTheme = (v: unknown): v is ThemeId => v === "a";
 const isMode = (v: unknown): v is Mode =>
   v === "light" || v === "dark" || v === "system";
 

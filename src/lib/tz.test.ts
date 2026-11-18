@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { addDays, dayKey, dayRange, formatTime, todayIn } from "./tz";
 
 describe("tz helpers for the browser", () => {
-  it("knows today's date in a zone, which may differ from UTC's", () => {
+  it("knows today’s date in a zone, which may differ from UTC’s", () => {
     expect(todayIn("Asia/Muscat", new Date("2026-10-19T21:00:00Z"))).toBe("2026-10-20");
     expect(todayIn("America/Los_Angeles", new Date("2026-10-19T02:00:00Z"))).toBe("2026-10-18");
     expect(dayKey("2026-10-19T21:00:00Z", "Asia/Muscat")).toBe("2026-10-20");
@@ -20,7 +20,7 @@ describe("tz helpers for the browser", () => {
     const back = dayRange("Europe/London", "2026-10-25"); // clocks go back: 25 hours
     expect(back.to.getTime() - back.from.getTime()).toBe(25 * 3600_000);
   });
-  it("formats a time in the requested zone, not the machine's", () => {
+  it("formats a time in the requested zone, not the machine’s", () => {
     expect(formatTime("2026-10-19T05:00:00Z", "Asia/Muscat")).toMatch(/9:00/);
     expect(formatTime("2026-10-19T05:00:00Z", "America/New_York")).toMatch(/1:00/);
   });

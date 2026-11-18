@@ -53,7 +53,7 @@ export function phaseToast(previous: MeetingPhase | null | undefined, next: Meet
     case "ended": return { message: `The assistant has finished recording ${t}. Processing the recording…`, tone: "info", indicator: "spinner" };
     case "ready": return { message: `${t} is ready. Your transcript is available.`, tone: "success", indicator: "check", href: `/dashboard/captures/${encodeURIComponent(id)}`, actionLabel: "Open" };
     case "declined": return { message: `The host declined the assistant in ${t}.`, tone: "warning" };
-    case "timed_out": return { message: `The assistant wasn't let in to ${t} in time.`, tone: "warning" };
+    case "timed_out": return { message: `The assistant wasn’t let in to ${t} in time.`, tone: "warning" };
     case "failed": return { message: `The capture of ${t} stopped. Open it to review its status.`, tone: "danger" };
     case "attention": return { message: `${t} needs attention. Open the capture to review its status.`, tone: "warning", href: `/dashboard/captures/${encodeURIComponent(id)}`, actionLabel: "Open" };
     case "cancelled": return { message: `Capture of ${t} cancelled.`, tone: "info" };

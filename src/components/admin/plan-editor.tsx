@@ -7,9 +7,10 @@ import { type Json, adminPatch } from "@/lib/admin-client";
 import { centsToInput, toCents } from "@/lib/admin-money";
 import type { AdminPlan } from "@/lib/admin-types";
 import { PlanCard } from "./plan-card";
+import { inputClass } from "./ui";
 
 type Plan = Json<AdminPlan>;
-const input = "mt-2 block h-10 w-full rounded-lg border border-border bg-background px-3 text-sm tabular-nums outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-solid/15 disabled:opacity-60";
+const input = `mt-2 tabular-nums ${inputClass}`;
 const label = "text-sm font-medium";
 
 const hours = (minutes: number) => String(Math.round((minutes / 60) * 100) / 100);
@@ -64,7 +65,7 @@ export function PlanEditor({ plan, discountPct, onClose, onSaved }: { plan: Plan
       onSaved(`${plan.name} saved.`);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't save. Try again.");
+      setError(err instanceof Error ? err.message : "Couldn’t save. Try again.");
       setBusy(false);
     }
   }

@@ -41,7 +41,7 @@ export async function prepareAvatar(file: File): Promise<Blob> {
   if (!/^image\/(png|jpeg|webp)$/.test(file.type)) throw new Error("Use a PNG, JPG or WebP picture.");
   if (file.size > MAX_PICK_BYTES) throw new Error("That picture is very large. Choose one under 12 MB.");
   const bitmap = await createImageBitmap(file).catch(() => {
-    throw new Error("That picture couldn't be read. Try another one.");
+    throw new Error("That picture couldn’t be read. Try another one.");
   });
   const side = Math.min(bitmap.width, bitmap.height);
   const canvas = document.createElement("canvas");
@@ -49,14 +49,14 @@ export async function prepareAvatar(file: File): Promise<Blob> {
   const ctx = canvas.getContext("2d");
   if (!ctx) {
     bitmap.close();
-    throw new Error("Your browser can't prepare pictures.");
+    throw new Error("Your browser can’t prepare pictures.");
   }
   ctx.drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, 0, 0, AVATAR_SIZE, AVATAR_SIZE);
   bitmap.close();
   const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/webp", 0.9));
   if (blob && blob.type === "image/webp" && blob.size <= MAX_AVATAR_BYTES) return blob;
   const jpg = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/jpeg", 0.9));
-  if (!jpg || jpg.size > MAX_AVATAR_BYTES) throw new Error("That picture couldn't be prepared under 1 MB. Try another one.");
+  if (!jpg || jpg.size > MAX_AVATAR_BYTES) throw new Error("That picture couldn’t be prepared under 1 MB. Try another one.");
   return jpg;
 }
 
@@ -117,7 +117,7 @@ export async function uploadAvatar(
       const putHeaders: Record<string, string> = {};
       for (const [name, value] of Object.entries(attempt.intent.upload.headers)) {
         if (name.toLowerCase() === "content-length") {
-          if (Number(value) !== blob.size) throw new Error("Upload size mismatch.");
+          if (Number(value) !== blob.size) throw new Error("The upload didn’t match the file. Please try again.");
         } else {
           putHeaders[name] = value;
         }
@@ -129,7 +129,7 @@ export async function uploadAvatar(
         credentials: "omit",
       });
       if (!put.ok && put.status !== 412) {
-        throw new ApiError(put.status, "The picture couldn't be uploaded. Please try again.");
+        throw new ApiError(put.status, "The picture couldn’t be uploaded. Please try again.");
       }
       attempt.uploaded = true;
     }

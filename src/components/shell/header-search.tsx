@@ -155,7 +155,7 @@ function Palette({ onClose }: { onClose: () => void }) {
     searchLibrary({ q: dq, type: filter, status: "all", from: "", to: "" }, ctrl.signal, 30).then(
       (items) => setRes({ key, items, error: null }),
       (err) => {
-        if (!ctrl.signal.aborted) setRes({ key, items: [], error: err instanceof Error ? err.message : "Could not search your library." });
+        if (!ctrl.signal.aborted) setRes({ key, items: [], error: err instanceof Error ? err.message : "We couldn’t search your library. Please try again." });
       },
     );
     return () => ctrl.abort();

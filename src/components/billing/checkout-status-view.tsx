@@ -62,7 +62,7 @@ export async function waitForActivation(
       if (e instanceof ApiError && e.status === 401) return { kind: "unauthorized", intentId: "" };
       if (e instanceof ApiError && e.status === 404) return { kind: "foreign" };
       if (e instanceof ApiError && e.status === 410) return { kind: "expired" };
-      return { kind: "failed", message: e instanceof Error ? e.message : "Could not check your payment." };
+      return { kind: "failed", message: e instanceof Error ? e.message : "We couldn’t check your payment. Please try again." };
     }
     const activation: ActivationStatus | undefined = intent.activationStatus;
     if (activation === "active") return { kind: "active", intent };
@@ -140,7 +140,7 @@ export function CheckoutStatusPanel({
       );
     case "unavailable":
       return (
-        <Panel title="We couldn't confirm this payment" tone="error">
+        <Panel title="We couldn’t confirm this payment" tone="error">
           <p className="text-muted">
             The store didn&rsquo;t confirm your payment, so no credits were added and nothing
             was charged on our side. If money left your account, contact support with your
@@ -170,7 +170,7 @@ export function CheckoutStatusPanel({
       );
     case "foreign":
       return (
-        <Panel title="We couldn't find this purchase" tone="error">
+        <Panel title="We couldn’t find this purchase" tone="error">
           <p className="text-muted">
             This purchase belongs to another workspace or no longer exists. Sign in with the
             account you bought with, or start again from billing.
@@ -213,7 +213,7 @@ export function CheckoutStatusPanel({
       );
     case "failed":
       return (
-        <Panel title="Couldn't reach the store" tone="error">
+        <Panel title="Couldn’t reach the store" tone="error">
           <p className="text-muted">{outcome.message}</p>
           <div className="flex gap-2">
             <Button variant="primary" onClick={onRetry}>

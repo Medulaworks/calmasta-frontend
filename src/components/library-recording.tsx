@@ -203,8 +203,7 @@ function RecordingHeader({
                 onChange={(e) => setConsent(e.target.checked)}
                 className="mt-1 size-4 shrink-0 accent-[var(--accent-solid)]"
               />
-              i have the permission torecord this meeting again and will tell
-              its participants.
+              I have permission to record this meeting again and I will tell the participants.
             </label>
             <Button
               variant="primary"
@@ -533,7 +532,7 @@ export function LibraryRecording({ id }: { id: string }) {
               ? "This recording is unavailable."
               : e instanceof Error
                 ? e.message
-                : "Could not load recording.",
+                : "We couldn’t load recording. Please try again.",
           );
       },
     );
@@ -581,7 +580,7 @@ export function LibraryRecording({ id }: { id: string }) {
         refresh();
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not update capture.");
+      setError(e instanceof Error ? e.message : "We couldn’t update this recording. Please try again.");
     } finally {
       setBusy(false);
     }
