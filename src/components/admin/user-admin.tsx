@@ -50,8 +50,8 @@ export function userMenuItems(u: UserLike, open: (d: UserDialogKind) => void, op
   if (u.sessionCount !== 0) items.push({ label: "Sign out everywhere", icon: LogOut, onSelect: () => open("revoke"), ...gate(sessions) });
   items.push({ label: "Add minutes", icon: Plus, onSelect: () => open("add_minutes"), divider: true, disabled: gone, reason: gone ? deleting : null });
   items.push({ label: "Remove minutes", icon: Minus, onSelect: () => open("take_minutes"), disabled: gone, reason: gone ? deleting : null });
-  if (u.planSource === "staff" && u.plan !== "free") items.push({ label: "End free Pro access", icon: XCircle, onSelect: () => open("end_pro") });
-  else if (u.plan === "free") items.push({ label: "Give Pro for a while", icon: Sparkles, onSelect: () => open("grant_pro"), disabled: gone, reason: gone ? deleting : null });
+  if (u.planSource === "staff" && u.plan !== "free") items.push({ label: "End free Pro access", icon: XCircle, onSelect: () => open("end_pro"), disabled: true, reason: "Not available yet." });
+  else if (u.plan === "free") items.push({ label: "Give Pro for a while", icon: Sparkles, onSelect: () => open("grant_pro"), disabled: true, reason: "Not available yet." });
   items.push(u.suspended
     ? { label: "Turn account back on", icon: RotateCcw, onSelect: () => open("reactivate"), divider: true, ...gate(suspend) }
     : { label: "Suspend account", icon: Ban, onSelect: () => open("suspend"), danger: true, divider: true, ...gate(suspend) });
@@ -72,7 +72,7 @@ export function UserDialogs({ user, dialog, onClose, onDone }: { user: UserLike;
     if (v.minutes) body.minutes = Number(v.minutes);
     // Dates are picked as a day; the grant runs to the end of that day, UTC.
     if (v.expiresAt) body.expiresAt = `${v.expiresAt}T23:59:59.000Z`;
-    await adminPost(`/api/admin/entitlements/${id}`, body);
+    await adminPost(`/api/admin/entitlements/${id}`, body, { "Idempotency-Key": key() });
     onDone(done);
   };
   const ends = { name: "expiresAt", label: "Ends on", type: "date" as const, defaultValue: inDays(30), hint: "Up to a year ahead." };

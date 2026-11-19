@@ -17,19 +17,23 @@ import {
   ExternalLink,
   FileText,
   Mic,
+  Share2,
   Timer,
+  Trash2,
   Users,
   Video,
 } from "lucide-react";
 import { Button, buttonClass } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Dialog } from "@/components/ui/dialog";
 import { Tabs, tabId, tabPanelId } from "@/components/ui/tabs";
 import { PrivateAudio } from "@/components/private-audio";
 import { ShareNotesDialog } from "@/components/sharing/share-notes-dialog";
 import { MeetingVideo } from "@/components/meeting-video";
 import { MeetingInsights } from "@/components/meeting-insights";
 import { seekInsightAudio } from "@/lib/meeting-insights";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useArchiveCapture } from "@/lib/mutations";
 import { TranscriptEditor } from "@/components/transcript-editor";
 import { getLibraryCapture, saveLibraryTranscript } from "@/lib/library-client";
 import {
@@ -512,6 +516,11 @@ export function LibraryRecording({ id }: { id: string }) {
   const [consent, setConsent] = useState(false),
     [busy, setBusy] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archiveError, setArchiveError] = useState<string | null>(null);
+  const archiveGuard = useRef(false);
+  const archiveMutation = useArchiveCapture();
+  const archiving = archiveMutation.isPending;
   const [capture, setCapture] = useState<CaptureView | null>(null),
     [error, setError] = useState<string | null>(null),
     [revision, setRevision] = useState(0);
@@ -585,6 +594,24 @@ export function LibraryRecording({ id }: { id: string }) {
       setBusy(false);
     }
   }
+  async function confirmArchive() {
+    if (archiveGuard.current || archiving) return;
+    archiveGuard.current = true;
+    setArchiveError(null);
+    try {
+      await archiveMutation.mutateAsync(id);
+      setArchiveOpen(false);
+      router.push("/dashboard/library");
+    } catch (e) {
+      setArchiveError(
+        e instanceof Error
+          ? e.message
+          : "We couldn’t delete this recording. Please try again.",
+      );
+    } finally {
+      archiveGuard.current = false;
+    }
+  }
   const transcriptEditor = capture ? (
     <TranscriptEditor
       key={capture.id}
@@ -625,14 +652,69 @@ export function LibraryRecording({ id }: { id: string }) {
       )}
       {capture && ext ? (
         <>
-          <div className="flex justify-end">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <Button
-              variant="ghost"
-              size="sm"
+              variant="secondary"
+              size="md"
+              disabled={archiving}
               onClick={() => setShareOpen(true)}>
-              Share notes
+              <Share2 aria-hidden className="h-4 w-4" />
+              Share
+            </Button>
+            <Button
+              variant="danger"
+              size="md"
+              disabled={archiving}
+              onClick={() => {
+                setArchiveError(null);
+                setArchiveOpen(true);
+              }}>
+              <Trash2 aria-hidden className="h-4 w-4" />
+              Delete
             </Button>
           </div>
+          {archiveOpen && (
+            <Dialog
+              title="Delete recording?"
+              onClose={() => {
+                if (!archiving && !archiveGuard.current) {
+                  setArchiveOpen(false);
+                  setArchiveError(null);
+                }
+              }}>
+              <div className="space-y-4">
+                <p className="text-sm text-muted">
+                  This will archive the recording and remove it from your library. Its saved data is retained under the existing retention policy. Any processing already started may continue. Existing shared links will stop working.
+                </p>
+                {archiveError && (
+                  <p
+                    role="alert"
+                    className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+                    {archiveError}
+                  </p>
+                )}
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <Button
+                    variant="secondary"
+                    size="md"
+                    disabled={archiving}
+                    onClick={() => {
+                      setArchiveOpen(false);
+                      setArchiveError(null);
+                    }}>
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="danger"
+                    size="md"
+                    disabled={archiving}
+                    onClick={() => void confirmArchive()}>
+                    {archiving ? "Archiving…" : "Delete recording"}
+                  </Button>
+                </div>
+              </div>
+            </Dialog>
+          )}
           <RecordingHeader
             capture={capture}
             ext={ext}

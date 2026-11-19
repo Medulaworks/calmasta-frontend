@@ -9,6 +9,7 @@ import { MeetingInsights } from "./meeting-insights";
 import { SummaryTemplatePicker } from "./insights/summary-template-picker";
 import { TranscriptEditor } from "./transcript-editor";
 import { Button } from "./ui/button";
+import { Dialog } from "./ui/dialog";
 import { Tabs, tabPanelId } from "./ui/tabs";
 import { qk } from "../lib/queries";
 import type { MeetingInsights as Insights } from "../lib/meeting-insights-client";
@@ -54,7 +55,12 @@ vi.mock("@tanstack/react-query", async (original) => {
   const query = await original<typeof import("@tanstack/react-query")>();
   return { ...query,
     useQueryClient: (...args: Parameters<typeof query.useQueryClient>) => hooks.active && hooks.client ? hooks.client : query.useQueryClient(...args),
-    useMutation:(options:Parameters<typeof query.useMutation>[0])=>hooks.active&&hooks.client?new query.MutationObserver(hooks.client,options).getCurrentResult():query.useMutation(options),
+    useMutation:(options:Parameters<typeof query.useMutation>[0])=>{
+      if(!hooks.active||!hooks.client)return query.useMutation(options);
+      const observer=new query.MutationObserver(hooks.client,options);
+      const result=observer.getCurrentResult();
+      return {...result,mutateAsync:(vars:unknown)=>observer.mutate(vars as never)};
+    },
     useQuery: (options: Parameters<typeof query.useQuery>[0]) => {
       if (!hooks.active || !hooks.client) return query.useQuery(options);
       const observer = new query.QueryObserver(hooks.client, options);
@@ -63,7 +69,8 @@ vi.mock("@tanstack/react-query", async (original) => {
     },
   };
 });
-vi.mock("next/navigation", () => ({ useRouter: () => ({ back: vi.fn(), push: vi.fn() }) }));
+const routerPush = vi.hoisted(() => vi.fn());
+vi.mock("next/navigation", () => ({ useRouter: () => ({ back: vi.fn(), push: routerPush }) }));
 vi.mock("./transcript-editor", () => ({ TranscriptEditor: () => createElement("section", null, "Transcript editor") }));
 const id = "fixture-meeting";
 const detail = (source = "meeting", version = 3) => ({ id, source, title: "Team review", state: "completed", createdAt: "2026-11-04T00:00:00Z", transcriptVersion: version, transcript: [{ id: "line", startMs: 0, endMs: 1000, text: "When?", speakerId: null, editedByUser: false }], speakerNames: {} });
@@ -86,7 +93,12 @@ function markup(node: ReactNode) {
   client.setQueryData(qk.meetingPreferences(), { recapEmailEnabled: false, emailVerified: true, canReceiveRecapEmail: true });
   return renderToStaticMarkup(createElement(QueryClientProvider, { client }, node));
 }
-beforeEach(() => { vi.stubGlobal("fetch", vi.fn().mockImplementation(() => Promise.resolve(Response.json(detail())))); });
+beforeEach(() => {
+  routerPush.mockReset();
+  hooks.client = new QueryClient();
+  clients.push(hooks.client);
+  vi.stubGlobal("fetch", vi.fn().mockImplementation(() => Promise.resolve(Response.json(detail()))));
+});
 afterEach(() => { hooks.cleanup.forEach(cleanup => cleanup?.()); hooks.values = []; hooks.deps = []; hooks.pending = []; hooks.cleanup = []; hooks.subscriptions.splice(0).forEach(unsubscribe => unsubscribe()); hooks.client = null; clients.splice(0).forEach(client => client.clear()); vi.unstubAllGlobals(); vi.useRealTimers(); });
 async function mount(source = "meeting", extra: Record<string, unknown> = {}) {
   vi.mocked(fetch).mockImplementation(() => Promise.resolve(Response.json({ ...detail(source), ...extra })));
@@ -244,13 +256,109 @@ it("shows roster display names for meeting participants instead of undefined", a
  const html=markup(tree);
  expect(html).toContain("Participants");expect(html).toContain("Josiah Arkson");expect(html).not.toContain("undefined");
 });
-it("selecting a non-meeting summary format never requests generation", async () => {
- const tree=await mount("upload"); const panel=find<ComponentProps<typeof MeetingInsights>>(tree,MeetingInsights)!;
- hooks.cleanup.forEach(cleanup=>cleanup?.());hooks.cleanup=[];hooks.deps=[];hooks.pending=[];hooks.values=[];
- const client=new QueryClient();clients.push(client);hooks.client=client;
- client.setQueryData(qk.meetingInsights(id),{...insights,recap:null,questions:null});
- vi.mocked(fetch).mockImplementation(()=>Promise.resolve(Response.json({...insights,recap:null,questions:null})));
- const view=run(()=>MeetingInsights(panel.props));
- find<ComponentProps<typeof SummaryTemplatePicker>>(view,SummaryTemplatePicker)!.props.onSelect("enhanced");await effects();
- expect(vi.mocked(fetch).mock.calls.every(([,init])=>(init?.method??"GET")==="GET")).toBe(true);
-});
+ it("selecting a non-meeting summary format never requests generation", async () => {
+  const tree=await mount("upload"); const panel=find<ComponentProps<typeof MeetingInsights>>(tree,MeetingInsights)!;
+  hooks.cleanup.forEach(cleanup=>cleanup?.());hooks.cleanup=[];hooks.deps=[];hooks.pending=[];hooks.values=[];
+  const client=new QueryClient();clients.push(client);hooks.client=client;
+  client.setQueryData(qk.meetingInsights(id),{...insights,recap:null,questions:null});
+  vi.mocked(fetch).mockImplementation(()=>Promise.resolve(Response.json({...insights,recap:null,questions:null})));
+  const view=run(()=>MeetingInsights(panel.props));
+  find<ComponentProps<typeof SummaryTemplatePicker>>(view,SummaryTemplatePicker)!.props.onSelect("enhanced");await effects();
+  expect(vi.mocked(fetch).mock.calls.every(([,init])=>(init?.method??"GET")==="GET")).toBe(true);
+ });
+
+ function findAll<P>(node: ReactNode, type: unknown): ReactElement<P>[] {
+  if (Array.isArray(node)) return node.flatMap((child) => findAll<P>(child, type));
+  if (!isValidElement<{ children?: ReactNode }>(node)) return [];
+  const matches = node.type === type ? [node as ReactElement<P>] : [];
+  return [...matches, ...findAll<P>(node.props.children, type)];
+ }
+
+ function textOf(node: ReactNode): string {
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(textOf).join("");
+  if (isValidElement<{ children?: ReactNode }>(node)) return textOf(node.props.children);
+  return "";
+ }
+
+ it("renders visible Share and Delete buttons only after loading, and Share opens ShareNotesDialog", async () => {
+  const initialTree = run(() => LibraryRecording({ id }));
+  expect(findAll<ComponentProps<typeof Button>>(initialTree, Button)).toHaveLength(0);
+
+  const tree = await mount();
+  const buttons = findAll<ComponentProps<typeof Button>>(tree, Button);
+  const shareBtn = buttons.find((b) => textOf(b.props.children).includes("Share"));
+  const deleteBtn = buttons.find((b) => textOf(b.props.children).includes("Delete"));
+  expect(shareBtn).toBeDefined();
+  expect(shareBtn?.props.variant).toBe("secondary");
+  expect(shareBtn?.props.size).toBe("md");
+  expect(textOf(shareBtn?.props.children)).not.toContain("Share notes");
+  expect(deleteBtn).toBeDefined();
+  expect(deleteBtn?.props.variant).toBe("danger");
+  expect(deleteBtn?.props.size).toBe("md");
+ });
+
+ it("Delete opens archive confirmation without fetching, Cancel is inert, and confirm archives once and navigates on 200", async () => {
+  const tree = await mount();
+  const beforeCalls = vi.mocked(fetch).mock.calls.length;
+  const deleteBtn = findAll<ComponentProps<typeof Button>>(tree, Button).find((b) => textOf(b.props.children).includes("Delete"))!;
+  deleteBtn.props.onClick?.({} as never);
+
+  let nextTree = run(() => LibraryRecording({ id }));
+  let dialog = find<ComponentProps<typeof Dialog>>(nextTree, Dialog);
+  expect(dialog).toBeDefined();
+  expect(dialog?.props.title).toBe("Delete recording?");
+  expect(vi.mocked(fetch).mock.calls.length).toBe(beforeCalls);
+
+  // Cancel closes without sending a request
+  const cancelBtn = findAll<ComponentProps<typeof Button>>(dialog, Button).find((b) => textOf(b.props.children).includes("Cancel"))!;
+  cancelBtn.props.onClick?.({} as never);
+  nextTree = run(() => LibraryRecording({ id }));
+  expect(find(nextTree, Dialog)).toBeUndefined();
+  expect(vi.mocked(fetch).mock.calls.length).toBe(beforeCalls);
+
+  // Reopen and confirm (even double-click sends only one POST)
+  findAll<ComponentProps<typeof Button>>(nextTree, Button).find((b) => textOf(b.props.children).includes("Delete"))!.props.onClick?.({} as never);
+  nextTree = run(() => LibraryRecording({ id }));
+  dialog = find<ComponentProps<typeof Dialog>>(nextTree, Dialog)!;
+  const confirmBtn = findAll<ComponentProps<typeof Button>>(dialog, Button).find((b) => textOf(b.props.children).includes("Delete recording"))!;
+
+  vi.mocked(fetch).mockImplementationOnce(() =>
+    Promise.resolve(Response.json({ id, archived: true, archivedAt: "2026-11-18T19:00:00.000Z" })),
+  );
+  confirmBtn.props.onClick?.({} as never);
+  confirmBtn.props.onClick?.({} as never);
+
+  await vi.waitFor(() => expect(routerPush).toHaveBeenCalledWith("/dashboard/library"));
+  const postCalls = vi.mocked(fetch).mock.calls.filter(([, init]) => init?.method === "POST");
+  expect(postCalls).toHaveLength(1);
+  expect(postCalls[0][0]).toBe(`/api/captures/${encodeURIComponent(id)}/archive`);
+  expect(postCalls[0][1]?.body).toBe("{}");
+ });
+
+ it("keeps confirmation dialog open with an error when archive fails and allows retry", async () => {
+  const tree = await mount();
+  findAll<ComponentProps<typeof Button>>(tree, Button).find((b) => textOf(b.props.children).includes("Delete"))!.props.onClick?.({} as never);
+  let nextTree = run(() => LibraryRecording({ id }));
+  let dialog = find<ComponentProps<typeof Dialog>>(nextTree, Dialog)!;
+  let confirmBtn = findAll<ComponentProps<typeof Button>>(dialog, Button).find((b) => textOf(b.props.children).includes("Delete recording"))!;
+
+  vi.mocked(fetch).mockImplementationOnce(() => Promise.resolve(Response.json({ code: "server_error" }, { status: 500 })));
+  confirmBtn.props.onClick?.({} as never);
+
+  await vi.waitFor(() => {
+    nextTree = run(() => LibraryRecording({ id }));
+    dialog = find<ComponentProps<typeof Dialog>>(nextTree, Dialog)!;
+    expect(dialog).toBeDefined();
+    expect(textOf(dialog)).toContain("Something went wrong. Please try again.");
+  });
+  expect(routerPush).not.toHaveBeenCalled();
+
+  // Retry succeeds
+  vi.mocked(fetch).mockImplementationOnce(() =>
+    Promise.resolve(Response.json({ id, archived: true, archivedAt: "2026-11-18T19:00:00.000Z" })),
+  );
+  confirmBtn = findAll<ComponentProps<typeof Button>>(dialog, Button).find((b) => textOf(b.props.children).includes("Delete recording"))!;
+  confirmBtn.props.onClick?.({} as never);
+  await vi.waitFor(() => expect(routerPush).toHaveBeenCalledWith("/dashboard/library"));
+ });
