@@ -576,3 +576,9 @@ Next action: OTEL-09/OPERATIONS — operator provisions fixture capture/cookie a
 - **Proof (command + result + revision):** `f2d268e` + diff: Vitest 32/32 PASS across 4 files, `pnpm typecheck` PASS, `git diff --check` PASS; eslint 0 errors (1 pre-existing warning at `mutations.ts:400`).
 - **What is NOT done:** Commit/push/deploy, hosted/browser verification, or real-record mutation.
 - **Next action (task ID + files):** Roll out backend migration062 before hosted frontend release, then verify with a disposable recording.
+
+## 2026-11-19 — realtime account state
+- **What was done (files + behavior):** FE-U01: BFF single-use ticket/public URL + account socket/query/hook; shared banner/sidebar refresh, recovery and preserved stale data. IMPLEMENTED locally.
+- **Proof (command + result + revision):** fba26fb+diff: focused58/58, types/scoped lint/diff PASS; backend46/46 disposable PG18/OpenAPI159 PASS. See account-realtime runbook/evidence for commands.
+- **What is NOT done:** Shared migration/deployment/WSS proxy/origin/browser/load acceptance; no provider/policy/commerce/deletion activation.
+- **Next action (task ID + files):** M8/FE-U01 — migration063/API/frontend authorized rollout per backend docs/runbooks/account-realtime.md.

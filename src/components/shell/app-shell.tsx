@@ -13,15 +13,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import {
-  ACCOUNT_CHANGED,
-  type DeletionView,
-  type PlanSummary,
-  DUMMY_PLAN,
-  fetchDeletion,
-  fetchPlan,
-} from "@/lib/plan-client";
+import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ProfileError } from "@/lib/profile-client";
 import type { ProfileView } from "@/lib/profile-client";
@@ -32,6 +24,7 @@ import { ProfileProvider } from "./profile-context";
 import { LiveStatus } from "./live-status";
 import { TopBar } from "./top-bar";
 import { AppearanceProvider } from "@/components/theme/appearance-provider";
+import { useAccountState } from "./use-account-state";
 
 interface NavItem {
   href: string;
@@ -177,32 +170,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return () => window.clearTimeout(timer);
   }, [avatarExpiresAt, qc]);
 
-  // Plan and deletion status for the banners and the sidebar. Refreshed on every page change; failing to read it
-  // never blocks the page, it just shows nothing.
-  const [account, setAccount] = useState<{
-    plan: PlanSummary | null;
-    deletion: DeletionView | null;
-  }>({ plan: null, deletion: null });
-  const profileReady = ready && !!profile;
-  const [accountTick, setAccountTick] = useState(0);
-  useEffect(() => {
-    const again = () => setAccountTick((n) => n + 1);
-    window.addEventListener(ACCOUNT_CHANGED, again);
-    return () => window.removeEventListener(ACCOUNT_CHANGED, again);
-  }, []);
-  useEffect(() => {
-    if (!profileReady) return;
-    let cancelled = false;
-    Promise.all([
-      fetchPlan().catch(() => DUMMY_PLAN),
-      fetchDeletion().catch(() => null),
-    ]).then(([plan, deletion]) => {
-      if (!cancelled) setAccount({ plan, deletion });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [profileReady, pathname, accountTick]);
+  const account = useAccountState(
+    ready && profile?.emailVerified ? profile.email : null,
+    pathname,
+  );
 
   const setProfile = (p: ProfileView) => qc.setQueryData(["profile"], p);
   return (

@@ -201,7 +201,9 @@ export class AuthService {
       const transcriptImport=request.method==="POST"&&segments.length===2&&segments[0]==="captures"&&segments[1]==="transcripts";
       const bodylessInsight = request.method === "POST" && segments.length === 3 && segments[0] === "captures" && ["recap", "questions"].includes(segments[2]);
       if (bodylessInsight) await assertEmptyBody(request);
-      const body = request.method === "GET" || bodylessInsight || request.method === "DELETE" && !request.body ? undefined : await readJson(request,transcriptImport||transcriptEdit?8388608:16384);
+      const realtimeTicket=request.method==="POST"&&segments.length===3&&segments[0]==="account"&&segments[1]==="realtime"&&segments[2]==="ticket";
+      const input = request.method === "GET" || bodylessInsight || request.method === "DELETE" && !request.body ? undefined : await readJson(request,transcriptImport||transcriptEdit?8388608:16384);
+      const body = realtimeTicket ? {origin:this.config.appOrigin} : input;
       const url = new URL(request.url);
       const pathAndQuery = "/" + segments.map(encodeURIComponent).join("/") + url.search;
       bffContext.getStore()!.stage="api_request";
@@ -212,6 +214,12 @@ export class AuthService {
       if (upstream.status === 204) return new Response(null, { status: 204, headers });
       bffContext.getStore()!.stage="api_response";
       const result = await upstream.json();
+      if(upstream.ok&&realtimeTicket){
+        if(typeof result.ticket!=="string"||!/^[a-f0-9]{64}$/.test(result.ticket)||!Number.isFinite(Date.parse(result.expiresAt)))throw Error("Invalid realtime ticket");
+        const websocket=new URL('/account/realtime',this.config.publicApiOrigin??this.config.apiOrigin);
+        websocket.protocol=websocket.protocol==='https:'?'wss:':'ws:';
+        return json({ticket:result.ticket,expiresAt:result.expiresAt,websocketUrl:websocket.href});
+      }
       if(upstream.status>=500){
         bffContext.getStore()!.stage="api_response";reportBffFailure(undefined,upstream.status,upstream.status,upstream.headers.get("x-correlation-id")??result?.correlationId);
         return json({...result,correlationId:bffContext.getStore()!.correlationId},upstream.status);
