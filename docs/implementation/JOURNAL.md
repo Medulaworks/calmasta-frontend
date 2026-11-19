@@ -594,3 +594,9 @@ Next action: OTEL-09/OPERATIONS — operator provisions fixture capture/cookie a
 - **Proof (command + result + revision):** Backend7173f5b fresh46/46/TypeScript/OpenAPI159 PASS and executable tree identical to CI599/599. Frontend51fa624+diff572/572/types/scoped lint PASS; independent review clean.
 - **What is NOT done:** PR merges/main rollout pending at checkpoint; owner local report does not complete hosted reconnect/browser/load/provider acceptance.
 - **Next action (task ID + files):** M8/FE-U01/FE-L01 — publish, create both staging→main PRs and merge backend before frontend; record exact outcomes.
+
+## 2026-11-19 — staging and main publication complete
+- **What was done (files + behavior):** M8/FE-U01/FE-L01: all approved source published to staging; backend PR26 and frontend PR23 merged/main-deployed; frontend mirror main synced.
+- **Proof (command + result + revision):** APIdbfd59e Actions44487376354:599/599/OpenAPI159/deploy SUCCESS; frontendc9c2508 Actions44488979352:572/572/build/deploy SUCCESS. API200/401/WebSocket101 observed; local/types/lint and independent review passed.
+- **What is NOT done:** Full authenticated production browser/reconnect and capacity/provider/commerce/deletion acceptance; owner local realtime success is reported evidence only.
+- **Next action (task ID + files):** M8/FE-U01 — production user-flow check when desired; release evidence owns exact PR/CI proof, requested publication/merges complete.
