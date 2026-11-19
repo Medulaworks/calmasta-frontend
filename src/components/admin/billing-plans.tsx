@@ -25,16 +25,31 @@ export function BillingPlans() {
         {msg && <p role="status" className="text-sm">{msg}</p>}
         {plans.loading && <p className="text-sm text-muted">Loading plans…</p>}
         {plans.error && <p role="alert" className="text-sm text-danger">Couldn’t load plans (admin only). {plans.error.message}</p>}
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {plans.data?.plans.map((p) => (
-            <Card key={p.id}><div className="space-y-2 p-5 text-sm">
-              <p className="font-semibold">{p.name} <span className="font-normal text-muted">v{p.version} · {p.status}</span></p>
-              <p className="text-muted">{p.description || "—"}</p>
-              <p>{money(p.priceCents, p.currency)} / {p.billingCycle} · {p.minutesAllowance} min · trial {p.trialDays}d · rollover {p.rollover ? "yes" : "no"}</p>
-              <p className="text-muted">{p.activeUsers} active users · updated {fmtUtc(p.updatedAt)}</p>
-              <p className="text-xs text-muted">Existing users keep their snapshot; edits apply only to future assignments.</p>
-              <div className="flex gap-2"><Button variant="secondary" onClick={() => setEdit(p)}>Edit (new version)</Button><Button variant="ghost" onClick={async () => setHistory({ planId: p.id, items: (await adminGet<{ items: never[] }>(`/api/admin/billing/plans/${p.id}/history`)).items })}>History</Button>{p.status === "active" && <Button variant="ghost" onClick={async () => { await adminPost(`/api/admin/billing/plans/${p.id}/archive`, { reason: "Archived in admin" }); setMsg(`${p.name} archived.`); plans.reload(); }}>Archive</Button>}</div>
-            </div></Card>
+            <Card key={p.id} className="h-full min-w-0 overflow-hidden">
+              <div className="flex h-full flex-col p-5 text-sm">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="min-w-0 flex-1 truncate text-base font-semibold">{p.name}</h3>
+                  <span className="rounded-full bg-surface px-2 py-0.5 text-xs font-medium text-muted ring-1 ring-border">v{p.version}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ring-1 ${p.status === "active" ? "bg-success/10 text-success ring-success/30" : "bg-surface text-muted ring-border"}`}>{p.status}</span>
+                </div>
+                <p className="mt-4 text-3xl font-semibold tracking-tight tabular-nums">{p.priceCents === 0 ? "Free" : money(p.priceCents, p.currency)}<span className="ml-1 text-sm font-normal text-muted">/ {p.billingCycle}</span></p>
+                <p className="mt-2 min-h-10 text-muted">{p.description || "—"}</p>
+                <dl className="mt-4 space-y-2 border-t border-border pt-4 text-sm">
+                  <div className="flex items-center justify-between gap-3"><dt className="text-muted">Minutes</dt><dd className="font-medium tabular-nums">{p.minutesAllowance.toLocaleString()} / period</dd></div>
+                  <div className="flex items-center justify-between gap-3"><dt className="text-muted">Trial</dt><dd className="font-medium tabular-nums">{p.trialDays} days</dd></div>
+                  <div className="flex items-center justify-between gap-3"><dt className="text-muted">Rollover</dt><dd className="font-medium">{p.rollover ? "Yes" : "No"}</dd></div>
+                  <div className="flex items-center justify-between gap-3"><dt className="text-muted">Active users</dt><dd className="font-medium tabular-nums">{p.activeUsers}</dd></div>
+                </dl>
+                <p className="mt-3 text-xs leading-relaxed text-muted">Updated {fmtUtc(p.updatedAt)}. Existing users keep their snapshot; edits apply only to future assignments.</p>
+                <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-border pt-4">
+                  <Button size="sm" variant="secondary" className="min-w-0 flex-1" onClick={() => setEdit(p)}>Edit</Button>
+                  <Button size="sm" variant="ghost" className="min-w-0 flex-1" onClick={async () => setHistory({ planId: p.id, items: (await adminGet<{ items: never[] }>(`/api/admin/billing/plans/${p.id}/history`)).items })}>History</Button>
+                  {p.status === "active" && <Button size="sm" variant="ghost" className="min-w-0 flex-1" onClick={async () => { await adminPost(`/api/admin/billing/plans/${p.id}/archive`, { reason: "Archived in admin" }); setMsg(`${p.name} archived.`); plans.reload(); }}>Archive</Button>}
+                </div>
+              </div>
+            </Card>
           ))}
         </div>
       </section>
