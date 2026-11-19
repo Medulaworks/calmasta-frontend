@@ -280,8 +280,8 @@ export function orZero(minutes: number | null): number {
   return minutes ?? 0;
 }
 
-export const fetchPlan = async (): Promise<PlanSummary> => {
-  const res = await fetch("/api/plan");
+export const fetchPlan = async (signal?: AbortSignal): Promise<PlanSummary> => {
+  const res = await fetch("/api/plan", {signal,cache:"no-store"});
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new ApiError(res.status, body.error ?? "We couldn’t load your plan. Please try again.", body.code);
   return normalizePlan(body);

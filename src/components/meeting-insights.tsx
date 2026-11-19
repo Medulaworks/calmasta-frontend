@@ -158,7 +158,7 @@ export function MeetingInsights({id,transcriptVersion,audioAvailable,onSeek,isMe
    }
   }catch(error){setFailures(state=>({...state,[key]:insightErrorMessage(error)}));}finally{setBusy(state=>({...state,[key]:false}));}
  }
- return <section aria-label={isMeeting ? "Meeting insights" : "AI Notes"} className="space-y-5 text-sm">
+ return <section aria-label={isMeeting ? "Meeting Summary" : "AI Notes"} className="space-y-5 text-sm">
  <div className="flex flex-wrap items-start justify-between gap-3">
  <p className="flex max-w-2xl items-start gap-2 text-xs leading-relaxed text-muted">{data&&<><Info aria-hidden className="mt-0.5 size-3.5 shrink-0"/>AI-generated insights may contain mistakes. Review them against the transcript before using them. Next steps are not added to your actions automatically.</>}</p>
  <Button size="sm" variant="secondary" disabled={query.isFetching} onClick={()=>{void query.refetch();if(data?.summaryTemplatesEnabled)void questionQuery.refetch();}}><RefreshCw aria-hidden className={`size-4 ${query.isFetching?"animate-spin motion-reduce:animate-none":""}`}/>Refresh insights</Button>

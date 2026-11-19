@@ -576,3 +576,21 @@ Next action: OTEL-09/OPERATIONS — operator provisions fixture capture/cookie a
 - **Proof (command + result + revision):** `f2d268e` + diff: Vitest 32/32 PASS across 4 files, `pnpm typecheck` PASS, `git diff --check` PASS; eslint 0 errors (1 pre-existing warning at `mutations.ts:400`).
 - **What is NOT done:** Commit/push/deploy, hosted/browser verification, or real-record mutation.
 - **Next action (task ID + files):** Roll out backend migration062 before hosted frontend release, then verify with a disposable recording.
+
+## 2026-11-19 — realtime account state
+- **What was done (files + behavior):** FE-U01: BFF single-use ticket/public URL + account socket/query/hook; shared banner/sidebar refresh, recovery and preserved stale data. IMPLEMENTED locally.
+- **Proof (command + result + revision):** fba26fb+diff: focused58/58, types/scoped lint/diff PASS; backend46/46 disposable PG18/OpenAPI159 PASS. See account-realtime runbook/evidence for commands.
+- **What is NOT done:** Shared migration/deployment/WSS proxy/origin/browser/load acceptance; no provider/policy/commerce/deletion activation.
+- **Next action (task ID + files):** M8/FE-U01 — migration063/API/frontend authorized rollout per backend docs/runbooks/account-realtime.md.
+
+## 2026-11-19 — realtime staging steps1–3 delivered
+- **What was done (files + behavior):** M8/FE-U01: migration063, exact-origin/session-mode listener configuration, verified API/worker restart and paired staging frontend publication; implementation IMPLEMENTED.
+- **Proof (command + result + revision):** APIca4d9bd Actions44442101691:599/599+OpenAPI159/deploy PASS; config Actions44443389078 SUCCESS. Frontend4d5dbf8 Actions44440433415:569/569/build PASS; Vercel dpl_3D6DiXvCcSMQUk2338A9gxvRoWT5 promoted. HTTP200/401/403 and WebSocket101/403 observed.
+- **What is NOT done:** Step4 authenticated account-change/browser/reconnect acceptance, capacity benchmarks and production promotion; existing provider/M2/deletion gates remain open.
+- **Next action (task ID + files):** M8/FE-U01 — disposable-account step4 at myjooba-staging.vercel.app; backend rollout evidence/runbook own exact source and remaining checks.
+
+## 2026-11-19 — user-authorized main promotion
+- **What was done (files + behavior):** M8/FE-U01/FE-L01: owner reported working local realtime updates and authorized all pending changes→staging→PR→main; frontend labels/platform tiles/sidebar presentation included.
+- **Proof (command + result + revision):** Backend7173f5b fresh46/46/TypeScript/OpenAPI159 PASS and executable tree identical to CI599/599. Frontend51fa624+diff572/572/types/scoped lint PASS; independent review clean.
+- **What is NOT done:** PR merges/main rollout pending at checkpoint; owner local report does not complete hosted reconnect/browser/load/provider acceptance.
+- **Next action (task ID + files):** M8/FE-U01/FE-L01 — publish, create both staging→main PRs and merge backend before frontend; record exact outcomes.

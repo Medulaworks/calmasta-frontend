@@ -13,6 +13,8 @@ export interface LibraryResult {
   template?: string;
   at: string;
   snippet: string | null;
+  /** Meeting app when the server says which one; absent until the list endpoint includes it. */
+  platform?: string | null;
 }
 
 export interface LibraryQuery {

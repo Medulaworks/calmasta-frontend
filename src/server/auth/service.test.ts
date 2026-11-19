@@ -38,6 +38,7 @@ beforeAll(async()=>{
   if(path==="/auth/verify-reset-code")return res.end(JSON.stringify({resetToken:"a".repeat(64)}));
   if(path.startsWith("/auth/"))return res.end(JSON.stringify({ok:true}));
   if(path==="/usage/summary")return res.end(JSON.stringify({usedSeconds:10}));
+  if(path==="/account/realtime/ticket")return res.end(JSON.stringify({ticket:"c".repeat(64),expiresAt:new Date(Date.now()+30000).toISOString()}));
   res.statusCode=404;res.end("{}");
  });await new Promise<void>(r=>server.listen(0,"127.0.0.1",r));origin=`http://127.0.0.1:${(server.address() as {port:number}).port}`;
 });
@@ -47,6 +48,25 @@ async function login(){return auth.login(request("/api/auth/login",{email:"user@
 it("email/password login and registration issue opaque cookies without browser tokens",async()=>{
  const res=await login();expect(res.status).toBe(200);const body=await res.json();expect(body).toEqual({ok:true,onboarded:true,emailVerified:true});expect(JSON.stringify(body)).not.toContain("internal-access");expect(responseCookie(res)).not.toContain("internal-access");
  const registration=await auth.register(request("/api/auth/register",{email:"user@example.com",password:"ValidPassword1!"}));expect(registration.status).toBe(200);
+});
+it("realtime tickets use the trusted BFF origin and expose only a fixed public websocket URL",async()=>{
+ const loginResponse=await login();const cookie=responseCookie(loginResponse);
+ const response=await auth.proxy(request('/api/account/realtime/ticket',{origin:'https://attacker.invalid'},cookie),['account','realtime','ticket']);
+ expect(response.status).toBe(200);
+ expect(calls.find(c=>c.path==='/account/realtime/ticket')?.body).toEqual({origin});
+ const body=await response.json();expect(body.websocketUrl).toBe(origin.replace('http:','ws:')+'/account/realtime');
+ expect(body.ticket).toBe('c'.repeat(64));expect(JSON.stringify(body)).not.toContain('internal-access');
+ const before=calls.length;
+ expect((await auth.proxy(request('/api/account/realtime/ticket',{},cookie,'https://attacker.invalid'),['account','realtime','ticket'])).status).toBe(403);
+ expect(calls.length).toBe(before);
+});
+it("realtime tickets can use a configured public API origin while server HTTP stays internal",async()=>{
+ auth=new AuthService({...cfg(),publicApiOrigin:'https://public-api.example.test'},store);
+ const loginResponse=await login();const cookie=responseCookie(loginResponse);
+ const response=await auth.proxy(request('/api/account/realtime/ticket',{},cookie),['account','realtime','ticket']);
+ expect(response.status).toBe(200);expect((await response.json()).websocketUrl).toBe('wss://public-api.example.test/account/realtime');
+ expect(calls.find(c=>c.path==='/account/realtime/ticket')?.authorization).toBe('Bearer internal-access');
+ const anonymous=await auth.proxy(request('/api/account/realtime/ticket',{}),['account','realtime','ticket']);expect(anonymous.status).toBe(401);
 });
 it("invalid credentials and cross-origin requests cannot establish sessions",async()=>{
  expect((await auth.login(request("/api/auth/login",{email:"user@example.com",password:"wrong"}))).status).toBe(401);

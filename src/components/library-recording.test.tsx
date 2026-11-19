@@ -111,7 +111,7 @@ it("meeting recording shows the existing recap panel with actual identity/versio
   const panel = find<ComponentProps<typeof MeetingInsights>>(tree, MeetingInsights);
   expect(panel?.props.id).toBe(id); expect(panel?.props.transcriptVersion).toBe(3);
   const html = markup(tree);
-  expect(html).toContain("Meeting insights"); expect(html).toContain("Meeting overview"); expect(html).toContain("Transcript editor"); expect(html).toContain("Private audio"); expect(html).toContain("Meeting controls");
+  expect(html).toContain("Meeting Summary"); expect(html).toContain("Meeting overview"); expect(html).toContain("Transcript editor"); expect(html).toContain("Private audio"); expect(html).toContain("Meeting controls");
 });
 it("uploaded audio reuses AI Notes without meeting labels or automatic generation", async () => {
   const tree = await mount("upload");
@@ -185,8 +185,8 @@ it("groups transcript and insights in tabs, defaults to insights, and keeps both
  let tree = await mount();
  let tabs = find<ComponentProps<typeof Tabs>>(tree, Tabs);
  expect(tabs).toBeDefined();
- expect(tabs!.props.items.map(item => item.label)).toEqual(["Meeting insights", "Transcript"]);
- const transcript=tabs!.props.items.find(t=>t.label==="Transcript")!,insights=tabs!.props.items.find(t=>t.label==="Meeting insights")!;
+ expect(tabs!.props.items.map(item => item.label)).toEqual(["Meeting Summary", "Transcript"]);
+ const transcript=tabs!.props.items.find(t=>t.label==="Transcript")!,insights=tabs!.props.items.find(t=>t.label==="Meeting Summary")!;
  function panel(node: ReactNode, id: string): ReactElement<{id:string;hidden:boolean;children?:ReactNode}> | undefined {
   if(Array.isArray(node))return node.map(child=>panel(child,id)).find(Boolean);
   if(!isValidElement<{id?:string;children?:ReactNode}>(node))return undefined;
