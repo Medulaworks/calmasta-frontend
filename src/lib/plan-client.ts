@@ -90,6 +90,8 @@ export interface PlanSummary {
   billingUrl: string | null;
   placeholder: boolean;
   capabilities: PlanCapabilities | null;
+  catalog?: Array<{ id: string; name: string; description: string; version: number; priceCents: number; currency: string; minutesAllowance: number; features: string[] }>;
+  subscriptionSnapshot?: { planId: string; planVersion: number; priceCents: number; currency: string; minutesAllowance: number; status: string; periodStart: string; periodEnd: string | null; scheduledPlanId: string | null; scheduledEffectiveAt: string | null; pendingPlanId: string | null; pendingPromoCode: string | null } | null;
 }
 
 export interface DeletionView {
@@ -258,6 +260,8 @@ export function normalizePlan(body: unknown): PlanSummary {
     billingUrl: strOrNull(raw.billingUrl),
     placeholder: raw.placeholder === true,
     capabilities,
+    catalog: Array.isArray(raw.catalog) ? (raw.catalog as PlanSummary["catalog"]) : undefined,
+    subscriptionSnapshot: (raw.subscriptionSnapshot ?? null) as PlanSummary["subscriptionSnapshot"],
   };
 }
 
@@ -287,6 +291,19 @@ export const fetchPlan = async (signal?: AbortSignal): Promise<PlanSummary> => {
   return normalizePlan(body);
 };
 
+export type PromoPreview = { valid: boolean; code: string; discountCents: number; originalPriceCents: number; finalPriceCents: number; finalMinutes: number; freePeriodDays: number };
+export const validatePromo = async (planId: string, code: string): Promise<PromoPreview> => {
+  const res = await fetch("/api/plan/promo/validate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ planId, code }) });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new ApiError(res.status, body.code ?? "Promo code is invalid.", body.code);
+  return body as PromoPreview;
+};
+export const applyPendingPromo = async (planId: string, promoCode?: string) => {
+  const res = await fetch("/api/plan/promo/apply", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ planId, promoCode }) });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new ApiError(res.status, body.code ?? "Couldn’t save promo.", body.code);
+  return body as { ok: boolean; pending: boolean; discountCents: number; finalPriceCents: number | null };
+};
 export const fetchDeletion = () => unavailable<DeletionView | null>("Account deletion is not available yet.");
 /** Tells the app shell (banners, sidebar) to re-read the account status. */
 export const ACCOUNT_CHANGED = "calmasta:account-changed";
