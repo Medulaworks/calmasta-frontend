@@ -11,8 +11,8 @@ export function Skeleton({ className = "" }: { className?: string }) {
 }
 
 /** A panel-shaped skeleton (a card or chart that hasn't arrived yet). */
-export function SkeletonPanel({ className = "" }: { className?: string }) {
-  return <div aria-hidden className={`jb-skel rounded-2xl border border-border bg-surface ${className}`} />;
+export function SkeletonPanel({ className = "", children }: { className?: string; children?: ReactNode }) {
+  return <div aria-hidden className={`jb-skel rounded-2xl border border-border bg-surface ${className}`}>{children}</div>;
 }
 
 /** Marks a group of skeletons as one busy region with a single spoken label. */
