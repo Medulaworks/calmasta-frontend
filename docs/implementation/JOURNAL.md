@@ -600,3 +600,15 @@ Next action: OTEL-09/OPERATIONS — operator provisions fixture capture/cookie a
 - **Proof (command + result + revision):** APIdbfd59e Actions44487376354:599/599/OpenAPI159/deploy SUCCESS; frontendc9c2508 Actions44488979352:572/572/build/deploy SUCCESS. API200/401/WebSocket101 observed; local/types/lint and independent review passed.
 - **What is NOT done:** Full authenticated production browser/reconnect and capacity/provider/commerce/deletion acceptance; owner local realtime success is reported evidence only.
 - **Next action (task ID + files):** M8/FE-U01 — production user-flow check when desired; release evidence owns exact PR/CI proof, requested publication/merges complete.
+
+## 2026-11-19 — automatic recap retry diagnosis
+- **What was done (files + behavior):** M6/B-INSIGHTS-01/FE-L03: read-only incident diagnosis; transcript/Q&A ready, recap held; runtime fix NOT_STARTED.
+- **Proof (command + result + revision):** API09bded9/FE d5131d5; READ ONLY metadata + synthetic retry reproducer PASS: guard1 masks429 as call limit; bounded control reaches ready. Actual1530.531ms failure→hold matches retry path; historical status unproven.
+- **What is NOT done:** No runtime patch, paid request, hold release/retry, browser proof or private meeting content in evidence; original HTTP status unavailable.
+- **Next action (task ID + files):** M6/FE-L03 — generator/worker bounded retry accounting + durable typed diagnostics + per-artifact UI state; scoped recap recovery only after provider outcome verification.
+
+## 2026-11-19 — FE-L03 artifact status and recap retry prevention
+- **What was done (files + behavior):** Independent transcript/summary/questions statuses and honest held/support wording implemented; no automatic held retry.
+- **Proof (command + result + revision):** Frontendd5131d5 + diff50/50 tests/types/scoped lint/diff PASS; paired backend78/78 and61/61 PASS; independent review clean.
+- **What is NOT done:** Publication pending; historical recap remains held, missing provider ID/analytics403, no paid retry.
+- **Next action (task ID + files):** FE-L03/M6 staging CI then main promotion; attributable provider billing evidence before scoped recovery, per backend runbook.

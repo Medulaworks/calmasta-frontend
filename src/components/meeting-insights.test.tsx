@@ -92,3 +92,13 @@ it("non-meeting entries offer explicit AI Notes generation and omit meeting emai
  buttons.find(b=>b.children==="Generate AI Notes")!.onClick?.({} as never);
  await vi.waitFor(()=>expect(fetch).toHaveBeenCalled()); expect(fetch).toHaveBeenCalledWith("/api/captures/m/recap",expect.objectContaining({method:"POST"}));
 });
+
+it("shows independent ready artifacts beside a summary that needs attention without dispatching",()=>{
+ const held={...artifact<RecapResult|null>(null,"reconciliation_required"),failureReason:"insight_provider_http_429"};
+ const {html}=render({...base,recap:held,questions:artifact<QuestionsResult>({coverage:"ai_extraction_not_guaranteed_exhaustive",questions:[{text:"When can we launch?",sources:[]}]})});
+ expect(html).toContain('aria-label="Artifact status"');
+ expect(html).toContain("Transcript: Ready");expect(html).toContain("Meeting Summary: Needs attention");expect(html).toContain("Questions: Ready");
+ expect(html).toContain("When can we launch?");expect(html).toContain("rate limit");expect(html).toContain("Contact support");
+ expect(html).not.toContain("looking into");expect(fetch).not.toHaveBeenCalled();
+ expect(buttons.some(b=>b.children==="Generate recap"||b.children==="Retry recap admission")).toBe(false);
+});

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "./upload-client";
 import { getMeetingInsights, requestMeetingInsight, getMeetingPreferences, saveMeetingPreferences, type MeetingInsights, type InsightArtifact, type RecapResult } from "./meeting-insights-client";
-import { canRequestInsight, insightMessage, insightsPollInterval, insightErrorMessage, questionStartMs, seekInsightAudio } from "./meeting-insights";
+import { canRequestInsight, insightStatusLabel, insightMessage, insightsPollInterval, insightErrorMessage, questionStartMs, seekInsightAudio } from "./meeting-insights";
 
 export const artifact = (state: InsightArtifact<RecapResult>["state"], isStale = false): InsightArtifact<RecapResult> => ({
   id: "artifact", state, isStale, transcriptVersion: 1, failureReason: null, result: null,
@@ -65,7 +65,7 @@ describe("meeting insights lifecycle", () => {
   it("permits current-version requests for stale failures without retrying same-version failure", () => {
     expect(canRequestInsight(insights(artifact("failed",true)),"recap")).toBe(true);
     expect(canRequestInsight(insights(artifact("failed")),"recap")).toBe(false);
-    expect(insightMessage(artifact("reconciliation_required"))).toContain("looking into");
+    expect(insightMessage(artifact("reconciliation_required"))).toContain("Contact support");
     expect(insightMessage({...artifact("blocked"),failureReason:"insight_provider_not_configured"})).not.toContain("insight_provider");
   });
   it("selects a valid timestamp including zero, without guessing when sources are absent", () => {
@@ -94,4 +94,10 @@ it("polls a selected template while Enhanced and questions are already ready",()
  const selected={...artifact("queued"),result:null};
  const data={...insights(artifact("ready")),summary:{templateId:"sales-bant",templateRevision:1,sourceKind:"recap" as const,artifact:selected}};
  expect(insightsPollInterval(data,0)).toBe(3000);expect(insightsPollInterval({...data,summary:{...data.summary,artifact:{...selected,state:"ready"}}},0)).toBe(false);
+});
+
+it("keeps held and active work visible even when its source is out of date",()=>{
+ expect(insightStatusLabel(artifact("reconciliation_required",true))).toBe("Needs attention");
+ expect(insightStatusLabel(artifact("running",true))).toBe("Generating");
+ expect(insightStatusLabel(artifact("ready",true))).toBe("Out of date");
 });

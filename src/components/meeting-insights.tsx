@@ -15,7 +15,7 @@ import { Loading, Skeleton, SkeletonLines } from "./ui/skeleton";
 import { ApiError } from "../lib/upload-client";
 import { meetingInsightsQuery, meetingPreferencesQuery, qk } from "../lib/queries";
 import { meetingInsightMutationOptions, meetingPreferencesMutationOptions } from "../lib/meeting-insights-queries";
-import { canRequestInsight, emailStatusMessage, insightErrorMessage, insightMessage } from "../lib/meeting-insights";
+import { canRequestInsight, emailStatusMessage, insightErrorMessage, insightMessage, insightStatusLabel } from "../lib/meeting-insights";
 import type { InsightArtifact, InsightKind, MeetingInsights as Insights, QuestionsResult, RecapResult, StructuredRecapResult, MeetingMetadata } from "../lib/meeting-insights-client";
 
 function InsightError({ error,isMeeting=true }: { error: unknown;isMeeting?:boolean }) {
@@ -168,6 +168,11 @@ export function MeetingInsights({id,transcriptVersion,audioAvailable,onSeek,isMe
  {data?.enabled&&!data.liveProcessingEnabled&&<p role="status" className="text-muted">Insights are paused for now. Anything you’ve requested will run when processing is back on.</p>}
  {data?.enabled&&!data.transcriptReady&&((data.transcriptVersion ?? transcriptVersion) !== null ? <p role="status" className="text-muted">No speech was detected in this recording.</p> : <p className="text-muted">Waiting for the current transcript before requesting insights.</p>)}
  {data&&<>
+ <ul aria-label="Artifact status" className="flex flex-wrap gap-x-5 gap-y-2 rounded-lg border border-border bg-surface/40 px-4 py-3 text-xs text-muted">
+ <li>Transcript: {data.transcriptReady?"Ready":data.transcriptVersion!==null?"No speech detected":"Waiting"}</li>
+ <li>{isMeeting?"Meeting Summary":"AI Notes"}: {insightStatusLabel(questionsOnly?data.questions:leftData?.recap)}</li>
+ <li>Questions: {insightStatusLabel(data.questions)}</li>
+ </ul>
  <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)] xl:items-start">
  <div className="min-w-0 space-y-5">
  <div className="flex flex-wrap items-center justify-between gap-3"><SummaryTemplatePicker templates={catalogue} value={templateId} onSelect={next=>void selectTemplate(next)}/>{data.activeRecap&&data.activeRecap.templateId!==templateId&&<p role="status" className="text-xs text-muted">{catalogue.find(t=>t.id===data.activeRecap?.templateId)?.label??"Another summary"} is processing.</p>}</div>
