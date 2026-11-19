@@ -8,7 +8,7 @@ import { useEffect, useId, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { buttonClass } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
-import { type CreditPackView, type PlanSummary, fetchPlan, formatDate, formatNullableMinutes, totalRemainingMinutes } from "@/lib/plan-client";
+import { type CreditPackView, type PlanSummary, type PromoPreview, applyPendingPromo, fetchPlan, formatDate, formatNullableMinutes, totalRemainingMinutes, validatePromo } from "@/lib/plan-client";
 import { PLAN_LABEL, type PaidPlanId, isPaidPlan } from "@/lib/plan-types";
 import { annualPrice, formatPrice, yearlyTotal } from "@/lib/pricing";
 import { formatMinutes } from "@/lib/status";
@@ -347,6 +347,7 @@ export function PlanView() {
         </p>
       </section>
 
+      <PromoSection current={current} />
       {/* Extra hours, and how this month's minutes were counted. */}
       <div className="grid gap-5 lg:grid-cols-2">
         <Card>
@@ -416,6 +417,34 @@ export function PlanView() {
         </Card>
       )}
     </div>
+  );
+}
+
+/** Customer promo: one code per plan change, validated server-side, saved as pending when checkout (WooCommerce) is not connected. Only ever applies to your own account. */
+function PromoSection({ current }: { current: string }) {
+  const [planId, setPlanId] = useState<"pro" | "business">("pro");
+  const [code, setCode] = useState("");
+  const [preview, setPreview] = useState<PromoPreview | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  if (current === "business") return null;
+  return (
+    <Card>
+      <CardHeader title="Have a promo code?" />
+      <div className="space-y-3 p-5 text-sm">
+        <div className="flex flex-wrap gap-2">
+          <select aria-label="Plan for promo" value={planId} onChange={(e) => { setPlanId(e.target.value as "pro" | "business"); setPreview(null); }} className="h-10 rounded-lg border border-border bg-background px-3"><option value="pro">Pro</option><option value="business">Business</option></select>
+          <input aria-label="Promo code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="PROMO CODE" className="h-10 rounded-lg border border-border bg-background px-3" />
+          <button type="button" disabled={busy || !code.trim()} onClick={async () => { setBusy(true); setError(null); setSaved(null); try { setPreview(await validatePromo(planId, code.trim())); } catch (e) { setPreview(null); setError(e instanceof Error ? e.message : "That code isn’t valid for this plan."); } finally { setBusy(false); } }} className={buttonClass("secondary", "", "sm")}>Apply</button>
+          {preview && <button type="button" onClick={() => { setPreview(null); setCode(""); }} className={buttonClass("secondary", "", "sm")}>Remove</button>}
+        </div>
+        {error && <p role="alert" className="text-danger">{error}</p>}
+        {preview && <div role="status"><p>Discount applied: −${(preview.discountCents / 100).toFixed(2)} · Original ${(preview.originalPriceCents / 100).toFixed(2)} → <strong>${(preview.finalPriceCents / 100).toFixed(2)}</strong> · {preview.finalMinutes} minutes{preview.freePeriodDays ? ` · ${preview.freePeriodDays} free days` : ""}</p><button type="button" disabled={busy} onClick={async () => { setBusy(true); try { await applyPendingPromo(planId, preview.code); setSaved("Saved to your account. It will be used when you confirm this plan change — even if checkout connects later."); } catch (e) { setError(e instanceof Error ? e.message : "Couldn’t save."); } finally { setBusy(false); } }} className={buttonClass("primary", "", "sm")}>Confirm &amp; save promo</button></div>}
+        {saved && <p role="status">{saved}</p>}
+        <p className="text-xs text-muted">One promo code per plan change. Applying a new code replaces the previous one.</p>
+      </div>
+    </Card>
   );
 }
 
