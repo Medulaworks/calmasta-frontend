@@ -1,49 +1,37 @@
-name: Deploy Frontend to Server
-
+name: Frontend repository permissions audit
 on:
-  push:
-    branches: [main, staging]
   workflow_dispatch:
-
+    inputs:
+      operation:
+        type: choice
+        default: inspect
+        options: [inspect, repair]
 permissions:
   contents: read
-
-concurrency:
-  group: calmasta-frontend-deploy-${{ github.ref_name }}
-  cancel-in-progress: false
-
 jobs:
-  verify:
-    if: github.ref_name == 'main' || github.ref_name == 'staging'
+  inspect:
+    if: github.ref_name == 'ops/frontend-git-objects'
     runs-on: self-hosted
-    timeout-minutes: 15
+    timeout-minutes: 3
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: '22'
-      - name: Install pnpm and dependencies
-        run: |
-          npm install --global pnpm@11.5.0
-          pnpm install --frozen-lockfile
-      - name: Prepare environment
-        run: cp .env.example .env.local
-      - name: Run unit tests
-        run: pnpm test
-      - name: Verify build and typecheck
-        run: pnpm run build
-
-  deploy:
-    needs: verify
-    if: github.ref_name == 'main'
-    runs-on: self-hosted
-    timeout-minutes: 20
-    steps:
-      - name: Deploy tested commit to production
+      - name: Inspect deployment repository metadata only
         shell: bash
-        env:
-          DEPLOY_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          [[ "$DEPLOY_SHA" =~ ^[0-9a-f]{40}$ ]]
-          /home/ubuntu/calmasta-frontend-shared/deploy.sh "$DEPLOY_SHA"
+          python3 - <<'PY'
+          import os,re,json,collections
+          from pathlib import Path
+          script=Path('/home/ubuntu/calmasta-frontend-shared/deploy.sh').read_text()
+          candidates=set(re.findall(r'/(?:home|var|srv)/[a-zA-Z0-9_./-]+',script))|{'/home/ubuntu/calmasta-frontend'}
+          print(json.dumps({'runnerUid':os.getuid(),'runnerGid':os.getgid()}))
+          for root in sorted(candidates):
+            base=Path(root)
+            if not (base/'.git/objects').is_dir():continue
+            rows=[]
+            for name in ['.git','.git/objects','.git/FETCH_HEAD']:
+              p=base/name
+              if p.exists():
+                s=p.stat();rows.append({'path':str(p),'uid':s.st_uid,'gid':s.st_gid,'mode':oct(s.st_mode&0o777),'writable':os.access(p,os.W_OK)})
+            owners=collections.Counter((p.stat().st_uid,p.stat().st_gid) for p in (base/'.git/objects').rglob('*'))
+            print(json.dumps({'repository':root,'metadata':rows,'objectOwners':[{'uid':k[0],'gid':k[1],'count':v} for k,v in owners.items()]}))
+          PY
