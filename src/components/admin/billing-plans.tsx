@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { adminGet, adminPatch, adminPost, fmtUtc } from "@/lib/admin-client";
 import { SimpleDialog, inputClass } from "./ui";
 import { useResource } from "./ui";
