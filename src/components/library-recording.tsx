@@ -758,7 +758,7 @@ export function LibraryRecording({ id }: { id: string }) {
                     items={[
                       {
                         id: `recording-${capture.id}-insights`,
-                        label: isMeeting ? "Meeting insights" : "AI Notes",
+                        label: isMeeting ? "Meeting Summary" : "AI Notes",
                       },
                       {
                         id: `recording-${capture.id}-transcript`,

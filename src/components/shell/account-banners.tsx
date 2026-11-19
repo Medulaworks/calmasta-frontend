@@ -2,7 +2,16 @@
 
 import { dashboardPath } from "@/lib/app-routes";
 
-import { CreditCard, Hourglass, PauseCircle, Sparkles, Timer, Trash2, Zap, type LucideIcon } from "lucide-react";
+import {
+  CreditCard,
+  Hourglass,
+  PauseCircle,
+  Sparkles,
+  Timer,
+  Trash2,
+  Zap,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { buttonClass } from "@/components/ui/button";
 import {
@@ -19,9 +28,21 @@ import { formatMinutes } from "@/lib/status";
 type Level = "info" | "warning" | "danger";
 // Each level has a soft wash, a left edge, and a tint for its icon and the faint illustration behind it.
 const LEVELS: Record<Level, { box: string; edge: string; tint: string }> = {
-  info: { box: "border-accent/30 bg-accent/5", edge: "bg-accent", tint: "bg-accent/15 text-accent" },
-  warning: { box: "border-warning/40 bg-warning/5", edge: "bg-warning", tint: "bg-warning/15 text-warning" },
-  danger: { box: "border-danger/40 bg-danger/5", edge: "bg-danger-solid", tint: "bg-danger/15 text-danger" },
+  info: {
+    box: "border-accent/30 bg-accent/5",
+    edge: "bg-accent",
+    tint: "bg-accent/15 text-accent",
+  },
+  warning: {
+    box: "border-warning/40 bg-warning/5",
+    edge: "bg-warning",
+    tint: "bg-warning/15 text-warning",
+  },
+  danger: {
+    box: "border-danger/40 bg-danger/5",
+    edge: "bg-danger-solid",
+    tint: "bg-danger/15 text-danger",
+  },
 };
 
 interface Banner {
@@ -50,7 +71,10 @@ export function bannersFor(
     out.push({
       id: "deletion",
       level: "danger",
-      title: deletion.status === "requested" ? "Account set to be deleted" : "Account deletion in progress",
+      title:
+        deletion.status === "requested"
+          ? "Account set to be deleted"
+          : "Account deletion in progress",
       text,
       href: "/dashboard/settings#delete-account",
       cta: deletion.canCancel ? "Review or cancel" : "See progress",
@@ -137,25 +161,84 @@ export function AccountBanners({
       {banners.map((b) => {
         const lv = LEVELS[b.level];
         const Icon = ICONS[b.id] ?? Zap;
-        const cta = b.href && b.cta ? (
-          b.href.startsWith("/") ? (
-            <Link href={dashboardPath(b.href)} className={buttonClass(b.level === "info" ? "secondary" : "primary", "shrink-0", "sm")}>{b.cta}</Link>
-          ) : (
-            <a href={dashboardPath(b.href)} rel="noopener noreferrer" className={buttonClass(b.level === "info" ? "secondary" : "primary", "shrink-0", "sm")}>{b.cta}</a>
-          )
-        ) : null;
+        const cta =
+          b.href && b.cta ? (
+            b.href.startsWith("/") ? (
+              <Link
+                href={dashboardPath(b.href)}
+                className={buttonClass(
+                  b.level === "info" ? "secondary" : "primary",
+                  "shrink-0",
+                  "sm",
+                )}>
+                {b.cta}
+              </Link>
+            ) : (
+              <a
+                href={dashboardPath(b.href)}
+                rel="noopener noreferrer"
+                className={buttonClass(
+                  b.level === "info" ? "secondary" : "primary",
+                  "shrink-0",
+                  "sm",
+                )}>
+                {b.cta}
+              </a>
+            )
+          ) : null;
         return (
-          <div key={b.id} role={b.level === "info" ? "status" : "alert"} className={`relative isolate flex flex-wrap items-center gap-x-4 gap-y-3 overflow-hidden rounded-2xl border py-4 pl-5 pr-4 ${lv.box}`}>
-            <span aria-hidden className={`absolute inset-y-0 left-0 w-1 ${lv.edge}`} />
+          <div
+            key={b.id}
+            role={b.level === "info" ? "status" : "alert"}
+            className={`relative isolate flex flex-wrap items-center gap-x-4 gap-y-3 overflow-hidden rounded-2xl border py-4 pl-5 pr-4 ${lv.box}`}>
+            <span
+              aria-hidden
+              className={`absolute inset-y-0 left-0 w-1 ${lv.edge}`}
+            />
             {/* A faint set of rings and ticks, like a dial, behind the right-hand side. Decoration only. */}
-            <svg aria-hidden viewBox="0 0 240 120" fill="none" className={`pointer-events-none absolute inset-y-0 right-0 -z-10 h-full w-1/2 max-w-sm opacity-40 ${lv.tint.split(" ")[1]}`} style={{ maskImage: "linear-gradient(to left, black, transparent)", WebkitMaskImage: "linear-gradient(to left, black, transparent)" }} preserveAspectRatio="xMaxYMid slice">
-              {[28, 52, 76, 100].map((r) => <circle key={r} cx="200" cy="60" r={r} stroke="currentColor" strokeOpacity={0.35 - r / 400} strokeWidth="1.5" />)}
+            <svg
+              aria-hidden
+              viewBox="0 0 240 120"
+              fill="none"
+              className={`pointer-events-none absolute inset-y-0 right-0 -z-10 h-full w-1/2 max-w-sm opacity-40 ${lv.tint.split(" ")[1]}`}
+              style={{
+                maskImage: "linear-gradient(to left, black, transparent)",
+                WebkitMaskImage: "linear-gradient(to left, black, transparent)",
+              }}
+              preserveAspectRatio="xMaxYMid slice">
+              {[28, 52, 76, 100].map((r) => (
+                <circle
+                  key={r}
+                  cx="200"
+                  cy="60"
+                  r={r}
+                  stroke="currentColor"
+                  strokeOpacity={0.35 - r / 400}
+                  strokeWidth="1.5"
+                />
+              ))}
               {Array.from({ length: 12 }, (_, i) => {
                 const a = (i / 12) * Math.PI * 2;
-                return <line key={i} x1={200 + Math.cos(a) * 28} y1={60 + Math.sin(a) * 28} x2={200 + Math.cos(a) * 36} y2={60 + Math.sin(a) * 36} stroke="currentColor" strokeOpacity="0.5" strokeWidth="1.5" strokeLinecap="round" />;
+                return (
+                  <line
+                    key={i}
+                    x1={200 + Math.cos(a) * 28}
+                    y1={60 + Math.sin(a) * 28}
+                    x2={200 + Math.cos(a) * 36}
+                    y2={60 + Math.sin(a) * 36}
+                    stroke="currentColor"
+                    strokeOpacity="0.5"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                );
               })}
             </svg>
-            <span aria-hidden className={`grid size-10 shrink-0 place-items-center rounded-xl ${lv.tint}`}><Icon className="size-5" /></span>
+            <span
+              aria-hidden
+              className={`grid size-10 shrink-0 place-items-center rounded-xl ${lv.tint}`}>
+              <Icon className="size-5" />
+            </span>
             <div className="min-w-0 flex-1 basis-64">
               <p className="text-sm font-semibold">{b.title}</p>
               <p className="mt-0.5 text-sm text-muted">{b.text}</p>
@@ -168,7 +251,15 @@ export function AccountBanners({
   );
 }
 
-const ICONS: Record<string, LucideIcon> = { deletion: Trash2, paused: PauseCircle, grace: CreditCard, expired: Timer, pending: Hourglass, exhausted: Hourglass, low: Timer };
+const ICONS: Record<string, LucideIcon> = {
+  deletion: Trash2,
+  paused: PauseCircle,
+  grace: CreditCard,
+  expired: Timer,
+  pending: Hourglass,
+  exhausted: Hourglass,
+  low: Timer,
+};
 
 type Health = "ok" | "low" | "out" | "grace" | "pending";
 
@@ -284,13 +375,13 @@ export function SidebarPlanCard({ plan }: { plan: PlanSummary | null }) {
   return (
     <>
       {/* The full card */}
-      <div className="relative mb-1 overflow-hidden rounded-xl border border-sidebar-border bg-gradient-to-br from-sidebar-active-fg/25 via-black/10 to-black/25 p-3 sc:md:hidden">
+      <div className="relative mb-1 overflow-hidden rounded-xl border border-sidebar-border bg-gradient-to-br from-sidebar-active-fg/25 via-black/10 to-black/25 p-2.5 sc:md:hidden">
         <span
           aria-hidden
           className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-sidebar-active-fg/15 blur-2xl"
         />
         <div className="relative flex items-center justify-between gap-2">
-          <p className="flex items-center gap-2 text-sm font-semibold text-sidebar-fg">
+          <p className="flex items-center gap-2 text-[13px] font-semibold text-sidebar-fg">
             {pro ? (
               <Sparkles
                 aria-hidden
@@ -301,7 +392,7 @@ export function SidebarPlanCard({ plan }: { plan: PlanSummary | null }) {
             )}
             {planName} plan
           </p>
-          <span className="rounded-full bg-sidebar-fg/15 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-sidebar-fg">
+          <span className="rounded-full bg-sidebar-fg/15 px-2 py-1 text-[9px] font-semibold uppercase tracking-wide text-sidebar-fg">
             {health === "out"
               ? "Used up"
               : health === "low"
@@ -313,13 +404,13 @@ export function SidebarPlanCard({ plan }: { plan: PlanSummary | null }) {
                     : "Active"}
           </span>
         </div>
-        <p className="relative mt-3 text-xl font-semibold leading-none tracking-tight text-sidebar-fg tabular-nums">
+        <p className="relative mt-2.5 text-lg font-semibold leading-none tracking-tight text-sidebar-fg tabular-nums">
           {headline}
         </p>
         {!displayPlan.exhausted &&
           health !== "grace" &&
           health !== "pending" && (
-            <p className="relative mt-1 text-xs text-sidebar-muted">
+            <p className="relative mt-1 text-[11px] text-sidebar-muted">
               of {formatMinutes(total)} this month
             </p>
           )}
@@ -329,7 +420,7 @@ export function SidebarPlanCard({ plan }: { plan: PlanSummary | null }) {
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={usedPct}
-          className="relative mt-3 h-2 overflow-hidden rounded-full bg-sidebar-fg/20">
+          className="relative mt-2.5 h-1.5 overflow-hidden rounded-full bg-sidebar-fg/20">
           <div
             className={`h-full rounded-full transition-[width] ${FILL[health]}`}
             style={{
@@ -337,12 +428,12 @@ export function SidebarPlanCard({ plan }: { plan: PlanSummary | null }) {
             }}
           />
         </div>
-        <p className="relative mt-2 text-xs text-sidebar-muted">
+        <p className="relative mt-1.5 text-[11px] text-sidebar-muted">
           Resets {formatDate(displayPlan.resetsAt, displayPlan.timezone)}
         </p>
         <Link
           href={dashboardPath(href)}
-          className="relative mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-sidebar-fg px-3 py-2 text-sm font-semibold text-sidebar transition-opacity hover:opacity-90">
+          className="relative mt-2.5 flex w-full items-center justify-center gap-2 rounded-lg bg-sidebar-fg px-3 py-2 text-[13px] font-semibold text-sidebar transition-opacity hover:opacity-90">
           {pro && health === "ok" ? null : (
             <Zap aria-hidden className="h-4 w-4" />
           )}{" "}
