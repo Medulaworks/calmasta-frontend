@@ -582,3 +582,9 @@ Next action: OTEL-09/OPERATIONS — operator provisions fixture capture/cookie a
 - **Proof (command + result + revision):** fba26fb+diff: focused58/58, types/scoped lint/diff PASS; backend46/46 disposable PG18/OpenAPI159 PASS. See account-realtime runbook/evidence for commands.
 - **What is NOT done:** Shared migration/deployment/WSS proxy/origin/browser/load acceptance; no provider/policy/commerce/deletion activation.
 - **Next action (task ID + files):** M8/FE-U01 — migration063/API/frontend authorized rollout per backend docs/runbooks/account-realtime.md.
+
+## 2026-11-19 — realtime staging steps1–3 delivered
+- **What was done (files + behavior):** M8/FE-U01: migration063, exact-origin/session-mode listener configuration, verified API/worker restart and paired staging frontend publication; implementation IMPLEMENTED.
+- **Proof (command + result + revision):** APIca4d9bd Actions44442101691:599/599+OpenAPI159/deploy PASS; config Actions44443389078 SUCCESS. Frontend4d5dbf8 Actions44440433415:569/569/build PASS; Vercel dpl_3D6DiXvCcSMQUk2338A9gxvRoWT5 promoted. HTTP200/401/403 and WebSocket101/403 observed.
+- **What is NOT done:** Step4 authenticated account-change/browser/reconnect acceptance, capacity benchmarks and production promotion; existing provider/M2/deletion gates remain open.
+- **Next action (task ID + files):** M8/FE-U01 — disposable-account step4 at myjooba-staging.vercel.app; backend rollout evidence/runbook own exact source and remaining checks.
