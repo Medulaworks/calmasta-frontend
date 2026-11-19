@@ -40,7 +40,7 @@ export function insightMessage(artifact: Pick<InsightRequest, "state" | "failure
     case "ready": return "Ready to review.";
     case "blocked": return artifact.failureReason && Object.hasOwn(reasons, artifact.failureReason) ? reasons[artifact.failureReason] : "Something needs attention. Please contact support before trying again.";
     case "failed": return artifact.failureReason==="insight_dispatch_blocked"?"Processing did not start. You can try again.":artifact.failureReason==="insight_summary_format_changed"?"A newer summary format is available. Generate a current recap when you are ready.":"This stopped before it finished, and it won’t be retried automatically.";
-    case "reconciliation_required": return "We’re not sure whether this finished. We’re looking into it and won’t retry automatically.";
+    case "reconciliation_required": return artifact.failureReason === "insight_provider_http_429" ? "The AI service reached a rate limit. This needs attention before another attempt. Contact support; it won’t retry automatically." : "The generation outcome needs to be checked before another attempt. Contact support; it won’t retry automatically.";
     default: return "Processing status is unavailable. Refresh to check again.";
   }
 }
@@ -72,3 +72,16 @@ export const emailStatusMessage: Record<InsightArtifact<unknown>["emailStatus"],
   unknown: "We’re not sure the email was delivered, and we won’t send it again automatically.",
   skipped: "Completion email was skipped.",
 };
+
+export function insightStatusLabel(artifact: Pick<InsightArtifact<unknown>, "state" | "isStale"> | null | undefined): string {
+  if (!artifact) return "Not requested";
+  switch (artifact.state) {
+    case "ready": return artifact.isStale ? "Out of date" : "Ready";
+    case "pending": return "Waiting";
+    case "queued": return "Queued";
+    case "running": return "Generating";
+    case "blocked":
+    case "failed":
+    case "reconciliation_required": return "Needs attention";
+  }
+}
