@@ -35,3 +35,23 @@ jobs:
             owners=collections.Counter((p.stat().st_uid,p.stat().st_gid) for p in (base/'.git/objects').rglob('*'))
             print(json.dumps({'repository':root,'metadata':rows,'objectOwners':[{'uid':k[0],'gid':k[1],'count':v} for k,v in owners.items()]}))
           PY
+      - name: Restore runner ownership of proven root-owned Git objects
+        if: inputs.operation == 'repair'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,json,subprocess
+          from pathlib import Path
+          target=Path('/home/ubuntu/calmasta-frontend/.git/objects')
+          assert os.getuid()==1000 and os.getgid()==1000
+          assert target.is_dir() and target.resolve()==target and not target.is_symlink()
+          entries=list(target.rglob('*'))
+          assert not any(p.is_symlink() for p in entries)
+          assert all((p.stat().st_uid,p.stat().st_gid) in [(0,0),(1000,1000)] for p in entries)
+          before=sum(p.stat().st_uid==0 for p in entries)
+          subprocess.run(['sudo','-n','chown','-R','--from=0:0','--','1000:1000',str(target)],check=True)
+          after=sum(p.stat().st_uid==0 for p in entries)
+          assert after==0
+          print(json.dumps({'repository':'/home/ubuntu/calmasta-frontend','rootOwnedGitObjectsBefore':before,'rootOwnedGitObjectsAfter':after,'runtimeFilesChanged':False}))
+          PY
