@@ -49,9 +49,7 @@ describe("ShareNotesDialog", () => {
   });
 
   it("renders sharing dialog structure with cards when state is loaded", () => {
-    // Populate hook state:
-    // 0: state, 1: loading, 2: submitting, 3: error, 4: email, 5: displayTitle, 6: includeTranscript,
-    // 7: selectedInsightIds, 8: readyInsights, 9: hasTranscript, 10: expiryDays, 11: linkUrl, 12: alreadyIssued
+    // Populate hook state: state, loading, submitting, error, email, displayTitle, includeTranscript, includeAudio, includeVideo, selectedInsightIds, readyInsights, hasTranscript, expiryDays, linkUrl, alreadyIssued
     hooks.values[0] = {
       ...fixtureSharingState,
       capabilities: {
@@ -66,9 +64,8 @@ describe("ShareNotesDialog", () => {
     expect(result).not.toBeNull();
     const all = elements(result);
     const text = all.map(e => typeof e.props.children === "string" ? e.props.children : "").join(" ");
-    expect(all.some(e => e.props.title === "Choose what to share")).toBe(true);
-    expect(all.some(e => e.props.title === "People with access")).toBe(true);
-    expect(all.some(e => e.props.title === "Link visibility")).toBe(true);
+    expect(all.some(e => e.props.title === "What to include")).toBe(true);
+    expect(all.some(e => e.props.title === "People and link")).toBe(true);
   });
 
   it("displays policy alert when sharing is disabled by policy", () => {
