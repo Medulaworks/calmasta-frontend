@@ -411,7 +411,7 @@ export function SidebarPlanCard({ plan }: { plan: PlanSummary | null }) {
           health !== "grace" &&
           health !== "pending" && (
             <p className="relative mt-1 text-[11px] text-sidebar-muted">
-              of {formatMinutes(total)} this month
+              of {formatMinutes(total)} this month.
             </p>
           )}
         <div
