@@ -7,10 +7,14 @@ export interface SharePublication {
   displayTitle: string | null;
   insightIds: string[];
   includeTranscript: boolean;
+  includeAudio?: boolean;
+  includeVideo?: boolean;
   mode: SharingMode;
   createdAt: string;
   publishedAt: string | null;
+  expiresAt?: string | null;
 }
+export interface SharedMedia { url: string; expiresAt: string; contentType: string; sizeBytes: number }
 
 export interface ShareGrant {
   id: string;
@@ -62,6 +66,7 @@ export interface PublicNotes {
   publishedAt: string;
   notes: Array<{ kind: string; templateLabel: string; content: string }>;
   transcript?: { text: string; speakerLabels?: string } | null;
+  media?: { audio: SharedMedia | null; video: SharedMedia | null } | null;
 }
 
 export interface SharedNotesView extends PublicNotes {
