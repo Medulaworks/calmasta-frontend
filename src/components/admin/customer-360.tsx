@@ -23,7 +23,7 @@ export type Customer360Data = {
   preferences: { botName: string | null; promptState: string; updatedAt: string } | null;
   sessions: { total: number; active: number; lastCreatedAt: string | null };
   deletion: { status: string; requestedAt: string; completedAt: string | null } | null;
-  totals: { captures: number; meetings: number; uploads: number; transcriptImports: number; documents: number; insightsReady: number; bookings: number };
+  totals: { captures: number; capturesVisible: number; capturesDeleted: number; capturesArchived: number; capturesFailed: number; meetings: number; meetingsVisible: number; recordingsVisible: number; uploads: number; uploadsVisible: number; transcriptImports: number; documents: number; insightsReady: number; bookings: number };
   connections: Array<{ id: string; provider: string; accountEmail: string; status: string; calendars: number; connectedAt: string }>;
   recentJobs: Array<{ id: string; captureId: string; kind: string; state: string; attempts: number; lastError: string | null; updatedAt: string }>;
   adminHistory: Array<{ id: string; action: string; reason: string; createdAt: string; actorEmail: string | null }>;
@@ -108,9 +108,9 @@ export function Customer360({ id, data }: { id: string; data: Customer360Data })
     <div className="space-y-5">
       <p className="flex items-center gap-2 text-sm text-muted"><Lock aria-hidden className="size-4 shrink-0" /> Recordings and documents aren&rsquo;t visible to admins. You only see counts and settings.</p>
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Metric icon={Video} label="Recordings" value={data.totals.captures ?? 0} />
-        <Metric icon={Mic} label="Meetings" value={data.totals.meetings ?? 0} />
-        <Metric icon={FileUp} label="Uploads" value={(data.totals.uploads ?? 0) + (data.totals.transcriptImports ?? 0)} />
+        <Metric icon={Video} label="Recordings" value={data.totals.recordingsVisible} />
+        <Metric icon={Mic} label="Meetings" value={data.totals.meetingsVisible} />
+        <Metric icon={FileUp} label="Uploads" value={(data.totals.uploadsVisible ?? 0) + (data.totals.transcriptImports ?? 0)} />
         <Metric icon={FileText} label="Documents" value={data.totals.documents ?? 0} />
       </div>
       <Tabs label="Customer detail" items={items} active={tab} onChange={setTab} variant="pill" />
