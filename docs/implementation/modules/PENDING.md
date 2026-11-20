@@ -1,3 +1,11 @@
+
+## 2026-11-20 — unavailable browser telemetry emission disabled
+
+- **What was done (files + behavior):** OTEL browser emission IMPLEMENTED: instrumentation-client.ts and lib/telemetry.ts are inert compatibility entry points while ingestion is unavailable; no fetch wrapper, error/rejection listener, beacon or legacy queue. Existing route503 and independent server instrumentation unchanged.
+- **Proof (command + result + revision):** Base9f54a79+diff: new regression tests reproduced3FAIL before change; telemetry/route checks5/5PASS, full pnpm test577/577PASS, pnpm run typecheck and scoped ESLintPASS. No browser/provider/shared DB check.
+- **What is NOT done:** Commit/push/hosted staging adoption pending at checkpoint; browser ingestion remains intentionally unavailable. No production deployment or private-data collection.
+- **Next action (task ID + files):** OTEL-07 — publish frontend staging, confirm CI and deployment-source parity; backend billing release blockers/preflight owned by sibling handoff.
+
 ## 2026-11-18 — dynamic upload settings published to staging
 
 - **What was done (files + behavior):** FE-C01/FE-ADM01: user authorized backend publication and local runtime/frontend publication (steps1/3). Frontend feature09dcf4a is already committed on both configured staging remotes; preserved the concurrent commit. Backend80d2e2e3a2a976dcfb7ff8236c08b32da4117c04 is pushed with policy/OpenAPI/transport enforcement and rollout instructions. Local API restarted onto compiled code; local worker code compiled, with no previously running local worker to restart. No shared policy values changed.
