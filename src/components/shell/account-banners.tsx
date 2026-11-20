@@ -136,7 +136,7 @@ export function bannersFor(
       id: "low",
       level: "info",
       title: "Running low this month",
-      text: `${formatNullableMinutes(plan.remainingMinutes)} left this month.`,
+      text: `${formatNullableMinutes(plan.remainingMinutes)} left this month.${(plan.reservedMinutes ?? 0) > 0 ? ` ${formatMinutes(plan.reservedMinutes ?? 0)} is reserved for recordings still processing.` : ""}`,
       href: "/dashboard/plan",
       cta: "See usage",
     });
@@ -429,7 +429,7 @@ export function SidebarPlanCard({ plan }: { plan: PlanSummary | null }) {
           />
         </div>
         <p className="relative mt-1.5 text-[11px] text-sidebar-muted">
-          Resets {formatDate(displayPlan.resetsAt, displayPlan.timezone)}
+          Resets {formatDate(displayPlan.plan.renewsAt ?? displayPlan.resetsAt, displayPlan.timezone)}{displayPlan.reservedMinutes ? ` · ${formatMinutes(displayPlan.reservedMinutes)} reserved` : ""}
         </p>
         <Link
           href={dashboardPath(href)}
