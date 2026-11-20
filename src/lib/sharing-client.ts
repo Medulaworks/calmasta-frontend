@@ -33,6 +33,7 @@ export async function getSharing(captureId: string, signal?: AbortSignal): Promi
           mode: "restricted" as const,
           createdAt: String(p.publishedAt ?? p.createdAt ?? new Date().toISOString()),
           publishedAt: (p.publishedAt as string | null) ?? null,
+          expiresAt: (p.expiresAt as string | null) ?? null,
         };
       })
     : raw.publication ? [raw.publication as import("./sharing-types").SharePublication] : [];
@@ -84,7 +85,7 @@ export async function getSharing(captureId: string, signal?: AbortSignal): Promi
 
 export const createPublication = (
   captureId: string,
-  body: { expectedVersion: number; insightIds: string[]; includeTranscript: boolean; displayTitle?: string; expiresAt?: string | null },
+  body: { expectedVersion: number; insightIds: string[]; includeTranscript: boolean; includeAudio?: boolean; includeVideo?: boolean; displayTitle?: string; expiresAt?: string | null },
   idempotencyKey: string,
 ) =>
   req<{ id: string; publicationVersion: number; expiresAt: string | null; sharingVersion: number } & Partial<SharingState>>(
@@ -126,12 +127,13 @@ export const revokeLink = (
   captureId: string,
   linkId: string,
   body: { expectedVersion: number; reason?: string },
+  idempotencyKey = crypto.randomUUID(),
 ) =>
   req<{ revoked: boolean; sharingVersion: number } & Partial<SharingState>>(
     `/api/captures/${encodeURIComponent(captureId)}/sharing/links/${encodeURIComponent(linkId)}`,
     {
       method: "DELETE",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
       body: JSON.stringify({
         expectedVersion: body.expectedVersion,
         reason: ["owner_request", "rotation", "security", "republish"].includes(body.reason ?? "") ? body.reason : "owner_request",
@@ -161,12 +163,13 @@ export const revokeGrant = (
   captureId: string,
   grantId: string,
   body: { expectedVersion: number; reason?: string },
+  idempotencyKey = crypto.randomUUID(),
 ) =>
   req<{ revoked: boolean; sharingVersion: number } & Partial<SharingState>>(
     `/api/captures/${encodeURIComponent(captureId)}/sharing/grants/${encodeURIComponent(grantId)}`,
     {
       method: "DELETE",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
       body: JSON.stringify({
         expectedVersion: body.expectedVersion,
         reason: ["owner_request", "rotation", "security", "republish"].includes(body.reason ?? "") ? body.reason : "owner_request",
@@ -178,12 +181,13 @@ export const sendGrant = (
   captureId: string,
   grantId: string,
   body?: { expectedVersion?: number; reason?: string },
+  idempotencyKey = crypto.randomUUID(),
 ) =>
   req<{ ok?: boolean; accepted?: boolean; delivery?: string }>(
     `/api/captures/${encodeURIComponent(captureId)}/sharing/grants/${encodeURIComponent(grantId)}/send`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
       body: JSON.stringify({
         expectedVersion: body?.expectedVersion ?? 0,
         reason: ["owner_request", "rotation", "security", "republish"].includes(body?.reason ?? "") ? body!.reason : "owner_request",

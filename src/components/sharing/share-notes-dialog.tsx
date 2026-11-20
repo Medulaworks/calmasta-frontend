@@ -20,6 +20,8 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
   const [email, setEmail] = useState("");
   const [displayTitle, setDisplayTitle] = useState("");
   const [includeTranscript, setIncludeTranscript] = useState(false);
+  const [includeAudio, setIncludeAudio] = useState(false);
+  const [includeVideo, setIncludeVideo] = useState(false);
   const [selectedInsightIds, setSelectedInsightIds] = useState<string[]>([]);
   const [readyInsights, setReadyInsights] = useState<ReadyInsight[]>([]);
   const [hasTranscript, setHasTranscript] = useState(false);
@@ -83,7 +85,8 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
   const invitationsAllowed = caps?.invitationsEnabled ?? false;
   const maxExpiry = caps?.maxExpiryDays ?? null;
   const sharingDisabledByPolicy = caps ? (!caps.publicLinksEnabled && !caps.recipientGrantsEnabled) : false;
-  const hasSelectedContent = includeTranscript || selectedInsightIds.length > 0;
+  const hasSelectedContent = includeTranscript || selectedInsightIds.length > 0 || includeAudio || includeVideo;
+  const mediaSharingEnabled = (state as { mediaSharingEnabled?: boolean } | null)?.mediaSharingEnabled;
 
   function toggleInsight(id: string) {
     setSelectedInsightIds((prev) =>
@@ -108,6 +111,8 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
           expectedVersion: version,
           insightIds: selectedInsightIds,
           includeTranscript,
+          includeAudio,
+          includeVideo,
           displayTitle: displayTitle.trim() || undefined,
           expiresAt,
         },
@@ -137,7 +142,23 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
     setSubmitting(true);
     try {
       const parsedDays = expiryDays.trim() ? Number(expiryDays) : null;
-      const expiresAt = parsedDays ? new Date(Date.now() + parsedDays * 86400000).toISOString() : null;
+      if (parsedDays !== null && (!Number.isFinite(parsedDays) || parsedDays <= 0)) {
+        setError("Expiry days must be greater than 0.");
+        setSubmitting(false);
+        return;
+      }
+      if (maxExpiry && parsedDays && parsedDays > maxExpiry) {
+        setError(`Links can last up to ${maxExpiry} days at most.`);
+        setSubmitting(false);
+        return;
+      }
+      const requestedExpiryMs = parsedDays ? Date.now() + parsedDays * 86400000 : null;
+      const pubExpiryMs = state?.publication?.expiresAt ? Date.parse(state.publication.expiresAt) : null;
+      const effectiveExpiryMs =
+        requestedExpiryMs !== null && pubExpiryMs !== null && Number.isFinite(pubExpiryMs)
+          ? Math.min(requestedExpiryMs, pubExpiryMs)
+          : requestedExpiryMs;
+      const expiresAt = effectiveExpiryMs !== null ? new Date(effectiveExpiryMs).toISOString() : null;
       const res = await createLink(
         captureId,
         {
@@ -240,7 +261,7 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
 
   return (
     <div role="dialog" aria-modal="true" aria-labelledby="share-title" className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-auto rounded-2xl border border-border bg-background p-6 shadow-lg">
+      <div className="max-h-[90vh] w-full max-w-md overflow-auto rounded-2xl border border-border bg-background p-5 shadow-lg">
         <div className="flex items-start justify-between gap-3">
           <h2 id="share-title" className="text-lg font-semibold">Share notes</h2>
           <Button variant="ghost" onClick={onClose}>Close</Button>
@@ -259,91 +280,37 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
 
         {state && (
           <div className="mt-4 space-y-5">
-            <p className="text-xs text-muted">Only you can manage sharing, and nothing is shared until you choose to. Shared notes never include audio, video or the participant list, and people you share with can only view them.</p>
-
             <Card>
-              <CardHeader title="Choose what to share" description="Pick the notes people will see." />
-              <div className="space-y-4 p-4 text-sm">
+              <CardHeader title="What to include" />
+              <div className="space-y-3 p-4 text-sm">
                 <label className="block">
-                  <span className="text-sm font-medium">Title shown on the shared page</span>
-                  <input
-                    value={displayTitle}
-                    onChange={(e) => setDisplayTitle(e.target.value)}
-                    maxLength={200}
-                    placeholder="Shared notes"
-                    className="mt-2 block h-10 w-full rounded-lg border border-border bg-background px-3 text-sm"
-                  />
+                  <span className="text-sm font-medium">Title</span>
+                  <input value={displayTitle} onChange={(e) => setDisplayTitle(e.target.value)} maxLength={200} placeholder="Shared notes" className="mt-1 block h-10 w-full rounded-lg border border-border bg-background px-3 text-sm" />
                 </label>
-
-                <div className="space-y-2 rounded-lg border border-border p-3">
-                  <span className="text-xs font-medium text-muted uppercase tracking-wider">What to include</span>
-                  {readyInsights.length > 0 ? (
-                    <div className="space-y-2 pt-1">
-                      {readyInsights.map((insight) => (
-                        <label key={insight.id} className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={selectedInsightIds.includes(insight.id)}
-                            onChange={() => toggleInsight(insight.id)}
-                            className="size-4"
-                          />
-                          <span>{insight.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted">No finished notes to share yet.</p>
-                  )}
-                  {hasTranscript && (
-                    <label className="flex items-center gap-2 pt-1 border-t border-border cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={includeTranscript}
-                        onChange={(e) => setIncludeTranscript(e.target.checked)}
-                        className="size-4"
-                      />
-                      <span>Include the transcript</span>
-                    </label>
-                  )}
-                </div>
-
-                <label className="block">
-                  <span className="text-sm font-medium">Link expires after (days{maxExpiry ? `, 1–${maxExpiry}` : ", 1–365, or leave blank for no expiry"})</span>
-                  <input
-                    type="number"
-                    min={1}
-                    max={maxExpiry ?? 365}
-                    value={expiryDays}
-                    onChange={(e) => setExpiryDays(e.target.value)}
-                    placeholder={maxExpiry ? `Max ${maxExpiry} days` : "No expiry"}
-                    className="mt-2 block h-10 w-full rounded-lg border border-border bg-background px-3 text-sm"
-                  />
-                </label>
-
-                {!hasSelectedContent && (
-                  <p className="text-xs text-warning">Choose at least one note, or the transcript, to share.</p>
+                {readyInsights.map((insight) => (
+                  <label key={insight.id} className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={selectedInsightIds.includes(insight.id)} onChange={() => toggleInsight(insight.id)} className="size-4" /><span>{insight.label}</span></label>
+                ))}
+                {hasTranscript && <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={includeTranscript} onChange={(e) => setIncludeTranscript(e.target.checked)} className="size-4" /><span>Transcript</span></label>}
+                {mediaSharingEnabled && (
+                  <>
+                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={includeAudio} onChange={(e) => setIncludeAudio(e.target.checked)} className="size-4" /><span>Audio</span></label>
+                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={includeVideo} onChange={(e) => setIncludeVideo(e.target.checked)} className="size-4" /><span>Video</span></label>
+                  </>
                 )}
-
-                <Button
-                  variant="primary"
-                  disabled={submitting || !hasSelectedContent || sharingDisabledByPolicy}
-                  onClick={() => void publish()}
-                >
-                  {submitting ? "Sharing…" : "Share selected notes"}
+                <label className="block">
+                  <span className="text-sm font-medium">Expires after (days{maxExpiry ? `, 1–${maxExpiry}` : ""}, blank = no expiry)</span>
+                  <input type="number" min={1} max={maxExpiry ?? 365} value={expiryDays} onChange={(e) => setExpiryDays(e.target.value)} placeholder={maxExpiry ? `Max ${maxExpiry}` : "No expiry"} className="mt-1 block h-10 w-full rounded-lg border border-border bg-background px-3 text-sm" />
+                </label>
+                {!hasSelectedContent && <p className="text-xs text-warning">Choose at least one item to share.</p>}
+                <Button variant="primary" className="w-full" disabled={submitting || !hasSelectedContent || sharingDisabledByPolicy} onClick={() => void publish()}>
+                  {submitting ? "Sharing…" : "Share"}
                 </Button>
-
-                {state.publication && (
-                  <p className="text-xs text-muted">
-                    Currently shared: version {state.publication.version} · shared {state.publication.publishedAt ? new Date(state.publication.publishedAt).toLocaleString() : "recently"}
-                  </p>
-                )}
               </div>
             </Card>
-
             <Card>
-              <CardHeader title="People with access" description="Share with specific people by email." />
+              <CardHeader title="People and link" />
               <div className="space-y-3 p-4 text-sm">
-                <p className="text-xs text-muted">You own these notes. People you add can view them.</p>
+                <p className="text-xs text-muted">People you add can view. A link lets anyone open it.</p>
                 {!recipientGrantsAllowed && (
                   <p className="text-xs text-warning">Sharing with people is turned off right now.</p>
                 )}
@@ -404,10 +371,9 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
               </div>
             </Card>
 
-            <Card>
-              <CardHeader title="Link visibility" description="Create a link that anyone can open." />
-              <div className="space-y-3 p-4 text-sm">
-                <p className="text-xs text-muted">Right now only the people you added can see these notes. A link lets anyone who has it view them. Audio and video are never included.</p>
+            <div className="border-t border-border pt-3">
+              <div className="space-y-2 text-sm">
+                <p className="text-xs text-muted">Link: anyone with it can open this.</p>
                 {!publicLinksAllowed && (
                   <p className="text-xs text-warning">Link sharing is turned off right now.</p>
                 )}
@@ -451,7 +417,7 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
                   </p>
                 )}
               </div>
-            </Card>
+            </div>
           </div>
         )}
       </div>
