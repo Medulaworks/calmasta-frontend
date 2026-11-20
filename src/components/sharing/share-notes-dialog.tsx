@@ -261,7 +261,7 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
 
   return (
     <div role="dialog" aria-modal="true" aria-labelledby="share-title" className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
-      <div className="max-h-[90vh] w-full max-w-md overflow-auto rounded-2xl border border-border bg-background p-5 shadow-lg">
+      <div className="max-h-[90vh] w-full max-w-2xl overflow-auto rounded-2xl border border-border bg-background p-6 shadow-lg">
         <div className="flex items-start justify-between gap-3">
           <h2 id="share-title" className="text-lg font-semibold">Share notes</h2>
           <Button variant="ghost" onClick={onClose}>Close</Button>
