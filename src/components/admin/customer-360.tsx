@@ -9,6 +9,7 @@ import { Tabs, tabId, tabPanelId } from "@/components/ui/tabs";
 import { fmtUtc, shortId } from "@/lib/admin-client";
 import { formatMinutes } from "@/lib/status";
 import { DataTable, Metric, Td, Th, usePaged } from "./ui";
+import { PlanChangePanel } from "./plan-change-panel";
 
 export type Workspace360 = {
   id: string; ownerId: string; plan: string; role: string; processingPaused: boolean; createdAt: string; memberCount: number;
@@ -155,7 +156,7 @@ export function Customer360({ id, data }: { id: string; data: Customer360Data })
         )}
         {tab === "activities" && <Activities id={id} />}
         {tab === "usage" && (
-          <div className="space-y-4">{data.workspaces.map((w) => (
+          <div className="space-y-4"><PlanChangePanel customerId={id} />{data.workspaces.map((w) => (
             <Card key={w.id}><CardHeader title={`Minutes used · workspace ${shortId(w.id)}`} />
               <dl className="grid gap-x-8 gap-y-5 p-5 sm:grid-cols-3">
                 <Row label="Month">{w.usage?.period ?? "This month"}</Row>

@@ -10,6 +10,7 @@ import { ToastStack, useToasts } from "@/components/ui/toast";
 import { type Json, adminPatch, adminPost } from "@/lib/admin-client";
 import type { AdminPack, AdminPlan, PlanList } from "@/lib/admin-types";
 import { formatMinutes } from "@/lib/status";
+import { BillingPlans } from "./billing-plans";
 import { PlanCard } from "./plan-card";
 import { PlanEditor } from "./plan-editor";
 import { MenuTd, RowMenu } from "./row-menu";
@@ -35,11 +36,12 @@ export function PlansView() {
     <ResourceBoundary resource={res}>
       {(data: Json<PlanList> & { available?: boolean; reason?: string; items?: unknown[] }) => {
         if ((data as { available?: boolean }).available === false) {
-          return <AdminUnavailable title="Plans aren’t available yet"><p className="text-sm text-muted">They will appear here once billing is switched on.</p></AdminUnavailable>;
+          return <div className="space-y-10"><BillingPlans /><AdminUnavailable title="Legacy store plans aren’t available yet"><p className="text-sm text-muted">Dynamic plan config above works without WooCommerce.</p></AdminUnavailable></div>;
         }
         const { plans, packs, annualDiscountPct, enterpriseUrl } = data as Json<PlanList>;
         return (
         <div className="space-y-10">
+          <BillingPlans />
           <ul className="grid gap-5 md:grid-cols-3">
             {plans.map((p) => <li key={p.id}><PlanCard plan={p} discountPct={annualDiscountPct} onOpen={() => setEditing(p)} /></li>)}
           </ul>

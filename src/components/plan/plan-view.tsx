@@ -8,7 +8,7 @@ import { useEffect, useId, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { buttonClass } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
-import { type CreditPackView, type PlanSummary, fetchPlan, formatDate, formatNullableMinutes, totalRemainingMinutes } from "@/lib/plan-client";
+import { type CreditPackView, type PlanSummary, type PromoPreview, applyPendingPromo, fetchPlan, formatDate, formatNullableMinutes, totalRemainingMinutes, validatePromo } from "@/lib/plan-client";
 import { PLAN_LABEL, type PaidPlanId, isPaidPlan } from "@/lib/plan-types";
 import { annualPrice, formatPrice, yearlyTotal } from "@/lib/pricing";
 import { formatMinutes } from "@/lib/status";
@@ -148,6 +148,7 @@ export function PlanView() {
   const [plan, setPlan] = useState<PlanSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [billing, setBilling] = useState<Billing>("annual");
+  const [promoOpen, setPromoOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -251,6 +252,7 @@ export function PlanView() {
             </div>
             <div className="flex flex-wrap gap-2">
               <Link href={packHref()} className={buttonClass(plan.exhausted ? "primary" : "secondary", "", "sm")}>Buy extra hours</Link>
+              <button type="button" onClick={() => setPromoOpen(true)} className={buttonClass("secondary", "", "sm")}>Have a promo code?</button>
               {plan.billingUrl && <Link href={dashboardPath(plan.billingUrl)} className={buttonClass("secondary", "", "sm")}>Manage billing</Link>}
             </div>
           </div>
@@ -347,6 +349,7 @@ export function PlanView() {
         </p>
       </section>
 
+      {promoOpen && <PromoModal current={current} onClose={() => setPromoOpen(false)} />}
       {/* Extra hours, and how this month's minutes were counted. */}
       <div className="grid gap-5 lg:grid-cols-2">
         <Card>
@@ -415,6 +418,40 @@ export function PlanView() {
           </div>
         </Card>
       )}
+    </div>
+  );
+}
+
+/** Customer promo modal: one code per plan change, validated server-side, saved as pending when checkout (WooCommerce) is not connected. Only ever applies to your own account. */
+function PromoModal({ current, onClose }: { current: string; onClose: () => void }) {
+  const [planId, setPlanId] = useState<"pro" | "business">("pro");
+  const [code, setCode] = useState("");
+  const [preview, setPreview] = useState<PromoPreview | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !busy) onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [busy, onClose]);
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget && !busy) onClose(); }}>
+      <div role="dialog" aria-modal="true" aria-label="Have a promo code?" className="w-full max-w-md rounded-2xl border border-border bg-background p-6 shadow-2xl">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-base font-semibold">Have a promo code?</h2>
+          <button type="button" aria-label="Close" disabled={busy} onClick={onClose} className="grid size-8 place-items-center rounded-lg text-muted hover:bg-surface hover:text-foreground">✕</button>
+        </div>
+        <div className="mt-4 space-y-3 text-sm">
+          <label className="block"><span className="font-medium">Plan</span><select aria-label="Plan for promo" value={planId} onChange={(e) => { setPlanId(e.target.value as "pro" | "business"); setPreview(null); }} className="mt-2 block h-10 w-full rounded-lg border border-border bg-background px-3"><option value="pro">Pro</option><option value="business">Business</option></select></label>
+          <label className="block"><span className="font-medium">Promo code</span><input aria-label="Promo code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="PROMO CODE" className="mt-2 block h-10 w-full rounded-lg border border-border bg-background px-3" /></label>
+          <div className="flex gap-2"><button type="button" disabled={busy || !code.trim()} onClick={async () => { setBusy(true); setError(null); setSaved(null); try { setPreview(await validatePromo(planId, code.trim())); } catch (e) { setPreview(null); setError(e instanceof Error ? e.message : "That code isn’t valid for this plan."); } finally { setBusy(false); } }} className={buttonClass("secondary", "", "sm")}>{busy ? "Checking…" : "Apply"}</button>{preview && <button type="button" onClick={() => { setPreview(null); setCode(""); }} className={buttonClass("secondary", "", "sm")}>Remove</button>}</div>
+          {error && <p role="alert" className="text-danger">{error}</p>}
+          {preview && <div role="status" className="space-y-3"><p>Discount applied: −${(preview.discountCents / 100).toFixed(2)} · Original ${(preview.originalPriceCents / 100).toFixed(2)} → <strong>${(preview.finalPriceCents / 100).toFixed(2)}</strong> · {preview.finalMinutes} minutes{preview.freePeriodDays ? ` · ${preview.freePeriodDays} free days` : ""}</p><button type="button" disabled={busy} onClick={async () => { setBusy(true); try { await applyPendingPromo(planId, preview.code); setSaved("Saved to your account. It will be used when you confirm this plan change — even if checkout connects later."); } catch (e) { setError(e instanceof Error ? e.message : "Couldn’t save."); } finally { setBusy(false); } }} className={buttonClass("primary", "w-full", "sm")}>{busy ? "Saving…" : "Confirm & save promo"}</button></div>}
+          {saved && <p role="status">{saved}</p>}
+          <p className="text-xs text-muted">One promo code per plan change. Applying a new code replaces the previous one.</p>
+        </div>
+      </div>
     </div>
   );
 }
