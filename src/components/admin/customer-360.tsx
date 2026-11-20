@@ -1,6 +1,6 @@
 "use client";
 
-import { Archive, Eye, FileText, FileUp, Lock, Mic, Timer, Trash2, Video } from "lucide-react";
+import { FileText, FileUp, Lock, Mic, Video } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -108,14 +108,10 @@ export function Customer360({ id, data }: { id: string; data: Customer360Data })
     <div className="space-y-5">
       <p className="flex items-center gap-2 text-sm text-muted"><Lock aria-hidden className="size-4 shrink-0" /> Recordings and documents aren&rsquo;t visible to admins. You only see counts and settings.</p>
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Metric icon={Video} label="Recordings" value={data.totals.recordingsVisible ?? data.totals.captures ?? 0} />
-        <Metric icon={Mic} label="Meetings" value={data.totals.meetingsVisible ?? data.totals.meetings ?? 0} />
-        <Metric icon={FileUp} label="Uploads" value={(data.totals.uploadsVisible ?? data.totals.uploads ?? 0) + (data.totals.transcriptImports ?? 0)} />
+        <Metric icon={Video} label="Recordings" value={data.totals.recordingsVisible} />
+        <Metric icon={Mic} label="Meetings" value={data.totals.meetingsVisible} />
+        <Metric icon={FileUp} label="Uploads" value={(data.totals.uploadsVisible ?? 0) + (data.totals.transcriptImports ?? 0)} />
         <Metric icon={FileText} label="Documents" value={data.totals.documents ?? 0} />
-        <Metric icon={Timer} label="Failed" value={data.totals.capturesFailed ?? 0} hint="Visible recordings that failed or expired" />
-        <Metric icon={Archive} label="Archived" value={data.totals.capturesArchived ?? 0} />
-        <Metric icon={Trash2} label="Deleted" value={data.totals.capturesDeleted ?? 0} />
-        <Metric icon={Eye} label="Hidden total" value={data.totals.captures ?? 0} hint="All captures incl. archived/deleted" />
       </div>
       <Tabs label="Customer detail" items={items} active={tab} onChange={setTab} variant="pill" />
       <div id={tabPanelId(tab)} role="tabpanel" aria-labelledby={tabId(tab)}>
