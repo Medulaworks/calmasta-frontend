@@ -8,27 +8,39 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { ToastStack, useToasts } from "@/components/ui/toast";
-import { type Json, fmtUtc } from "@/lib/admin-client";
+import { type Json, adminGet, adminPatch, fmtUtc } from "@/lib/admin-client";
 import type { AdminList, AuditPage } from "@/lib/admin-types";
-import { type ProfileView, getProfile, saveProfile } from "@/lib/profile-client";
 import { Avatar } from "@/components/ui/avatar";
 import { actionLabel } from "@/lib/admin-words";
 import { Notice, inputClass, usePaged, useResource } from "./ui";
 
 const field = inputClass;
 
+type AdminMe = {
+  id: string;
+  email: string;
+  name: string | null;
+  role: string;
+  emailVerified: boolean;
+  timezone?: string | null;
+  avatarUrl?: string | null;
+};
+
 /** The signed-in admin: their details (the name can be changed here), their existing Joobah session, and available activity. */
 export function AdminProfile() {
   const router = useRouter();
   const toasts = useToasts("admin-profile");
-  const [profile, setProfile] = useState<ProfileView | null>(null);
+  const [profile, setProfile] = useState<AdminMe | null>(null);
   const [failed, setFailed] = useState(false);
-  const [name, setName] = useState(profile?.name ?? "");
+  const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     let off = false;
-    getProfile().then((p) => { if (!off) { setProfile(p); setName(p.name ?? ""); } }, () => !off && setFailed(true));
+    adminGet<AdminMe>("/api/admin/me").then(
+      (p) => { if (!off) { setProfile(p); setName(p.name ?? ""); } },
+      () => { if (!off) setFailed(true); },
+    );
     return () => { off = true; };
   }, []);
 
@@ -41,10 +53,12 @@ export function AdminProfile() {
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
+    if (!profile) return;
     const next = name.trim();
     setSaving(true);
     try {
-      setProfile(await saveProfile({ name: next || null }));
+      await adminPatch(`/api/admin/customers/${profile.id}`, { name: next || undefined, reason: "Admin updated own profile name" }, { "Idempotency-Key": crypto.randomUUID() });
+      setProfile({ ...profile, name: next || null });
       toasts.push({ tone: "success", message: "Name saved." });
     } catch (err) {
       toasts.push({ tone: "danger", message: err instanceof Error ? err.message : "Couldn’t save your name." });
