@@ -78,6 +78,7 @@ export async function getSharing(captureId: string, signal?: AbortSignal): Promi
       invitationsEnabled: false,
       maxExpiryDays: null,
     },
+    mediaSharingEnabled: raw.mediaSharingEnabled !== undefined ? Boolean(raw.mediaSharingEnabled) : true,
     linkUrl: (raw.linkUrl as string | undefined) ?? (raw.url as string | undefined) ?? null,
     alreadyIssued: !!raw.alreadyIssued,
   };

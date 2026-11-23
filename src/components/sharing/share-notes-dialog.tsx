@@ -86,7 +86,7 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
   const maxExpiry = caps?.maxExpiryDays ?? null;
   const sharingDisabledByPolicy = caps ? (!caps.publicLinksEnabled && !caps.recipientGrantsEnabled) : false;
   const hasSelectedContent = includeTranscript || selectedInsightIds.length > 0 || includeAudio || includeVideo;
-  const mediaSharingEnabled = (state as { mediaSharingEnabled?: boolean } | null)?.mediaSharingEnabled;
+  const mediaSharingEnabled = state?.mediaSharingEnabled ?? true;
 
   function toggleInsight(id: string) {
     setSelectedInsightIds((prev) =>
@@ -293,8 +293,8 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
                 {hasTranscript && <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={includeTranscript} onChange={(e) => setIncludeTranscript(e.target.checked)} className="size-4" /><span>Transcript</span></label>}
                 {mediaSharingEnabled && (
                   <>
-                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={includeAudio} onChange={(e) => setIncludeAudio(e.target.checked)} className="size-4" /><span>Audio</span></label>
-                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={includeVideo} onChange={(e) => setIncludeVideo(e.target.checked)} className="size-4" /><span>Video</span></label>
+                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={includeAudio} onChange={(e) => setIncludeAudio(e.target.checked)} className="size-4" /><span>Audio recording</span></label>
+                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={includeVideo} onChange={(e) => setIncludeVideo(e.target.checked)} className="size-4" /><span>Video recording</span></label>
                   </>
                 )}
                 <label className="block">

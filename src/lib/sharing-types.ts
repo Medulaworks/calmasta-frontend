@@ -55,6 +55,7 @@ export interface SharingState {
   link: ShareLink | null;
   links?: ShareLink[];
   capabilities?: SharingCapabilities;
+  mediaSharingEnabled?: boolean;
   /** True when a fresh token URL is available in this response only (once-only). */
   linkUrl?: string | null;
   alreadyIssued?: boolean;
