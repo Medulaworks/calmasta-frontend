@@ -79,11 +79,11 @@ describe("palette", () => {
     });
   }
 
-  it("is the Joobah brand: maroon #7A2438 and orange #FAA21B", () => {
+  it("is the Joobah brand: burgundy #6D0016 and orange #FAA21B", () => {
     const light = vars(":root");
-    expect(light["accent"].toLowerCase()).toBe("#7a2438");
+    expect(light["accent"].toLowerCase()).toBe("#6d0016");
     expect(light["accent-solid"].toLowerCase()).toBe("#faa21b");
-    expect(light["sidebar"].toLowerCase()).toBe("#7a2438");
+    expect(light["sidebar"].toLowerCase()).toBe("#470e17");
   });
 
   it("has no colour themes to choose between", () => {

@@ -42,11 +42,11 @@ describe("platform logos", () => {
     expect(out).toContain('aria-label="Zoom"');
     expect(out).toContain("Zoom ·");
   });
-  it("a meeting row without a platform says Meeting, never Google Meet", () => {
+  it("a meeting row without a platform shows the Google Meet logo, as My Folder and the recording page do", () => {
     const out = html(createElement(ItemRow, { item: { id: "2", kind: "meeting", title: "Weekly sync", status: "completed", failureReason: null, at: "2026-10-29T10:00:00Z", href: "/dashboard/captures/2", platform: null, source: "meeting_url", state: "completed" } }));
-    expect(out).not.toContain("Google Meet");
-    expect(out).not.toContain("<img");
-    expect(out).toContain("Meeting ·");
+    expect(out).toContain('aria-label="Google Meet"');
+    expect(out).toContain("<img");
+    expect(out).toContain("Google Meet ·");
   });
 });
 

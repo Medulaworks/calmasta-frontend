@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { DashboardItem } from "@/lib/dashboard-client";
 import { captureStatus, documentStatus, timeAgo, type StatusView } from "@/lib/status";
 import { useDisplayTitle } from "@/components/shell/use-display-title";
-import { CaptureTile, platformName } from "@/components/ui/platform-logo";
+import { CaptureTile, PLATFORM_NAME, meetingPlatform } from "@/components/ui/platform-logo";
 
 const KIND_LABEL = { recording: "Recording", meeting: "Meeting", document: "Document" } as const;
 
@@ -59,7 +59,9 @@ export function RowStatus({ status }: { status: StatusView }) {
 export function ItemRow({ item, showReason = false }: { item: DashboardItem; showReason?: boolean }) {
   const status = statusFor(item);
   const shownTitle = useDisplayTitle()(item);
-  const kind = item.kind === "meeting" ? (platformName(item.platform, item.title) ?? KIND_LABEL.meeting) : item.title.trim().toLowerCase() === KIND_LABEL[item.kind].toLowerCase() ? null : KIND_LABEL[item.kind];
+  // A meeting shows its app. When the server does not say which, it is Google Meet, as on the recording page and in My Folder.
+  const platform = item.kind === "meeting" ? meetingPlatform(item.platform, item.title) : null;
+  const kind = platform ? PLATFORM_NAME[platform] : item.title.trim().toLowerCase() === KIND_LABEL[item.kind].toLowerCase() ? null : KIND_LABEL[item.kind];
   // Remember that this row was running, so the moment it finishes can be celebrated (and only that moment).
   const [wasActive, setWasActive] = useState(status.active);
   if (status.active && !wasActive) setWasActive(true);
@@ -68,7 +70,7 @@ export function ItemRow({ item, showReason = false }: { item: DashboardItem; sho
     <li>
       <Link href={dashboardPath(item.href)} className={`flex items-center gap-4 px-5 py-3 transition-colors hover:bg-surface ${status.active ? "bg-accent-solid/5" : ""}`}>
         <span className="relative shrink-0">
-          <CaptureTile kind={item.kind} platform={item.platform} hint={item.title} />
+          <CaptureTile kind={item.kind} platform={platform} hint={item.title} />
           {status.active && (
             <span aria-hidden className="absolute -right-1 -top-1 grid size-3">
               <span className={`absolute inset-0 animate-ping rounded-full motion-reduce:hidden ${status.indicator === "recording" ? "bg-danger-solid" : "bg-accent-solid"}`} />

@@ -1,7 +1,8 @@
 "use client";
 
+import { buttonClass } from "@/components/ui/button";
 import { SkeletonGuest } from "@/components/ui/skeleton";
-import { ArrowLeft, CalendarDays, Clock, Globe, Loader2 } from "lucide-react";
+import { ArrowLeft, CalendarDays, ChevronDown, Clock, Globe, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { BookingSummary } from "@/components/booking/booking-summary";
@@ -12,7 +13,7 @@ import { ApiError } from "@/lib/upload-client";
 
 type Step = "time" | "details" | "done";
 
-const input = "mt-2 block w-full min-h-10 rounded-xl border border-border bg-background px-4 py-2 text-sm shadow-sm placeholder:text-muted focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent-solid/20";
+const input = "mt-2 block min-h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none transition-[border-color,box-shadow] placeholder:text-muted hover:border-muted/60 focus:border-accent focus:ring-4 focus:ring-accent-solid/20 aria-[invalid=true]:border-danger";
 
 /**
  * What a guest sees: pick a time, give a name and email, done. No account. The chosen meeting, duration, day, time
@@ -99,11 +100,9 @@ export function PublicBooking({ slug }: { slug: string }) {
 
   if (step === "done" && result) {
     return (
-      <div className="mx-auto max-w-xl py-10">
-        <div className="jb-rise rounded-2xl border border-border bg-background p-5 shadow-lg sm:p-6">
-          <BookingSummary booking={result.booking} token={result.token} timeZone={timeZone} />
-          <p className="mt-6 border-t border-border pt-4 text-sm"><Link href={`/manage/${result.token}`} className="font-medium text-accent hover:underline">Change or cancel this booking</Link></p>
-        </div>
+      <div className="jb-rise mx-auto max-w-xl py-10">
+        <BookingSummary booking={result.booking} token={result.token} timeZone={timeZone} />
+        <p className="mt-5 text-center text-sm"><Link href={`/manage/${result.token}`} className="text-muted underline-offset-4 hover:text-foreground hover:underline">Change or cancel this booking</Link></p>
       </div>
     );
   }
@@ -112,16 +111,16 @@ export function PublicBooking({ slug }: { slug: string }) {
   const current = step === "details" ? 1 : 0;
   return (
     <div className="mx-auto max-w-5xl py-10">
-      <div className="jb-rise grid overflow-hidden rounded-2xl border border-border bg-background shadow-lg md:grid-cols-[19rem_1fr]">
+      <div className="jb-rise grid overflow-hidden rounded-2xl border border-border bg-background shadow-lg md:grid-cols-[18rem_1fr]">
         {/* Left: who and what, and the choices made so far. */}
-        <aside className="space-y-5 border-b border-border bg-surface/50 p-5 sm:p-6 md:border-b-0 md:border-r">
+        <aside className="space-y-6 border-b border-border bg-surface/60 p-5 sm:p-6 md:border-b-0 md:border-r">
           <div className="flex items-center gap-3">
             <span aria-hidden className="grid size-10 place-items-center rounded-full bg-accent-solid text-base font-semibold text-on-accent">{(page.hostName || page.title).trim().charAt(0).toUpperCase()}</span>
             {page.hostName && <p className="text-sm font-medium text-muted">{page.hostName}</p>}
           </div>
           <div className="space-y-2">
             <h1 className="text-2xl font-semibold tracking-tight">{page.title}</h1>
-            {page.description && <p className="whitespace-pre-line text-sm text-muted">{page.description}</p>}
+            {page.description && page.description.trim() !== page.title.trim() && <p className="whitespace-pre-line text-sm text-muted">{page.description}</p>}
           </div>
 
           <dl className="space-y-3 text-sm" aria-label="Your selection">
@@ -138,15 +137,16 @@ export function PublicBooking({ slug }: { slug: string }) {
               </div>
             )}
             <div className="flex items-start gap-3">
-              <Globe aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" />
+              <Globe aria-hidden className="mt-3 size-4 shrink-0 text-muted" />
               <dd className="min-w-0 flex-1">
-                <label className="block">
+                <label className="relative block">
                   <span className="sr-only">Show times in</span>
-                  <select value={timeZone} onChange={(e) => { setTimeZone(e.target.value); setSlot(null); setStep("time"); }} className="w-full rounded-lg border border-transparent bg-transparent py-1 pr-2 text-sm font-medium hover:border-border focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent-solid/20">
+                  <select value={timeZone} onChange={(e) => { setTimeZone(e.target.value); setSlot(null); setStep("time"); }} className="h-10 w-full cursor-pointer appearance-none rounded-lg border border-border bg-background pl-3 pr-9 text-sm font-medium outline-none transition-[border-color,box-shadow] hover:border-muted/60 focus:border-accent focus:ring-4 focus:ring-accent-solid/20">
                     {zones.map((z) => <option key={z} value={z}>{z.replace(/_/g, " ")}</option>)}
                   </select>
+                  <ChevronDown aria-hidden className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
                 </label>
-                <span className="block text-xs text-muted">Times shown in {zoneLabel(timeZone)}</span>
+                <span className="mt-1.5 block text-xs text-muted">Times shown in {zoneLabel(timeZone)}</span>
               </dd>
             </div>
           </dl>
@@ -155,7 +155,7 @@ export function PublicBooking({ slug }: { slug: string }) {
         {/* Right: the step. */}
         <div className="min-w-0 space-y-5 p-5 sm:p-6">
           {type && (
-            <ol aria-label="Progress" className="flex items-center gap-3 text-sm">
+            <ol aria-label="Progress" className="flex items-center gap-3 border-b border-border pb-5 text-sm">
               {steps.map((label, i) => (
                 <li key={label} aria-current={i === current ? "step" : undefined} className="flex items-center gap-3">
                   <span className={`grid size-6 place-items-center rounded-full text-xs font-semibold ${i < current ? "bg-success text-white" : i === current ? "bg-accent-solid text-on-accent" : "border border-border text-muted"}`}>{i + 1}</span>
@@ -166,7 +166,7 @@ export function PublicBooking({ slug }: { slug: string }) {
             </ol>
           )}
 
-          {notice && <p role="status" className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">{notice}</p>}
+          {notice && <p role="status" className="rounded-xl border border-warning/30 bg-warning/5 px-4 py-3 text-sm text-warning">{notice}</p>}
 
           {!type ? (
             <section aria-labelledby="pick-type">
@@ -174,7 +174,7 @@ export function PublicBooking({ slug }: { slug: string }) {
               <ul className="mt-4 grid gap-3 sm:grid-cols-2">
                 {page.meetingTypes.map((t) => (
                   <li key={t.id}>
-                    <button type="button" onClick={() => setTypeId(t.id)} className="group h-full w-full rounded-xl border border-border p-4 text-left transition-all hover:-translate-y-px hover:border-accent-solid/50 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+                    <button type="button" onClick={() => setTypeId(t.id)} className="group h-full w-full rounded-2xl border border-border bg-background p-5 text-left shadow-sm transition-all hover:-translate-y-px hover:border-accent/40 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
                       <span className="block font-medium">{t.name}</span>
                       <span className="mt-1 flex items-center gap-1.5 text-sm text-muted"><Clock aria-hidden className="size-3.5" />{t.durationMin} minutes</span>
                       {t.description && <span className="mt-2 block text-sm text-muted">{t.description}</span>}
@@ -208,13 +208,13 @@ export function PublicBooking({ slug }: { slug: string }) {
                 <span className="font-medium">Anything to share? <span className="font-normal text-muted">(optional)</span></span>
                 <textarea value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} maxLength={500} rows={3} className={input} />
               </label>
-              {formError && <p role="alert" className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">{formError}</p>}
+              {formError && <p role="alert" className="rounded-xl border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">{formError}</p>}
               <div className="flex flex-wrap items-center gap-3">
-                <button type="submit" disabled={submitting} className="inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-accent-solid px-5 text-base font-medium text-on-accent shadow-sm transition-all hover:-translate-y-px hover:shadow-md hover:brightness-95 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50">
+                <button type="submit" disabled={submitting} className={`${buttonClass("primary", "w-full sm:w-auto", "lg")}${submitting ? " pointer-events-none opacity-60" : ""}`}>
                   {submitting && <Loader2 aria-hidden className="size-4 animate-spin" />}
                   {submitting ? "Checking availability…" : "Confirm booking"}
                 </button>
-                <button type="button" disabled={submitting} onClick={() => setStep("time")} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-muted hover:text-foreground"><ArrowLeft aria-hidden className="size-4" /> Choose another time</button>
+                <button type="button" disabled={submitting} onClick={() => setStep("time")} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-muted transition-colors hover:bg-surface hover:text-foreground"><ArrowLeft aria-hidden className="size-4" /> Choose another time</button>
               </div>
               <p className="text-xs text-muted">We only use your details to make this booking.</p>
             </form>
