@@ -49,7 +49,7 @@ export function SlotPicker({ load, timeZone, selected, onPick, split = false }: 
   const days = Array.from({ length: WINDOW_DAYS }, (_, i) => addDays(from, i));
 
   if (error) {
-    return <p role="alert" className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">{error}</p>;
+    return <p role="alert" className="rounded-xl border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">{error}</p>;
   }
 
   // The two-week window drawn as a calendar: weekday headings, and the first row padded so each date sits under its weekday.
@@ -61,18 +61,18 @@ export function SlotPicker({ load, timeZone, selected, onPick, split = false }: 
   const times = day ? byDay.get(day) : undefined;
 
   return (
-    <div className={split ? "grid gap-5 md:grid-cols-[1fr_11rem]" : "space-y-5"}>
+    <div className={split ? "grid gap-6 md:grid-cols-[1fr_12rem]" : "space-y-5"}>
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-semibold">{rangeLabel}</p>
           <div className="flex gap-2">
-            <button type="button" aria-label="Earlier days" disabled={from <= today} onClick={() => setFrom(addDays(from, -WINDOW_DAYS) < today ? today : addDays(from, -WINDOW_DAYS))} className="grid size-9 place-items-center rounded-lg border border-border transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-40"><ChevronLeft aria-hidden className="size-4" /></button>
-            <button type="button" aria-label="Later days" onClick={() => setFrom(addDays(from, WINDOW_DAYS))} className="grid size-9 place-items-center rounded-lg border border-border transition-colors hover:bg-surface"><ChevronRight aria-hidden className="size-4" /></button>
+            <button type="button" aria-label="Earlier days" disabled={from <= today} onClick={() => setFrom(addDays(from, -WINDOW_DAYS) < today ? today : addDays(from, -WINDOW_DAYS))} className="grid size-9 place-items-center rounded-lg border border-border bg-background text-muted transition-colors hover:bg-surface hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"><ChevronLeft aria-hidden className="size-4" /></button>
+            <button type="button" aria-label="Later days" onClick={() => setFrom(addDays(from, WINDOW_DAYS))} className="grid size-9 place-items-center rounded-lg border border-border bg-background text-muted transition-colors hover:bg-surface hover:text-foreground"><ChevronRight aria-hidden className="size-4" /></button>
           </div>
         </div>
 
         {slots === null ? (
-          <div aria-hidden className="space-y-2">{[0, 1].map((r) => <div key={r} className="grid grid-cols-7 gap-2">{[0, 1, 2, 3, 4, 5, 6].map((c) => <span key={c} className="h-10 jb-skel rounded-xl bg-border/60" />)}</div>)}</div>
+          <div aria-hidden className="space-y-2">{[0, 1].map((r) => <div key={r} className="grid grid-cols-7 gap-2">{[0, 1, 2, 3, 4, 5, 6].map((c) => <span key={c} className="h-11 jb-skel rounded-lg bg-border/60" />)}</div>)}</div>
         ) : slots.length === 0 ? (
           <div role="status" className="rounded-xl border border-border bg-surface px-4 py-6 text-center text-sm">
             <p className="font-medium">No times available in these two weeks</p>
@@ -97,7 +97,7 @@ export function SlotPicker({ load, timeZone, selected, onPick, split = false }: 
                     aria-pressed={chosen}
                     aria-label={n ? `${label}, ${n} times` : `${label}, no times`}
                     onClick={() => setDay(d)}
-                    className={`relative grid h-10 place-items-center rounded-xl text-sm tabular-nums transition-colors disabled:cursor-not-allowed ${chosen ? "bg-accent-solid font-semibold text-on-accent shadow-sm" : n ? "bg-accent-solid/10 font-medium text-accent hover:bg-accent-solid/20" : "text-muted/50"}`}
+                    className={`relative grid h-11 place-items-center rounded-lg text-sm tabular-nums transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed ${chosen ? "bg-accent-solid font-semibold text-on-accent shadow-sm" : n ? "bg-surface font-medium text-foreground ring-1 ring-inset ring-border hover:bg-accent-solid/15 hover:ring-accent-solid/50" : "text-muted/40"}`}
                   >
                     {Number(d.slice(8))}
                     {d === today && <span aria-hidden className={`absolute bottom-1 size-1 rounded-full ${chosen ? "bg-on-accent" : "bg-accent-solid"}`} />}
@@ -110,11 +110,11 @@ export function SlotPicker({ load, timeZone, selected, onPick, split = false }: 
       </div>
 
       {slots !== null && slots.length > 0 && day && times && (
-        <div>
+        <div className="md:border-l md:border-border md:pl-6">
           <p className="mb-3 text-sm font-semibold">{formatDay(times[0].start, timeZone)}</p>
-          <div role="group" aria-label="Times" className={split ? "grid max-h-80 gap-2 overflow-y-auto pr-1" : "grid grid-cols-3 gap-2 sm:grid-cols-4"}>
+          <div role="group" aria-label="Times" className={split ? "grid max-h-[22rem] gap-2 overflow-y-auto pr-1 [scrollbar-width:thin]" : "grid grid-cols-3 gap-2 sm:grid-cols-4"}>
             {times.map((s) => (
-              <button key={s.start} type="button" aria-pressed={selected === s.start} onClick={() => onPick(s)} className={`h-10 rounded-xl border text-sm tabular-nums transition-colors ${selected === s.start ? "border-accent-solid bg-accent-solid font-semibold text-on-accent shadow-sm" : "border-accent-solid/30 font-medium text-accent hover:border-accent-solid hover:bg-accent-solid/10"}`}>
+              <button key={s.start} type="button" aria-pressed={selected === s.start} onClick={() => onPick(s)} className={`h-11 rounded-lg border text-sm tabular-nums transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${selected === s.start ? "border-accent-solid bg-accent-solid font-semibold text-on-accent shadow-sm" : "border-border bg-background font-medium text-foreground hover:border-accent hover:text-accent"}`}>
                 {formatTime(s.start, timeZone)}
               </button>
             ))}

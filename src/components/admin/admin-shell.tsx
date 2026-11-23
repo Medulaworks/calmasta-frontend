@@ -96,19 +96,19 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const name = profile?.name || profile?.email || "";
   const link = (id: string) => SECTIONS.find((x) => x.id === id)!;
   const item = (active: boolean) =>
-    `group relative flex h-9 items-center gap-2.5 whitespace-nowrap rounded-lg px-2.5 text-sm transition-colors ${active ? "bg-white/10 font-medium text-white" : "text-white/65 hover:bg-white/5 hover:text-white"}`;
+    `group relative flex h-9 items-center gap-2.5 whitespace-nowrap rounded-lg px-2.5 text-sm transition-colors ${active ? "bg-white/10 font-medium text-white" : "text-white/80 hover:bg-white/10 hover:text-white"}`;
 
   return (
     <div className="flex min-h-screen flex-col bg-surface md:flex-row">
       {/* The side menu: dark, grouped, with the Joobah logo and an Admin tag. */}
-      <aside className="relative isolate flex flex-col overflow-hidden bg-[#1d0a10] p-3 text-white md:fixed md:inset-y-0 md:left-0 md:z-30 md:w-56">
-        <div aria-hidden className="pointer-events-none absolute -left-16 -top-20 -z-10 size-64 rounded-full bg-accent/60 blur-3xl" />
-        <div aria-hidden className="pointer-events-none absolute -bottom-24 -right-16 -z-10 size-56 rounded-full bg-accent-solid/15 blur-3xl" />
+      <aside className="relative isolate flex flex-col overflow-hidden bg-[#470e17] p-3 text-white md:fixed md:inset-y-0 md:left-0 md:z-30 md:w-56">
+        <div aria-hidden className="pointer-events-none absolute -left-16 -top-20 -z-10 size-64 rounded-full bg-white/10 blur-3xl" />
+        <div aria-hidden className="pointer-events-none absolute -bottom-24 -right-16 -z-10 size-56 rounded-full bg-[#15070a]/40 blur-3xl" />
 
         <div className="flex shrink-0 items-center justify-between gap-2 px-2 md:py-1">
           <p className="flex items-center gap-2.5">
             <Brand size={24} tile="paper" />
-            <span className="rounded-md bg-accent-solid px-1.5 py-0.5 text-xs font-bold uppercase tracking-wider text-[#1d0a10]">Admin</span>
+            <span className="rounded-md bg-accent-solid px-1.5 py-0.5 text-xs font-bold uppercase tracking-wider text-[#15070a]">Admin</span>
           </p>
           <div className="flex items-center gap-1 md:hidden">
             <a href="/dashboard" target="_blank" rel="noopener noreferrer" aria-label="Open Joobah (opens in a new tab)" title="Open Joobah" className="grid size-9 place-items-center rounded-lg text-white/70 hover:bg-white/10 hover:text-white"><ExternalLink aria-hidden className="size-[18px]" /></a>
@@ -119,7 +119,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <nav aria-label="Admin" className="mt-3 flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:-mx-3 md:mt-4 md:min-h-0 md:flex-1 md:flex-col md:gap-3 md:overflow-y-auto md:overflow-x-hidden md:px-3">
           {NAV_GROUPS.map((g) => (
             <div key={g.label} className="flex gap-1 md:flex-col">
-              <p className="hidden px-2.5 pb-0.5 text-xs font-semibold uppercase tracking-[0.14em] text-white/40 md:block">{g.label}</p>
+              <p className="hidden px-2.5 pb-0.5 text-xs font-semibold uppercase tracking-[0.14em] text-white/60 md:block">{g.label}</p>
               {g.ids.map((id) => {
                 const { label, Icon, tabs } = link(id);
                 const active = current?.id === id;
@@ -145,7 +145,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           {profile && (
             <div className="flex items-center gap-2 px-0.5">
               <Link href="/admin/profile" aria-current={pathname === "/admin/profile" ? "page" : undefined} title={profile.email} className="flex min-w-0 flex-1 items-center gap-3 rounded-lg py-1 transition-colors hover:text-white">
-                <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-full bg-accent-solid text-sm font-semibold text-[#1d0a10]">{name.trim().charAt(0).toUpperCase()}</span>
+                <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-full bg-accent-solid text-sm font-semibold text-[#15070a]">{name.trim().charAt(0).toUpperCase()}</span>
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-medium text-white">{name}</span>
                   <span className="block text-xs text-white/50">My profile</span>
