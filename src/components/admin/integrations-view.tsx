@@ -34,23 +34,26 @@ type Profiles = { runtimeAvailable?: boolean; environment: string; replacementEn
 const TEST_MESSAGES: Record<string, string> = {
   smtp_authentication_verified: "SMTP connection and authentication succeeded. No email was sent.",
   smtp_connection_verified: "SMTP connection succeeded. No SMTP login is configured, so authentication was not tested.",
+  smtp_delivery_accepted: "SMTP accepted the diagnostic email. Inbox placement is not guaranteed.",
+  smtp_delivery_rejected: "SMTP rejected the sender or recipient. Check the applied sender and the sample recipient.",
   api_access_verified: "Read-only API access succeeded.", authentication_failed: "Authentication was rejected. Check the applied credentials.",
   access_denied: "These credentials do not have access to this API.", provider_unavailable: "The provider is unavailable. Try again later.",
-  invalid_provider_response: "The provider returned an unexpected response.", check_timed_out: "The check timed out after five seconds.",
+  invalid_provider_response: "The provider returned an unexpected response.", check_timed_out: "Connection to the email server timed out after 5 seconds. Please check your SMTP host, port, and firewall.",
   connection_failed: "We couldn’t connect using the applied configuration. Please try again.", configuration_missing: "The applied configuration is incomplete.",
   applied_version_changed: "The version changed during this check. Test again after application finishes.", test_pending: "This test has not finished. Try again in 30 seconds.",
   applied_version_required: "Wait until the active version is applied to the API before testing.", integration_test_rate_limited: "Wait 30 seconds before starting another test for this service.",
 };
-const testLimit = (id: string) => id === "mail" ? "Checks SMTP connection and authentication without sending an email. Sender acceptance and inbox delivery are not tested." : id === "openrouter" ? "Checks API key authentication only. Does not generate content or verify model access and available credit." : "Checks read-only WooCommerce API access. Does not create a payment or verify checkout, subscriptions or webhook signing.";
+const testLimit = (id: string) => id === "mail" ? "Sends one fixed diagnostic email to the sample recipient you provide. Success proves SMTP acceptance, not inbox placement." : id === "openrouter" ? "Checks API key authentication only. Does not generate content or verify model access and available credit." : "Checks read-only WooCommerce API access. Does not create a payment or verify checkout, subscriptions or webhook signing.";
 const key = () => crypto.randomUUID().replace(/-/g, "").slice(0, 16).padEnd(8, "0");
 
 export function IntegrationsView() {
   const [editing, setEditing] = useState<Profile | null>(null);
   const [activating, setActivating] = useState<Profile | null>(null);
   const [historyId, setHistoryId] = useState<string | null>(null);
+  const [mailTest, setMailTest] = useState<Profile | null>(null);
   // No background poll while a dialog is open: it would churn the page under
   // half-typed values. Saving or closing reloads explicitly.
-  const modalOpen = editing !== null || activating !== null || historyId !== null;
+  const modalOpen = editing !== null || activating !== null || historyId !== null || mailTest !== null;
   const res = useResource<Profiles>("/api/admin/integration-profiles", modalOpen ? false : 5000);
   const toasts = useToasts("integrations");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -64,20 +67,27 @@ export function IntegrationsView() {
   const check = capability("integration_check");
   const [testing, setTesting] = useState<Set<string>>(new Set());
   const busyTests = useRef(new Set<string>());
-  const testCredentials = async (profile: Profile) => {
+  const runCredentialTest = async (profile: Profile, reason: string, recipientEmail?: string, keepDialogOnError = false) => {
     const appliedVersion = profile.credentialTest?.appliedVersion;
     if (!check.allowed || !profile.credentialTest?.canTest || !appliedVersion || busyTests.current.has(profile.id)) return;
     busyTests.current.add(profile.id);setTesting(current => new Set(current).add(profile.id));
     try {
-      const result = await adminPost<CredentialCheckResult>(`/api/admin/integration-profiles/${profile.id}/test`, { expectedVersion: appliedVersion, reason: `Test applied ${toTitle(profile.id)} credentials` }, { "Idempotency-Key": key() });
+      const result = await adminPost<CredentialCheckResult>(`/api/admin/integration-profiles/${profile.id}/test`, { expectedVersion: appliedVersion, reason, ...(recipientEmail ? { recipientEmail } : {}) }, { "Idempotency-Key": key() });
       const tone = result.status === "passed" && result.version === appliedVersion ? "success" : result.status === "pending" ? "info" : result.status === "superseded" ? "warning" : "danger";
-      toasts.push({ tone, message: `${toTitle(profile.id)} applied v${result.version}: ${TEST_MESSAGES[result.code] ?? "The credential check did not complete."}` });
+      const outcome = result.status === "passed" && result.version === appliedVersion ? "test succeeded" : "test failed";
+      toasts.push({ tone, message: `${toTitle(profile.id)} applied v${result.version} (${outcome}): ${TEST_MESSAGES[result.code] ?? "The credential check did not complete."}` });
       res.reload();
     } catch (error) {
-      toasts.push({ tone: "danger", message: error instanceof ApiError && error.code && TEST_MESSAGES[error.code] ? TEST_MESSAGES[error.code] : "We couldn’t run the credential check. Please try again." });
+      const message = error instanceof ApiError && error.code && TEST_MESSAGES[error.code] ? TEST_MESSAGES[error.code] : "We couldn’t run the credential check. Please try again.";
+      toasts.push({ tone: "danger", message });
+      if (keepDialogOnError) throw new Error(message);
     } finally {
       busyTests.current.delete(profile.id);setTesting(current => { const next = new Set(current);next.delete(profile.id);return next; });
     }
+  };
+  const testCredentials = (profile: Profile) => {
+    if (profile.id === "mail") { setMailTest(profile); return; }
+    void runCredentialTest(profile, `Test applied ${toTitle(profile.id)} credentials`);
   };
 
   return (
@@ -170,6 +180,9 @@ export function IntegrationsView() {
               {activating && <ActionDialog title={`Activate ${toTitle(activating.id)} version ${activating.version}?`} description="Apply this saved version automatically. Each running API and worker finishes its current work, then restarts with the activated credentials. A brief reconnection may occur. Missing or blocked services remain pending. This does not test provider connectivity." confirmLabel="Activate version" onClose={() => setActivating(null)} onSubmit={async (v) => {
                 await adminPost(`/api/admin/integration-profiles/${activating.id}/activate`, { expectedVersion: activating.version, reason: v.reason }, { "Idempotency-Key": key() });
                 toasts.push({ tone: "success", message: "Version activated. Automatic application is pending; watch the API and worker status." }); setActivating(null); res.reload();
+              }} />}
+              {mailTest && <ActionDialog title="Send SMTP test email" description="Enter a sample recipient. CalMasta will send one fixed diagnostic message using the SMTP credentials currently applied to this API. SMTP acceptance does not guarantee inbox placement." confirmLabel="Send test email" fields={[{name:"recipientEmail",label:"Recipient email",type:"email",autoComplete:"email",required:true}]} hideReason onClose={() => setMailTest(null)} onSubmit={async v => {
+                await runCredentialTest(mailTest,v.reason || `Test applied ${toTitle(mailTest.id)} credentials`,v.recipientEmail.trim().toLowerCase(),true);
               }} />}
               {historyId && <IntegrationHistory key={`${historyId}:${nd.items.find(i => i.id === historyId)?.version}:${nd.items.find(i => i.id === historyId)?.activeVersion}`} id={historyId} onClose={closeHistory} />}
               <ToastStack items={toasts.items} onDismiss={toasts.dismiss} />

@@ -191,13 +191,14 @@ export interface ReasonField {
  * It is a real dialog: focus moves in, Escape closes, and the error from the server is shown where the person is looking.
  */
 export function ActionDialog({
-  title, description, confirmLabel, danger = false, fields = [], onClose, onSubmit,
+  title, description, confirmLabel, danger = false, fields = [], hideReason = false, onClose, onSubmit,
 }: {
   title: string;
   description: React.ReactNode;
   confirmLabel: string;
   danger?: boolean;
   fields?: ReasonField[];
+  hideReason?: boolean;
   onClose: () => void;
   onSubmit: (values: Record<string, string>) => Promise<void>;
 }) {
@@ -234,7 +235,7 @@ export function ActionDialog({
     setBusy(true);
     setError(null);
     try {
-      await onSubmit({ ...values, reason });
+      await onSubmit({ ...values, reason: reason.trim() || values.reason || "Test applied credentials" });
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "That didn’t work.");
@@ -308,24 +309,26 @@ export function ActionDialog({
             {f.hint && <span className="mt-1 block text-xs text-muted">{f.hint}</span>}
           </label>
         ))}
-        <label className="block text-sm">
-          <span className="font-medium">Reason</span>
-          <textarea
-            ref={fields.length === 0 ? setFirst : undefined}
-            required
-            minLength={8}
-            maxLength={500}
-            rows={3}
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            className="mt-2 block w-full rounded-xl border border-border bg-background px-3 py-2 shadow-sm focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent-solid/20"
-          />
-          <span className="mt-1 block text-xs text-muted">At least 8 characters. Saved in Activity.</span>
-        </label>
+        {!hideReason && (
+          <label className="block text-sm">
+            <span className="font-medium">Reason</span>
+            <textarea
+              ref={fields.length === 0 ? setFirst : undefined}
+              required
+              minLength={8}
+              maxLength={500}
+              rows={3}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="mt-2 block w-full rounded-xl border border-border bg-background px-3 py-2 shadow-sm focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent-solid/20"
+            />
+            <span className="mt-1 block text-xs text-muted">At least 8 characters. Saved in Activity.</span>
+          </label>
+        )}
         {error && <p role="alert" className="text-sm text-danger">{error}</p>}
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose} disabled={busy}>Cancel</Button>
-          <Button type="submit" variant={danger ? "danger" : "primary"} disabled={busy || reason.trim().length < 8}>{busy ? "Working…" : confirmLabel}</Button>
+          <Button type="submit" variant={danger ? "danger" : "primary"} disabled={busy || (!hideReason && reason.trim().length < 8)}>{busy ? "Working…" : confirmLabel}</Button>
         </div>
       </form>
     </div>

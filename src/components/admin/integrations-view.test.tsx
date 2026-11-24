@@ -1,6 +1,6 @@
 import { isValidElement, type ReactNode, type ReactElement } from "react";
 import { beforeEach, expect, it, vi } from "vitest";
-const mocks = vi.hoisted(() => ({ state: vi.fn(), reload: vi.fn(), push: vi.fn(), patch: vi.fn(), post: vi.fn(), resource: vi.fn(), paged: vi.fn(), historyState: vi.fn(), expandedState: vi.fn() }));
+const mocks = vi.hoisted(() => ({ state: vi.fn(), reload: vi.fn(), push: vi.fn(), patch: vi.fn(), post: vi.fn(), resource: vi.fn(), paged: vi.fn(), historyState: vi.fn(), mailTestState: vi.fn(), expandedState: vi.fn() }));
 vi.mock("react", async (original) => ({ ...await original<typeof import("react")>(), useState: mocks.state, useCallback: (callback: unknown) => callback, useRef: (initial: unknown) => ({ current: initial }) }));
 vi.mock("@/lib/admin-client", async (original) => ({ ...await original<typeof import("@/lib/admin-client")>(), adminPatch: mocks.patch, adminPost: mocks.post }));
 vi.mock("@/lib/admin-capabilities", () => ({ capability: () => ({ allowed: true, reason: null }) }));
@@ -18,8 +18,8 @@ function elements(node: ReactNode): ReactElement<Props>[] {
 }
 const item = { id: "oauth_microsoft", configured: true, version: 3, activeVersion: 2, updatedAt: null as string | null, adoption: { receipts: [], healthy: false, basis: "startup_application_only" }, effectiveStatus: "restart_required", providerConnectivity: "not_checked" };
 const data = { environment: "development", replacementEnabled: true, items: [item] };
-function view(editing: unknown = null, activating: unknown = null, response = data, historyId: string | null = null, expanded?: Set<string>) {
-  mocks.state.mockImplementationOnce(() => [editing, vi.fn()]).mockImplementationOnce(() => [activating, vi.fn()]).mockImplementationOnce(() => [historyId, mocks.historyState]).mockImplementationOnce((initial) => [expanded ?? initial, mocks.expandedState]);
+function view(editing: unknown = null, activating: unknown = null, response = data, historyId: string | null = null, expanded?: Set<string>, mailTest: unknown = null) {
+  mocks.state.mockImplementationOnce(() => [editing, vi.fn()]).mockImplementationOnce(() => [activating, vi.fn()]).mockImplementationOnce(() => [historyId, mocks.historyState]).mockImplementationOnce(() => [mailTest, mocks.mailTestState]).mockImplementationOnce((initial) => [expanded ?? initial, mocks.expandedState]);
   const boundary = IntegrationsView() as ReactElement<{ children: (d: unknown) => ReactNode }>;
   return elements(boundary.props.children(response));
 }
@@ -138,14 +138,25 @@ it("expands cards independently and can collapse one without affecting another",
 });
 
 const emailFixture = () => ({ ...data, items: [{ ...item, id: "mail", activeVersion: 1, version: 2, credentialTest: { supported: true, scope: "api_applied_credentials", kind: "smtp_connection_and_authentication", appliedVersion: 1, canTest: true, reason: null, latest: null } }] });
-it("tests only the applied API version once and clearly excludes the saved draft", async () => {
-  mocks.post.mockResolvedValue({ status: "passed", code: "smtp_authentication_verified", version: 1, scope: "api_applied_credentials" });
+it("collects a required sample recipient before testing the applied mail credentials", async () => {
+  mocks.post.mockResolvedValue({ status: "passed", code: "smtp_delivery_accepted", version: 1, scope: "api_applied_credentials" });
   const tree=view(null,null,emailFixture(),null,new Set(["mail"]));
-  expect(JSON.stringify(tree)).toContain("Draft v2 is not tested");expect(JSON.stringify(tree)).toContain("without sending an email");
+  expect(JSON.stringify(tree)).toContain("Draft v2 is not tested");expect(JSON.stringify(tree)).toContain("diagnostic email");
   const button=tree.find(e=>e.props.children==="Test applied credentials")!;expect(button.props.disabled).toBe(false);
-  const start=button.props.onClick as () => Promise<void>;await Promise.all([start(),start()]);
-  expect(mocks.post).toHaveBeenCalledOnce();expect(mocks.post).toHaveBeenCalledWith("/api/admin/integration-profiles/mail/test",{expectedVersion:1,reason:"Test applied Email credentials"},expect.objectContaining({"Idempotency-Key":expect.any(String)}));
-  expect(mocks.push).toHaveBeenCalledWith(expect.objectContaining({tone:"success",message:expect.stringContaining("applied v1")}));
+  (button.props.onClick as () => void)();expect(mocks.mailTestState).toHaveBeenCalledWith(emailFixture().items[0]);expect(mocks.post).not.toHaveBeenCalled();
+  const dialog=view(null,null,emailFixture(),null,new Set(["mail"]),emailFixture().items[0]).find(e=>e.type===ActionDialog)!;
+  expect(dialog.props.title).toBe("Send SMTP test email");expect(dialog.props.confirmLabel).toBe("Send test email");
+  expect(dialog.props.fields).toEqual([expect.objectContaining({name:"recipientEmail",label:"Recipient email",type:"email",autoComplete:"email",required:true})]);
+  await (dialog.props.onSubmit as (v:Record<string,string>)=>Promise<void>)({recipientEmail:" SAMPLE@Example.Test ",reason:"Verify Postmark delivery"});
+  expect(mocks.post).toHaveBeenCalledOnce();expect(mocks.post).toHaveBeenCalledWith("/api/admin/integration-profiles/mail/test",{expectedVersion:1,reason:"Verify Postmark delivery",recipientEmail:"sample@example.test"},expect.objectContaining({"Idempotency-Key":expect.any(String)}));
+  expect(mocks.push).toHaveBeenCalledWith(expect.objectContaining({tone:"success",message:expect.stringContaining("SMTP accepted")}));
+});
+it("keeps the SMTP dialog retryable when the test request fails", async () => {
+  mocks.post.mockRejectedValue(new Error("network unavailable"));
+  const fixture=emailFixture().items[0];
+  const dialog=view(null,null,emailFixture(),null,new Set(["mail"]),fixture).find(e=>e.type===ActionDialog)!;
+  await expect((dialog.props.onSubmit as (v:Record<string,string>)=>Promise<void>)({recipientEmail:"sample@example.test",reason:"Verify delivery"})).rejects.toThrow("We couldn’t run the credential check");
+  expect(mocks.push).toHaveBeenCalledWith(expect.objectContaining({tone:"danger"}));
 });
 it("keeps tests unavailable until a version is applied to this API", () => {
   const response=emailFixture();response.items[0].credentialTest.canTest=false;
