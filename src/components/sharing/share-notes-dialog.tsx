@@ -6,6 +6,7 @@ import { getSharing, createPublication, createLink, revokeLink, createGrant, rev
 import { getMeetingInsights } from "@/lib/meeting-insights-client";
 import type { SharingState } from "@/lib/sharing-types";
 import { ApiError } from "@/lib/upload-client";
+import { ToastStack, useToasts } from "@/components/ui/toast";
 
 interface ReadyInsight {
   id: string;
@@ -28,13 +29,16 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
   const [expiryDays, setExpiryDays] = useState<string>("");
   const [linkUrl, setLinkUrl] = useState<string | null>(null);
   const [alreadyIssued, setAlreadyIssued] = useState(false);
+  const toasts = useToasts(captureId);
+  const fail = (msg: string) => { setError(msg); toasts.push({ tone: "danger", message: msg }); };
+  const succeed = (msg: string) => toasts.push({ tone: "success", message: msg });
 
   useEffect(() => {
     if (!open) return;
     let active = true;
     Promise.all([
       getSharing(captureId).catch((e) => {
-        if (active) setError(e instanceof Error ? e.message : "We couldn’t load sharing. Please try again.");
+        if (active) fail(e instanceof Error ? e.message : "We couldn’t load sharing. Please try again.");
         return null;
       }),
       getMeetingInsights(captureId).catch(() => null),
@@ -100,7 +104,7 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
     try {
       const parsedDays = expiryDays.trim() ? Number(expiryDays) : null;
       if (maxExpiry && parsedDays && parsedDays > maxExpiry) {
-        setError(`Links can last up to ${maxExpiry} days at most.`);
+        fail(`Links can last up to ${maxExpiry} days at most.`);
         setSubmitting(false);
         return;
       }
@@ -120,13 +124,14 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
       );
       const fresh = await getSharing(captureId);
       setState(fresh);
+      succeed("These notes are shared.");
     } catch (e) {
       if (e instanceof ApiError && e.code === "sharing_disabled") {
-        setError("Sharing notes is turned off right now. Ask your administrator to turn it on.");
+        fail("Sharing notes is turned off right now. Ask your administrator to turn it on.");
       } else if (e instanceof ApiError && e.code === "version_conflict") {
-        setError("These notes changed while you were sharing. Reload and try again.");
+        fail("These notes changed while you were sharing. Reload and try again.");
       } else {
-        setError(e instanceof Error ? e.message : "We couldn’t share these notes. Please try again.");
+        fail(e instanceof Error ? e.message : "We couldn’t share these notes. Please try again.");
       }
     } finally {
       setSubmitting(false);
@@ -135,7 +140,7 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
 
   async function makeLink() {
     if (!publicationId) {
-      setError("Choose which notes to share first.");
+      fail("Choose which notes to share first.");
       return;
     }
     setError(null);
@@ -143,12 +148,12 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
     try {
       const parsedDays = expiryDays.trim() ? Number(expiryDays) : null;
       if (parsedDays !== null && (!Number.isFinite(parsedDays) || parsedDays <= 0)) {
-        setError("Expiry days must be greater than 0.");
+        fail("Expiry days must be greater than 0.");
         setSubmitting(false);
         return;
       }
       if (maxExpiry && parsedDays && parsedDays > maxExpiry) {
-        setError(`Links can last up to ${maxExpiry} days at most.`);
+        fail(`Links can last up to ${maxExpiry} days at most.`);
         setSubmitting(false);
         return;
       }
@@ -173,8 +178,9 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
       setAlreadyIssued(!!res.alreadyIssued);
       const fresh = await getSharing(captureId);
       setState(fresh);
+      succeed(res.alreadyIssued ? "A link already exists for these notes." : "Link created.");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "We couldn’t create link. Please try again.");
+      fail(e instanceof Error ? e.message : "We couldn’t create link. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -182,11 +188,11 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
 
   async function addGrant() {
     if (!publicationId) {
-      setError("Share a copy of the notes first.");
+      fail("Share a copy of the notes first.");
       return;
     }
     if (!email.trim() || !email.includes("@")) {
-      setError("Enter a valid email address.");
+      fail("Enter a valid email address.");
       return;
     }
     setError(null);
@@ -204,8 +210,9 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
       const fresh = await getSharing(captureId);
       setState(fresh);
       setEmail("");
+      succeed("Person added.");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "We couldn’t add that person. Please try again.");
+      fail(e instanceof Error ? e.message : "We couldn’t add that person. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -220,8 +227,9 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
       setAlreadyIssued(false);
       const fresh = await getSharing(captureId);
       setState(fresh);
+      succeed("Link revoked.");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "We couldn’t remove access. Please try again.");
+      fail(e instanceof Error ? e.message : "We couldn’t remove access. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -234,8 +242,9 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
       await revokeGrant(captureId, grantId, { expectedVersion: version, reason: "owner_request" });
       const fresh = await getSharing(captureId);
       setState(fresh);
+      succeed("Access removed.");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "We couldn’t remove access. Please try again.");
+      fail(e instanceof Error ? e.message : "We couldn’t remove access. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -243,7 +252,7 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
 
   async function onSendGrant(grantId: string) {
     if (!invitationsAllowed) {
-      setError("Email invitations are turned off right now.");
+      fail("Email invitations are turned off right now.");
       return;
     }
     setError(null);
@@ -252,15 +261,17 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
       await sendGrant(captureId, grantId, { expectedVersion: version, reason: "owner_request" });
       const fresh = await getSharing(captureId);
       setState(fresh);
+      succeed("Invitation sent.");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "We couldn’t send the invitation. Please try again.");
+      fail(e instanceof Error ? e.message : "We couldn’t send the invitation. Please try again.");
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <div role="dialog" aria-modal="true" aria-labelledby="share-title" className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
+    <>
+    <div role="dialog" aria-modal="true" aria-labelledby="share-title" className="fixed inset-0 z-40 grid place-items-center bg-black/40 p-4">
       <div className="max-h-[90vh] w-full max-w-2xl overflow-auto rounded-2xl border border-border bg-background p-6 shadow-lg">
         <div className="flex items-start justify-between gap-3">
           <h2 id="share-title" className="text-lg font-semibold">Share notes</h2>
@@ -401,7 +412,7 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
                   <div className="rounded-lg border border-border bg-surface px-3 py-2">
                     <p className="text-xs text-muted">Copy this link now. You won’t be able to see it again.</p>
                     <p className="mt-1 break-all font-mono text-sm select-all">{linkUrl}</p>
-                    <Button size="sm" className="mt-2" onClick={() => void navigator.clipboard.writeText(linkUrl)}>
+                    <Button size="sm" className="mt-2" onClick={() => void navigator.clipboard.writeText(linkUrl).then(() => succeed("Link copied.")).catch(() => fail("We couldn’t copy the link."))}>
                       Copy link
                     </Button>
                   </div>
@@ -422,5 +433,7 @@ export function ShareNotesDialog({ captureId, open, onClose }: { captureId: stri
         )}
       </div>
     </div>
+    <ToastStack items={toasts.items} onDismiss={toasts.dismiss} />
+    </>
   );
 }
