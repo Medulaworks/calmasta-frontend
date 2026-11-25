@@ -156,11 +156,11 @@ export function IntegrationsView() {
               {editing && (() => {
                 const origin = typeof window !== "undefined" && window.location?.origin ? window.location.origin : "";
                 const defaultRedirectUri = origin ? `${origin}/api/auth/callback` : undefined;
-                const fieldMap: Record<string, Array<{ name: string; label: string; secret?: boolean; placeholder?: string; defaultValue?: string }>> = {
+                const fieldMap: Record<string, Array<{ name: string; label: string; secret?: boolean; placeholder?: string; defaultValue?: string; options?: string[]; required?: boolean }>> = {
                   recall: [{ name: "apiKey", label: "API Key", secret: true }, { name: "webhookSecret", label: "Webhook Secret", secret: true }, { name: "region", label: "Region", placeholder: "us-west-2" }],
                   assemblyai: [{ name: "apiKey", label: "API Key", secret: true }, { name: "webhookSecret", label: "Webhook Secret", secret: true }, { name: "region", label: "Region", placeholder: "us" }],
                   openrouter: [{ name: "apiKey", label: "API Key", secret: true }],
-                  woo: [{ name: "storeUrl", label: "Store URL (https://...)" }, { name: "consumerKey", label: "Consumer Key", secret: true }, { name: "consumerSecret", label: "Consumer Secret", secret: true }, { name: "webhookSecret", label: "Webhook Secret", secret: true }, { name: "mode", label: "Mode (sandbox/production)" }],
+                  woo: [{ name: "storeUrl", label: "Store URL (https://...)" }, { name: "consumerKey", label: "Consumer Key", secret: true }, { name: "consumerSecret", label: "Consumer Secret", secret: true }, { name: "webhookSecret", label: "Webhook Secret", secret: true }, { name: "mode", label: "Mode", options: ["sandbox", "production"], required: true }],
                   mail: [{ name: "host", label: "SMTP Host" }, { name: "port", label: "SMTP Port" }, { name: "secure", label: "Secure (true/false)" }, { name: "user", label: "SMTP User" }, { name: "pass", label: "SMTP Pass", secret: true }, { name: "from", label: "From Email" }],
                   oauth_google: [{ name: "clientId", label: "Google Client ID" }, { name: "clientSecret", label: "Client Secret", secret: true }, { name: "redirectUri", label: "Redirect URI", defaultValue: defaultRedirectUri, placeholder: defaultRedirectUri || "https://your-domain.com/api/auth/callback" }],
                   oauth_microsoft: [{ name: "clientId", label: "Microsoft Client ID" }, { name: "clientSecret", label: "Client Secret", secret: true }, { name: "redirectUri", label: "Redirect URI", defaultValue: defaultRedirectUri, placeholder: defaultRedirectUri || "https://your-domain.com/api/auth/callback" }],
@@ -169,7 +169,7 @@ export function IntegrationsView() {
                 };
                 const extra = fieldMap[editing.id] ?? [{ name: "value", label: "Value", secret: true }];
                 return (
-                  <ActionDialog title={`Replace ${toTitle(editing.id)}`} description={`Save version ${editing.version + 1} without activating it. Credentials are encrypted and never shown again. Leave a field blank to keep its saved value; new profiles require all mandatory fields.`} confirmLabel="Save staged version" fields={extra.map(f => ({ ...f, required: false, hint: f.placeholder ? `Example: ${f.placeholder}` : undefined }))} onClose={() => setEditing(null)} onSubmit={async (v) => {
+                  <ActionDialog title={`Replace ${toTitle(editing.id)}`} description={`Save version ${editing.version + 1} without activating it. Credentials are encrypted and never shown again. Leave a field blank to keep its saved value; new profiles require all mandatory fields.`} confirmLabel="Save staged version" fields={extra.map(f => ({ ...f, required: f.required ?? false, hint: f.placeholder ? `Example: ${f.placeholder}` : undefined }))} onClose={() => setEditing(null)} onSubmit={async (v) => {
                     const changes: Record<string, string> = {};
                     for (const f of extra) if (v[f.name] !== undefined && String(v[f.name]).trim() !== "") changes[f.name] = String(v[f.name]).trim();
                     await adminPatch(`/api/admin/integration-profiles/${editing.id}`, { expectedVersion: editing.version, changes, clearFields: [], reason: v.reason }, { "Idempotency-Key": key() });
