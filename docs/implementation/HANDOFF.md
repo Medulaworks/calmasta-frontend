@@ -704,3 +704,9 @@ You can start consuming ready local contracts now. Core auth/capture/library cod
 - **Proof (command + result + revision):** `pnpm exec vitest run` 69 files / 478 tests passed; `tsc --noEmit` clean; `pnpm run build` compiled 79 routes incl. `/billing/return`, `/dashboard/billing`; touched-file eslint `--max-warnings=0` clean (pre-existing top-bar baseline untouched). Revision 826cdcb + working tree, uncommitted; contract `b8c6752` read-only.
 - **What is NOT done:** Hosted/sandbox acceptance (SRV-WOO): live checkout/return polling, portal (`url: null`), Pro subscriptions (`subscriptions_unavailable`); no `/billing/status` page; no purchases, browser automation, commits or deploys.
 - **Next action (task ID + files):** SRV-WOO — deploy BE-WOO-09 backend, then hosted acceptance of `/dashboard/billing` and `/billing/return?intent=` against sandbox intents.
+## 2026-11-25 — WooCommerce replacement mode selection
+
+- **What was done (files + behavior):** FE-ADM02: the Replace WooCommerce modal now requires an explicit `sandbox` or `production` mode selection before save; the selector starts unselected and marks the field required. Updated shared ActionDialog required-field indicator/placeholder behavior.
+- **Proof (command + result + revision):** Frontend commit `07db120` is on both staging remotes; Actions `45628408353` passed unit tests, build and typecheck. `git diff --check` passed for this tracker update. No browser acceptance.
+- **What is NOT done:** Authenticated UI interaction/hosted visual acceptance; no WooCommerce credentials or profile values changed.
+- **Next action (task ID + files):** FE-ADM02 — confirm the required mode selector in `/admin/integrations` when authenticated UI acceptance is requested.
