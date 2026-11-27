@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Eye, Lock, Pencil, RotateCcw, Send } from "lucide-react";
+import { Check, Eye, Lock, Pencil, RotateCcw, Send, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { adminPatch, adminPost, fmtUtc } from "@/lib/admin-client";
-import { useToasts } from "@/components/ui/toast";
+import { ToastStack, useToasts } from "@/components/ui/toast";
 import { ActionDialog, ResourceBoundary, useResource } from "./ui";
 import type {
   EmailCategory,
@@ -21,8 +21,6 @@ const CATEGORY_LABELS: Record<EmailCategory, string> = {
   billing: "Billing & Minutes",
   admin: "Admin & Staff",
 };
-
-const key = () => crypto.randomUUID().replace(/-/g, "").slice(0, 16);
 
 export function EmailTemplatesView() {
   const res = useResource<EmailTemplateListResponse>("/api/admin/settings/emails");
@@ -42,6 +40,7 @@ export function EmailTemplatesView() {
   // Dialog states
   const [confirmReset, setConfirmReset] = useState(false);
   const [testSendDialog, setTestSendDialog] = useState(false);
+  const [previewDialog, setPreviewDialog] = useState(false);
 
   const templates: EmailTemplateDto[] = res.data?.items ?? [];
   const selected: EmailTemplateDto | undefined =
@@ -57,6 +56,15 @@ export function EmailTemplatesView() {
       setFooterNote(selected.footerNote ?? "");
     }
   }, [selected?.id, selected?.updatedAt]);
+
+  useEffect(() => {
+    if (!previewDialog) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPreviewDialog(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [previewDialog]);
 
   const filtered = templates.filter((t) =>
     activeCategory === "all" ? true : t.category === activeCategory,
@@ -77,6 +85,10 @@ export function EmailTemplatesView() {
       toasts.push({ tone: "danger", message: "At least one paragraph is required." });
       return;
     }
+    if (paragraphsList.some((paragraph) => paragraph.length > 2000) || paragraphsList.reduce((sum, paragraph) => sum + paragraph.length, 0) > 10000) {
+      toasts.push({ tone: "danger", message: "Keep each paragraph under 2,000 characters and all paragraphs under 10,000 characters." });
+      return;
+    }
 
     setSaving(true);
     try {
@@ -88,11 +100,7 @@ export function EmailTemplatesView() {
         footerNote: footerNote.trim() || null,
       };
 
-      await adminPatch(
-        `/api/admin/settings/emails/${selected.id}`,
-        payload,
-        { "Idempotency-Key": key() },
-      );
+      await adminPatch(`/api/admin/settings/emails/${selected.id}`, payload);
 
       toasts.push({ tone: "success", message: `Saved changes to "${selected.label}".` });
       res.reload();
@@ -118,18 +126,19 @@ export function EmailTemplatesView() {
         tone: "danger",
         message: err?.message || "Failed to reset template.",
       });
+      throw err;
     }
   };
 
-  const handleTestSend = async (recipientEmail?: string) => {
+  const handleTestSend = async (recipientEmail: string) => {
     if (!selected) return;
     try {
       await adminPost(`/api/admin/settings/emails/${selected.id}/test-send`, {
-        recipientEmail: recipientEmail?.trim() || undefined,
+        recipientEmail: recipientEmail.trim(),
       });
       toasts.push({
         tone: "success",
-        message: `Diagnostic test email sent for "${selected.label}". Check your inbox.`,
+        message: `Diagnostic test email sent to ${recipientEmail.trim()}.`,
       });
       setTestSendDialog(false);
     } catch (err: any) {
@@ -137,6 +146,7 @@ export function EmailTemplatesView() {
         tone: "danger",
         message: err?.message || "Failed to dispatch test email.",
       });
+      throw err;
     }
   };
 
@@ -187,7 +197,7 @@ export function EmailTemplatesView() {
                 <div className="text-xs font-semibold uppercase tracking-wider text-muted">
                   Transactional Emails
                 </div>
-                <div className="space-y-1.5 max-h-[750px] overflow-y-auto pr-1 [scrollbar-width:thin]">
+                <div className="max-h-[750px] space-y-1 overflow-y-auto pr-1 [scrollbar-width:thin]">
                   {filtered.map((item) => {
                     const isSelected = item.id === (current?.id ?? selectedId);
                     return (
@@ -195,14 +205,14 @@ export function EmailTemplatesView() {
                         key={item.id}
                         type="button"
                         onClick={() => setSelectedId(item.id)}
-                        className={`w-full rounded-xl border p-3.5 text-left transition-all ${
+                        className={`w-full rounded-lg border p-2.5 text-left transition-all ${
                           isSelected
                             ? "border-accent/40 bg-accent/5 ring-1 ring-accent/30 shadow-sm"
                             : "border-border bg-background hover:bg-surface"
                         }`}
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <span className={`text-sm font-semibold ${isSelected ? "text-accent" : "text-foreground"}`}>
+                          <span className={`text-xs font-semibold ${isSelected ? "text-accent" : "text-foreground"}`}>
                             {item.label}
                           </span>
                           <span className="shrink-0">
@@ -213,7 +223,7 @@ export function EmailTemplatesView() {
                             )}
                           </span>
                         </div>
-                        <p className="mt-1 line-clamp-2 text-xs text-muted">
+                        <p className="mt-0.5 line-clamp-1 text-[11px] text-muted">
                           {item.description}
                         </p>
                       </button>
@@ -238,8 +248,7 @@ export function EmailTemplatesView() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-                    {/* Left Sub-Column: Edit Form */}
+                  <div className="space-y-4">
                     <Card className="space-y-4 p-5">
                       <div className="flex items-center justify-between border-b border-border pb-3">
                         <div className="flex items-center gap-2">
@@ -292,12 +301,13 @@ export function EmailTemplatesView() {
                           <label htmlFor="tpl-paragraphs" className="font-medium text-foreground">
                             Body Paragraphs <span className="text-danger">*</span>
                           </label>
-                          <span className="text-muted">Double enter separates paragraphs</span>
+                          <span className="text-muted">Double enter separates paragraphs · {paragraphsText.length}/10000</span>
                         </div>
                         <textarea
                           id="tpl-paragraphs"
                           rows={5}
                           value={paragraphsText}
+                          maxLength={10000}
                           onChange={(e) => setParagraphsText(e.target.value)}
                           className="w-full rounded-lg border border-border bg-background p-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
                           placeholder="Enter paragraph text..."
@@ -331,7 +341,7 @@ export function EmailTemplatesView() {
                           id="tpl-footer"
                           type="text"
                           value={footerNote}
-                          maxLength={300}
+                          maxLength={400}
                           onChange={(e) => setFooterNote(e.target.value)}
                           className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
                           placeholder="e.g. If you have questions about this change, contact support."
@@ -377,99 +387,91 @@ export function EmailTemplatesView() {
                       </div>
                     </Card>
 
-                    {/* Right Sub-Column: Live Email Frame Preview */}
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between text-xs text-muted">
-                        <span className="flex items-center gap-1.5 font-medium text-foreground">
-                          <Eye className="size-4 text-accent" />
-                          Live Email Frame Preview
-                        </span>
-                        <span>Responsive HTML Card</span>
-                      </div>
-
-                      {/* Frame Container */}
-                      <div className="overflow-hidden rounded-xl border border-border bg-[#F9FAFB] p-5 shadow-sm">
-                        {/* Joobah Branded Email Box */}
-                        <div className="mx-auto max-w-[480px] overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-sm text-left">
-                          {/* Top Accent Gradient Bar */}
-                          <div className="h-1 bg-gradient-to-r from-[#511533] to-[#F2AE50]" />
-
-                          {/* Email Body */}
-                          <div className="p-6 space-y-4">
-                            {/* Joobah Header */}
-                            <div className="text-base font-bold text-[#111827]">
-                              Joobah
-                            </div>
-
-                            {/* Greeting */}
-                            {greeting.trim() && (
-                              <p className="text-xs font-semibold text-[#111827]">
-                                {greeting.trim()}
-                              </p>
-                            )}
-
-                            {/* Paragraphs */}
-                            {paragraphsList.map((p: string, idx: number) => (
-                              <p key={idx} className="text-xs leading-relaxed text-[#374151]">
-                                {p}
-                              </p>
-                            ))}
-
-                            {/* Dynamic OTP Callout (If applicable) */}
-                            {current.systemFields.hasOtp && (
-                              <div className="rounded-lg border border-dashed border-[#F2AE50] bg-amber-50/50 p-3 text-center">
-                                <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-700">
-                                  System Dynamic Security Code
-                                </span>
-                                <div className="mt-1 font-mono text-xl font-bold tracking-widest text-[#511533]">
-                                  123456
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Dynamic Locked Clauses */}
-                            {current.systemFields.fixedClauses.length > 0 && (
-                              <div className="space-y-1 rounded-lg bg-gray-50 p-2.5 text-[11px] text-gray-500">
-                                {current.systemFields.fixedClauses.map((clause: string, cIdx: number) => (
-                                  <div key={cIdx} className="flex items-center gap-1.5">
-                                    <Lock className="size-3 text-gray-400 shrink-0" />
-                                    <span>{clause.replace("[6-Digit Code]", "123456")}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-
-                            {/* CTA Button */}
-                            {current.systemFields.hasCtaUrl && (
-                              <div className="pt-2">
-                                <span className="inline-block rounded-lg bg-[#511533] px-5 py-2 text-xs font-medium text-white shadow-sm">
-                                  {ctaLabel.trim() || "Action Button"}
-                                </span>
-                              </div>
-                            )}
-
-                            {/* Divider & Signature */}
-                            <div className="pt-4">
-                              <div className="h-0.5 w-6 rounded bg-[#F2AE50] mb-2" />
-                              <div className="text-xs font-medium text-[#111827]">
-                                The Joobah Team
-                              </div>
-                              {footerNote.trim() && (
-                                <p className="mt-2 text-[11px] text-[#6B7280]">
-                                  {footerNote.trim()}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Email Footer Notice */}
-                          <div className="border-t border-[#F3F4F6] bg-[#FAFAFA] p-3 text-center text-[10px] text-[#9CA3AF]">
-                            Sent by Joobah • Secure and professional
-                          </div>
-                        </div>
-                      </div>
+                    {/* Preview button occupies its own row below the full-width editor. */}
+                    <div className="flex justify-end">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => setPreviewDialog(true)}
+                        aria-haspopup="dialog"
+                      >
+                        <Eye className="size-4" />
+                        Preview email
+                      </Button>
                     </div>
                   </div>
+
+                  {previewDialog && (
+                    <div
+                      className="fixed inset-0 z-50 grid place-items-center bg-black/55 p-4"
+                      onMouseDown={(event) => event.target === event.currentTarget && setPreviewDialog(false)}
+                    >
+                      <section
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="email-preview-title"
+                        className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-border bg-background shadow-2xl"
+                      >
+                        <header className="flex items-start justify-between gap-4 border-b border-border p-5">
+                          <div>
+                            <h2 id="email-preview-title" className="text-base font-semibold text-foreground">Live Email Preview</h2>
+                            <p className="mt-1 text-sm text-muted">Sample security values are shown for preview only.</p>
+                          </div>
+                          <Button type="button" variant="ghost" size="sm" onClick={() => setPreviewDialog(false)} aria-label="Close email preview" autoFocus>
+                            <X className="size-4" />
+                          </Button>
+                        </header>
+
+                        <div className="overflow-y-auto bg-[#F9FAFB] p-4 sm:p-6">
+                          <div className="mx-auto mb-2 max-w-[600px] truncate text-xs text-[#6B7280]">
+                            <span className="font-semibold">Subject:</span> {subject}
+                          </div>
+                          <div className="mx-auto max-w-[600px] overflow-hidden rounded-xl border border-[#E5E7EB] bg-white text-left shadow-sm">
+                            <div className="h-1 bg-gradient-to-r from-[#511533] to-[#F2AE50]" />
+                            <div className="space-y-4 p-6">
+                              <div className="flex items-center gap-3">
+                                <img src="https://app.joobah.com/favicon-48x48.png" width={48} height={48} alt="Joobah logo" className="size-12" />
+                                <span className="text-lg font-bold text-[#111827]">Joobah</span>
+                              </div>
+                              {greeting.trim() && <p className="text-xs font-semibold text-[#111827]">{greeting.trim()}</p>}
+                              {paragraphsList.map((paragraph: string, index: number) => (
+                                <p key={index} className="text-sm leading-[1.7] text-[#111827]">{paragraph}</p>
+                              ))}
+                              {current.systemFields.hasOtp && (
+                                <div className="rounded-lg border border-dashed border-[#F2AE50] bg-amber-50/50 p-3 text-center">
+                                  <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-700">System Dynamic Security Code</span>
+                                  <div className="mt-1 font-mono text-xl font-bold tracking-widest text-[#511533]">123456</div>
+                                </div>
+                              )}
+                              {current.systemFields.fixedClauses.length > 0 && (
+                                <div className="space-y-1 rounded-lg bg-gray-50 p-2.5 text-[11px] text-gray-500">
+                                  {current.systemFields.fixedClauses.map((clause: string, index: number) => (
+                                    <div key={index} className="flex items-center gap-1.5">
+                                      <Lock className="size-3 shrink-0 text-gray-400" />
+                                      <span>{clause.replace("[6-Digit Code]", "123456")}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              {current.systemFields.hasCtaUrl && (
+                                <div className="pt-2">
+                                  <span className="inline-block rounded-lg bg-[#511533] px-5 py-2 text-xs font-medium text-white shadow-sm">{ctaLabel.trim() || "Action Button"}</span>
+                                </div>
+                              )}
+                              <div className="pt-4">
+                                <div className="mb-2 h-0.5 w-6 rounded bg-[#F2AE50]" />
+                                <div className="text-xs font-medium text-[#111827]">The Joobah Team</div>
+                                {footerNote.trim() && <p className="mt-2 text-[11px] text-[#6B7280]">{footerNote.trim()}</p>}
+                              </div>
+                            </div>
+                            <div className="border-t border-[#F3F4F6] bg-[#FAFAFA] p-3 text-center text-[10px] text-[#9CA3AF]">
+                              Sent by Joobah • Secure and professional
+                            </div>
+                          </div>
+                        </div>
+                      </section>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -490,23 +492,22 @@ export function EmailTemplatesView() {
             {testSendDialog && (
               <ActionDialog
                 title="Send test preview email"
-                description={`Sends a diagnostic email for "${selected?.label}" with sample dynamic data directly to verify inbox formatting.`}
+                description={`Sends a diagnostic email for "${selected?.label}" with sample dynamic data to the address you enter.`}
                 confirmLabel="Send test email"
-                fields={[
-                  {
-                    name: "recipientEmail",
-                    label: "Recipient email",
-                    type: "email",
-                    autoComplete: "email",
-                    required: false,
-                    hint: "Leave empty to send to your staff email",
-                  },
-                ]}
+                fields={[{
+                  name: "recipientEmail",
+                  label: "Send to email address",
+                  type: "email",
+                  autoComplete: "email",
+                  required: true,
+                  hint: "This test contains sample values, not a real OTP or account link.",
+                }]}
                 hideReason
                 onClose={() => setTestSendDialog(false)}
-                onSubmit={async (v) => handleTestSend(v.recipientEmail)}
+                onSubmit={async (values) => handleTestSend(values.recipientEmail)}
               />
             )}
+            <ToastStack items={toasts.items} onDismiss={toasts.dismiss} />
           </div>
         );
       }}
