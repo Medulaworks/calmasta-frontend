@@ -51,6 +51,7 @@ export const SECTIONS = [
       { href: `${A}/plans`, label: "Plans and pricing", hint: "Prices, hours, extra packs" },
       { href: `${A}/settings`, label: "Limits and switches", hint: "Recording, uploads, sharing, AI" },
       { href: `${A}/integrations`, label: "Connected services", hint: "Meeting bot, storage, email" },
+      { href: `${A}/emails`, label: "Email templates", hint: "Subjects, body copy, and button text" },
     ],
   },
   {

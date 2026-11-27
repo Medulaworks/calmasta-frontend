@@ -630,3 +630,8 @@ Next action: OTEL-09/OPERATIONS — operator provisions fixture capture/cookie a
 - **Proof (command + result + revision):**521b308 local577/577PASS, typecheck/scoped ESLintPASS; Actions44684240656SUCCESS including build; Vercel commit statusSUCCESS. Backend609a192 Actions44685678337SUCCESS633/633/preflight/staging deploy.
 - **What is NOT done:** Custom-domain/browser manual acceptance and actual browser ingestion remain pending; no production deployment or provider call by this task.
 - **Next action (task ID + files):** OTEL-07/ADM billing — server follows sibling releases/2026-11-20-staging-billing-telemetry-server-prompt.md; source/CI GO, verify521b308 or tested descendant without browser automation.
+## 2026-11-25 — WooCommerce replacement mode required
+- **What was done (files + behavior):** FE-ADM02: added required sandbox/production select to the Woo replacement modal and required-field UI; changed integrations-view.tsx and admin/ui.tsx.
+- **Proof (command + result + revision):** Frontend `07db120` is on both staging remotes; Actions `45628408353` passed unit tests, build and typecheck. No browser acceptance.
+- **What is NOT done:** Authenticated UI interaction/hosted visual acceptance; no profile values changed.
+- **Next action (task ID + files):** FE-ADM02 — confirm the required mode selector in `/admin/integrations` when authenticated UI acceptance is requested.

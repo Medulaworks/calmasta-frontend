@@ -2,6 +2,11 @@ import { createElement, isValidElement, type ReactNode, type ReactElement } from
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fixtureSharingState } from "@/lib/sharing-types";
 
+vi.mock("@/components/ui/toast", () => ({
+  useToasts: () => ({ push: vi.fn(), items: [], dismiss: vi.fn() }),
+  ToastStack: () => null,
+}));
+
 const hooks = vi.hoisted(() => ({
   values: [] as unknown[],
   cursor: 0,
