@@ -735,3 +735,9 @@ You can start consuming ready local contracts now. Core auth/capture/library cod
 - **Proof (command + result + revision):** Frontend `npm run typecheck` and `git diff --check` passed; backend `pnpm run preflight` passed with 179 OpenAPI paths. No test or browser run; no email, account or invite mutation.
 - **What is NOT done:** Authenticated end-to-end browser acceptance, commit, push or deployment.
 - **Next action (task ID + files):** FE-ADM04 — use a fresh test invitation in the authenticated browser; inspect frontend `accept-invite/client.tsx` and backend `admin.controller.ts`/`admin.service.ts`.
+
+## 2026-11-27 — release checkpoint after invite prerender fix
+- **What was done (files + behavior):** Kept `/admin/accept-invite` query-token handling beneath Suspense, fixing the initial production prerender failure without changing invitation behavior.
+- **Proof (command + result + revision):** Initial frontend Actions `46077813600` passed unit tests and failed at route prerender; repaired source passed local `pnpm run build`, `pnpm run typecheck`, the invite BFF test (11/11), and `git diff --check`.
+- **What is NOT done:** Fix commit/push and staging deployment pending; authenticated browser acceptance is still outstanding.
+- **Next action (task ID + files):** FE-ADM04 — publish the fix and confirm CI/deploy, then use a fresh staging invitation for authenticated acceptance testing.

@@ -665,3 +665,9 @@ Next action: OTEL-09/OPERATIONS — operator provisions fixture capture/cookie a
 - **Proof (command + result + revision):** Frontend `npm run typecheck` passed; no tests/browser check.
 - **What is NOT done:** Live timestamp comparison or hosted publication.
 - **Next action (task ID + files):** FE-ADM01 — refresh `/admin/admins` and verify known accounts.
+
+## 2026-11-27 — staging release repair: invite page prerender
+- **What was done (files + behavior):** Frontend commit `92ae07f` was pushed to staging after backend invite lookup shipped. Its first CI build exposed that `/admin/accept-invite` awaited `searchParams` before entering Suspense. Moved the async parameter read into a child rendered beneath the Suspense boundary; invitation token behavior is unchanged.
+- **Proof (command + result + revision):** Initial Actions `46077813600` unit tests passed but production build failed during prerender. After the fix, `pnpm run build`, `pnpm run typecheck`, `npx vitest run src/server/auth/service.public.test.ts` (11/11), and `git diff --check` passed locally on Next.js `16.4.6`.
+- **What is NOT done:** Fix commit publication and staging deployment pending; no authenticated browser acceptance.
+- **Next action (task ID + files):** FE-ADM04 — publish the Suspense fix, wait for staging CI/deploy, then verify a fresh invitation in the authenticated browser.
