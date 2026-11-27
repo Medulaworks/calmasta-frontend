@@ -38,6 +38,7 @@ const gate = (c: CapabilityState): Pick<MenuItem, "disabled" | "reason"> => ({ d
 export function userMenuItems(u: UserLike, open: (d: UserDialogKind) => void, openHref?: string): MenuItem[] {
   const edit = capability("user_edit_profile");
   const suspend = capability("user_suspend");
+  const customerActions = suspend;
   const sessions = capability("user_revoke_sessions");
   const mail = capability("user_send_mail");
   const gone = u.deleting;
@@ -48,8 +49,10 @@ export function userMenuItems(u: UserLike, open: (d: UserDialogKind) => void, op
   items.push({ label: "Send password reset email", icon: KeyRound, onSelect: () => open("recovery"), divider: items.length > 0, ...gate(mail) });
   if (u.emailVerified === false) items.push({ label: "Resend confirmation email", icon: MailCheck, onSelect: () => open("verification"), ...gate(mail) });
   if (u.sessionCount !== 0) items.push({ label: "Sign out everywhere", icon: LogOut, onSelect: () => open("revoke"), ...gate(sessions) });
-  items.push({ label: "Add minutes", icon: Plus, onSelect: () => open("add_minutes"), divider: true, disabled: gone, reason: gone ? deleting : null });
-  items.push({ label: "Remove minutes", icon: Minus, onSelect: () => open("take_minutes"), disabled: gone, reason: gone ? deleting : null });
+  if (customerActions.allowed) {
+    items.push({ label: "Add minutes", icon: Plus, onSelect: () => open("add_minutes"), divider: true, disabled: gone, reason: gone ? deleting : null });
+    items.push({ label: "Remove minutes", icon: Minus, onSelect: () => open("take_minutes"), disabled: gone, reason: gone ? deleting : null });
+  }
   if (u.planSource === "staff" && u.plan !== "free") items.push({ label: "End free Pro access", icon: XCircle, onSelect: () => open("end_pro"), disabled: true, reason: "Not available yet." });
   else if (u.plan === "free") items.push({ label: "Give Pro for a while", icon: Sparkles, onSelect: () => open("grant_pro"), disabled: true, reason: "Not available yet." });
   items.push(u.suspended

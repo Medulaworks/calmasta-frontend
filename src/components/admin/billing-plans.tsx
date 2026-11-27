@@ -13,7 +13,7 @@ type Promo = { id: string; code: string; type: string; value: number; applicable
 const money = (c: number, cur = "USD") => `${cur} ${(c / 100).toFixed(2)}`;
 
 /** Dynamic plan config (versioned templates) + promo codes. Editing creates a new version; existing users keep snapshots. No WooCommerce dependency. */
-export function BillingPlans() {
+export function BillingPlans({ readOnly = false }: { readOnly?: boolean }) {
   const plans = useResource<{ plans: Plan[] }>("/api/admin/billing/plans");
   const promos = useResource<{ items: Promo[] }>("/api/admin/billing/promo-codes");
   const [edit, setEdit] = useState<Plan | "new" | null>(null);
@@ -24,7 +24,7 @@ export function BillingPlans() {
   return (
     <div className="space-y-8">
       <section aria-labelledby="dyn-plans" className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3"><h2 id="dyn-plans" className="text-sm font-semibold">Plan configuration (live, versioned)</h2><Button onClick={() => setEdit("new")}>New plan</Button></div>
+        <div className="flex flex-wrap items-center justify-between gap-3"><h2 id="dyn-plans" className="text-sm font-semibold">Plan configuration (live, versioned)</h2>{!readOnly && <Button onClick={() => setEdit("new")}>New plan</Button>}</div>
         {msg && <p role="status" className="text-sm">{msg}</p>}
         {plans.loading && (
           <Loading label="Loading plans" className="grid items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -59,9 +59,9 @@ export function BillingPlans() {
                 </dl>
                 <p className="mt-3 text-xs leading-relaxed text-muted">Updated {fmtUtc(p.updatedAt)}. Existing users keep their snapshot; edits apply only to future assignments.</p>
                 <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-border pt-4">
-                  <Button size="sm" variant="secondary" className="min-w-0 flex-1" onClick={() => setEdit(p)}>Edit</Button>
+                  {!readOnly && <Button size="sm" variant="secondary" className="min-w-0 flex-1" onClick={() => setEdit(p)}>Edit</Button>}
                   <Button size="sm" variant="ghost" className="min-w-0 flex-1" disabled={historyLoading === p.id} aria-busy={historyLoading === p.id} onClick={async () => { setHistoryLoading(p.id); try { setHistory({ planId: p.id, items: (await adminGet<{ items: never[] }>(`/api/admin/billing/plans/${p.id}/history`)).items }); } finally { setHistoryLoading(null); } }}>{historyLoading === p.id ? <span className="inline-flex items-center gap-2"><Loader2 aria-hidden className="size-4 animate-spin" />Loading…</span> : "History"}</Button>
-                  {p.status === "active" && <Button size="sm" variant="ghost" className="min-w-0 flex-1" onClick={async () => { await adminPost(`/api/admin/billing/plans/${p.id}/archive`, { reason: "Archived in admin" }); setMsg(`${p.name} archived.`); plans.reload(); }}>Archive</Button>}
+                  {!readOnly && p.status === "active" && <Button size="sm" variant="ghost" className="min-w-0 flex-1" onClick={async () => { await adminPost(`/api/admin/billing/plans/${p.id}/archive`, { reason: "Archived in admin" }); setMsg(`${p.name} archived.`); plans.reload(); }}>Archive</Button>}
                 </div>
               </div>
             </Card>
@@ -69,13 +69,13 @@ export function BillingPlans() {
         </div>
       </section>
       <section aria-labelledby="promos" className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3"><h2 id="promos" className="text-sm font-semibold">Promo codes</h2><Button onClick={() => setPromoForm(true)}>New promo code</Button></div>
+        <div className="flex flex-wrap items-center justify-between gap-3"><h2 id="promos" className="text-sm font-semibold">Promo codes</h2>{!readOnly && <Button onClick={() => setPromoForm(true)}>New promo code</Button>}</div>
         {promos.data?.items.length === 0 && <p className="text-sm text-muted">No promo codes yet.</p>}
-        <ul className="space-y-2">{promos.data?.items.map((p) => <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border px-4 py-3 text-sm"><span><strong>{p.code}</strong> · {p.type} {p.value} · plans {p.applicablePlans.join(", ") || "all"} · used {p.usedCount}/{p.maxUses ?? "∞"} · {p.active ? "active" : "inactive"}{p.expiresAt ? ` · expires ${fmtUtc(p.expiresAt)}` : ""}</span><Button variant="ghost" onClick={async () => { await adminPatch(`/api/admin/billing/promo-codes/${p.id}`, { active: !p.active }); promos.reload(); }}>{p.active ? "Deactivate" : "Activate"}</Button></li>)}</ul>
+        <ul className="space-y-2">{promos.data?.items.map((p) => <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border px-4 py-3 text-sm"><span><strong>{p.code}</strong> · {p.type} {p.value} · plans {p.applicablePlans.join(", ") || "all"} · used {p.usedCount}/{p.maxUses ?? "∞"} · {p.active ? "active" : "inactive"}{p.expiresAt ? ` · expires ${fmtUtc(p.expiresAt)}` : ""}</span>{!readOnly && <Button variant="ghost" onClick={async () => { await adminPatch(`/api/admin/billing/promo-codes/${p.id}`, { active: !p.active }); promos.reload(); }}>{p.active ? "Deactivate" : "Activate"}</Button>}</li>)}</ul>
       </section>
-      {edit && <PlanForm plan={edit === "new" ? null : edit} onClose={() => setEdit(null)} onSaved={(m) => { setMsg(m); setEdit(null); plans.reload(); }} />}
+      {!readOnly && edit && <PlanForm plan={edit === "new" ? null : edit} onClose={() => setEdit(null)} onSaved={(m) => { setMsg(m); setEdit(null); plans.reload(); }} />}
       {history && <SimpleDialog title={`Version history — ${history.planId}`} confirmLabel="Close" onClose={() => setHistory(null)} onSubmit={async () => {}}><ul className="space-y-1 text-sm">{history.items.map((h) => <li key={h.version}>v{h.version} · {money(h.priceCents)} · {h.minutesAllowance} min · {fmtUtc(h.createdAt)}</li>)}</ul></SimpleDialog>}
-      {promoForm && <PromoForm onClose={() => setPromoForm(false)} onSaved={(m) => { setMsg(m); setPromoForm(false); promos.reload(); }} />}
+      {!readOnly && promoForm && <PromoForm onClose={() => setPromoForm(false)} onSaved={(m) => { setMsg(m); setPromoForm(false); promos.reload(); }} />}
     </div>
   );
 }

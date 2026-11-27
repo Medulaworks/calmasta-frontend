@@ -1,3 +1,10 @@
+## Current checkpoint (2026-11-27 — Admin viewer access and invitation usability)
+
+- **What was done (files + behavior):** `plans-view.tsx` and `billing-plans.tsx` hide plan, price, pack and promo mutations without `settings_edit`; customer minute and plan changes require the existing customer action capability; `email-templates-view.tsx` is read-only without `settings_edit`; integrations permission alerts and admin API permission errors use plain language; invite account password fields have accessible show/hide buttons. The admins table now uses the existing customer-detail session metadata endpoint to display each admin’s latest sign-in timestamp. Existing backend authorization remains authoritative.
+- **Proof (command + result + revision):** Frontend `npm run typecheck` and `git diff --check` passed after the admins table fix. No tests/browser interaction or backend runtime change.
+- **What is NOT done:** Browser acceptance for viewer/owner role behavior, invitation eye controls and live last-sign-in refresh; no commit, push or deployment.
+- **Next action (task ID + files):** FE-ADM01/FE-ADM04 — confirm the sign-in timestamps and role controls in local UI, then include in an approved frontend release.
+
 
 ## 2026-11-20 — browser telemetry staging source verified
 
@@ -710,3 +717,21 @@ You can start consuming ready local contracts now. Core auth/capture/library cod
 - **Proof (command + result + revision):** Frontend commit `07db120` is on both staging remotes; Actions `45628408353` passed unit tests, build and typecheck. `git diff --check` passed for this tracker update. No browser acceptance.
 - **What is NOT done:** Authenticated UI interaction/hosted visual acceptance; no WooCommerce credentials or profile values changed.
 - **Next action (task ID + files):** FE-ADM02 — confirm the required mode selector in `/admin/integrations` when authenticated UI acceptance is requested.
+
+## 2026-11-27 — pending staff invites and resend cooldown
+- **What was done (files + behavior):** FE-ADM03: `admins-view.tsx` reads pending emails through the existing staff-authorized invites endpoint and renders a visible resend button with a per-invite 60-second countdown; invite tokens remain private.
+- **Proof (command + result + revision):** Local uncommitted source; `npm run typecheck` and `git diff --check` passed. No tests or browser automation run.
+- **What is NOT done:** Browser/hosted acceptance, commit, push or deployment.
+- **Next action (task ID + files):** FE-ADM03 — authenticated `/admin/admins` UI acceptance; inspect `src/components/admin/admins-view.tsx`.
+
+## 2026-11-27 — invite acceptance session routing
+- **What was done (files + behavior):** FE-ADM04: `service.ts` uses the invitee's standard session for `/admin/staff/invites/accept`; `admin-client.ts` explains invalid or stale links; accepted users continue to admin sign-in.
+- **Proof (command + result + revision):** Local uncommitted source; `npm run typecheck` and `git diff --check` passed. No invite was accepted or resent; no tests/browser automation run.
+- **What is NOT done:** Authenticated acceptance-flow verification and release publication.
+- **Next action (task ID + files):** FE-ADM04 — sign in as the verified invited account and try a fresh invite; `src/server/auth/service.ts`, `src/app/admin/accept-invite/client.tsx`.
+
+## 2026-11-27 — single-page admin invite onboarding
+- **What was done (files + behavior):** FE-ADM04: backend adds rate-limited token lookup with account existence for only the invite-bound email; the BFF keeps lookup narrowly public and acceptance on the normal session; `accept-invite/client.tsx` dynamically shows signup or sign-in, then verification, recovery, acceptance and admin sign-in on one page.
+- **Proof (command + result + revision):** Frontend `npm run typecheck` and `git diff --check` passed; backend `pnpm run preflight` passed with 179 OpenAPI paths. No test or browser run; no email, account or invite mutation.
+- **What is NOT done:** Authenticated end-to-end browser acceptance, commit, push or deployment.
+- **Next action (task ID + files):** FE-ADM04 — use a fresh test invitation in the authenticated browser; inspect frontend `accept-invite/client.tsx` and backend `admin.controller.ts`/`admin.service.ts`.

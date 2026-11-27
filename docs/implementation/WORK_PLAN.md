@@ -1,3 +1,11 @@
+## 2026-11-27 — Admin viewer access and invitation usability
+
+- **Status:** IMPLEMENTED locally; PARTIALLY_TESTED.
+- **What was done:** FE-ADM01/FE-ADM04 frontend refinements: viewer capability gates remove plan, pricing, pack, promo, email-template and customer mutation controls; integrations permission failures use readable copy; invitation password fields can toggle visibility; the admins table reads each admin’s latest session timestamp from the existing customer detail endpoint.
+- **Proof:** `npm run typecheck` and `git diff --check` passed. No tests/browser acceptance, commit, push or deployment.
+- **What is NOT done:** Hosted role acceptance, manual invite-page interaction and live last-sign-in display acceptance.
+- **Next action:** FE-ADM01/FE-ADM04 — confirm viewer and owner behavior in local admin pages, then publish through the normal release process.
+
 
 ## 2026-11-20 — browser telemetry staging source verified
 
@@ -200,6 +208,8 @@ Canonical frontend acceptance criteria live here. Backend acceptance remains in 
 | FE-X05 | PENDING | Host and guest booking/slots/manage/ICS after M7 APIs and safe public routing | BLOCKED | NOT_TESTED |
 | FE-ADM01 | ADMIN | Backend admin/telemetry/Q&A consumption on staging/prod via runtime86bc932 113-path OpenAPI (migrations026/027 applied, checksums verified); frontend BFF staff login/logout/me/capabilities (origin/CSRF, opaque HttpOnly, traceparent), pagination cursor UUID/limit1-100/search≤100/from/to, version409, Idempotency-Key+reason, write-only encrypted keys restart_required, partial_ai_extraction; on feature/frontend-admin-telemetry-consumption, preserve transcript editor/exports | IMPLEMENTED | PARTIALLY_TESTED |
 | FE-ADM02 | ADMIN | Integration activation applies automatically after current work drains; page polls fresh API/worker adoption and exposes staff-authorized environment-scoped paginated history with actor, UTC time, version, reason and field names; WooCommerce replacement requires explicit sandbox/production mode selection; no credential values | IMPLEMENTED | PARTIALLY_TESTED |
+| FE-ADM03 | ADMIN | `/admin/admins` lists pending invite emails from the staff-authorized invites API and offers a visible resend button with a 60-second per-invite cooldown; no invite token exposure | IMPLEMENTED | PARTIALLY_TESTED |
+| FE-ADM04 | ADMIN | `/admin/accept-invite` dynamically selects account creation or sign-in from a valid token-scoped lookup, then handles email verification, password recovery, invite acceptance, and admin sign-in in one page; no account-mode buttons or arbitrary email checks | IMPLEMENTED | PARTIALLY_TESTED |
 | FE-X06 | PENDING | Notifications and staff HTTP controls after backend contracts/authorization, not operator CLI exposure | BLOCKED | NOT_TESTED |
 | FE-X07 | PENDING | Paid plan/checkout/credits after M2 approval; account/capture deletion after S02 tombstone contract | BLOCKED | NOT_TESTED |
 | FE-WOO-01 | BILLING | Commerce client correctness: header merge, nullable checkout_url, relative returnUrl (`src/lib/commerce-client.ts`, tests, commerce BFF allowlist) | IMPLEMENTED | PASSED |

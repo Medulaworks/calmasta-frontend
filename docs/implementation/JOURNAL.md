@@ -635,3 +635,33 @@ Next action: OTEL-09/OPERATIONS — operator provisions fixture capture/cookie a
 - **Proof (command + result + revision):** Frontend `07db120` is on both staging remotes; Actions `45628408353` passed unit tests, build and typecheck. No browser acceptance.
 - **What is NOT done:** Authenticated UI interaction/hosted visual acceptance; no profile values changed.
 - **Next action (task ID + files):** FE-ADM02 — confirm the required mode selector in `/admin/integrations` when authenticated UI acceptance is requested.
+
+## 2026-11-27 — pending staff invites and resend cooldown
+- **What was done (files + behavior):** FE-ADM03: admins-view.tsx lists pending invited emails and adds a visible resend control with a per-invite 60-second cooldown; backend contract and token handling unchanged.
+- **Proof (command + result + revision):** Local uncommitted change; npm run typecheck and git diff --check passed. No tests or browser automation run.
+- **What is NOT done:** Authenticated UI acceptance, commit, push or deployment.
+- **Next action (task ID + files):** FE-ADM03 — verify /admin/admins in an authenticated browser; src/components/admin/admins-view.tsx.
+
+## 2026-11-27 — invite acceptance session routing
+- **What was done (files + behavior):** FE-ADM04: accept route uses the invitee's regular session; invalid/stale links show a useful message; success proceeds to admin sign-in.
+- **Proof (command + result + revision):** Local uncommitted change; npm run typecheck and git diff --check passed. No acceptance action or browser/test run.
+- **What is NOT done:** Fresh-invite authenticated acceptance and release publication.
+- **Next action (task ID + files):** FE-ADM04 — validate a fresh invite with the verified recipient; src/server/auth/service.ts and src/app/admin/accept-invite/client.tsx.
+
+## 2026-11-27 — single-page admin invite onboarding
+- **What was done (files + behavior):** FE-ADM04: rate-limited token lookup now selects the invite-bound email's signup or sign-in path; verification, recovery, acceptance and admin sign-in remain on-page; no account-mode buttons or arbitrary email checks.
+- **Proof (command + result + revision):** Frontend npm run typecheck/git diff --check and backend pnpm run preflight passed (179 OpenAPI paths). No test/browser or invite mutation.
+- **What is NOT done:** Authenticated end-to-end acceptance, commit, push or deployment.
+- **Next action (task ID + files):** FE-ADM04 — verify using a fresh invite; `accept-invite/client.tsx`, `auth/service.ts`, backend admin invitation controller/service.
+
+## 2026-11-27 — admin viewer permissions and invite password controls
+- **What was done (files + behavior):** FE-ADM01/FE-ADM04: viewer role is read-only on plans, customer mutations and email templates; integrations permission text is readable; invite password visibility toggles added.
+- **Proof (command + result + revision):** `npm run typecheck` and `git diff --check` passed. No tests/browser interaction.
+- **What is NOT done:** Manual role-based UI acceptance, commit, push or deployment.
+- **Next action (task ID + files):** FE-ADM01/FE-ADM04 — check the changed admin and invitation pages locally.
+
+## 2026-11-27 — admins last-sign-in timestamp
+- **What was done (files + behavior):** FE-ADM01: admins table reads latest session time from existing customer detail data; shows loading/unavailable distinctly from no prior sign-in.
+- **Proof (command + result + revision):** Frontend `npm run typecheck` passed; no tests/browser check.
+- **What is NOT done:** Live timestamp comparison or hosted publication.
+- **Next action (task ID + files):** FE-ADM01 — refresh `/admin/admins` and verify known accounts.

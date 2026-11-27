@@ -324,3 +324,37 @@ Core auth/profile/onboarding APIs exist; next work is frontend bootstrap/contrac
 - **Proof (command + result + revision):** Process inventory and bounded graceful shutdown: six signalled, zero forced kills, zero remaining Node application processes; lsof shows no listeners on3006/3009. Existing working-tree revisions unchanged.
 - **What is NOT done:** No application service restarted, provider call, database mutation, commit or deployment; internal automation tools intentionally remain running.
 - **Next action (task ID + files):** F02/FE-ADM02 — start only the desired app with its existing package.json dev script when requested; all application dev servers are currently stopped.
+
+## 2026-11-27 — pending staff invites and resend cooldown
+- **What was done (files + behavior):** FE-ADM03: `admins-view.tsx` shows pending invite emails from the authorized invites API, with visible resend controls disabled for 60 seconds after click.
+- **Proof (command + result + revision):** Local uncommitted source; frontend typecheck and `git diff --check` passed. No tests or browser automation run.
+- **What is NOT done:** Authenticated browser acceptance and release publication.
+- **Next action (task ID + files):** FE-ADM03 — verify in `/admin/admins`; `src/components/admin/admins-view.tsx`.
+
+## 2026-11-27 — invite acceptance session routing
+- **What was done (files + behavior):** FE-ADM04: BFF invite acceptance now authenticates with the invitee's normal session; clear invalid/stale-link guidance is shown and success routes to admin sign-in.
+- **Proof (command + result + revision):** Local uncommitted source; `npm run typecheck` and `git diff --check` passed. Runtime acceptance not performed.
+- **What is NOT done:** Authenticated acceptance flow and hosted release verification.
+- **Next action (task ID + files):** FE-ADM04 — validate with a fresh invite and its verified recipient; `src/server/auth/service.ts`, `src/app/admin/accept-invite/client.tsx`.
+
+## 2026-11-27 — single-page admin invite onboarding
+- **What was done (files + behavior):** FE-ADM04: invitation acceptance now keeps lookup, dynamically selected signup/sign-in, email verification, password recovery, acceptance and admin login on `/admin/accept-invite`; API lookup returns account existence only for the valid invite's bound email.
+- **Proof (command + result + revision):** Frontend typecheck/diff check and backend preflight passed. No browser or test run; no invite/account mutation.
+- **What is NOT done:** Authenticated end-to-end acceptance and hosted publication.
+- **Next action (task ID + files):** FE-ADM04 — verify fresh invite acceptance in browser; frontend `src/app/admin/accept-invite/client.tsx`, BFF `src/server/auth/service.ts`, backend admin invitation controller/service.
+
+
+## 2026-11-27 — admin permission controls and invite password visibility
+
+- **What was done (files + behavior):** FE-ADM01/FE-ADM04: admin plan, customer, email and integration mutation controls now honor existing capability responses; customer minute/plan actions are unavailable to viewers. Integration permission notices are human-readable. `accept-invite/client.tsx` adds accessible show/hide buttons for the password and confirmation fields.
+- **Proof (command + result + revision):** Frontend `npm run typecheck` and `git diff --check` passed. No test/browser acceptance or backend runtime change.
+- **What is NOT done:** Manual local role and invite interaction acceptance; no commit/push/deploy.
+- **Next action (task ID + files):** FE-ADM01/FE-ADM04 — verify `/admin/plans`, `/admin/customers/[id]`, `/admin/emails`, `/admin/integrations`, and `/admin/accept-invite`.
+
+
+## 2026-11-27 — admins table sign-in timestamp
+
+- **What was done (files + behavior):** FE-ADM01: `admins-view.tsx` now reads the latest admin session timestamp from the existing customer-detail endpoint instead of forcing `lastSignInAt` to null for the current staff-list response shape. Loading and unavailable states are distinct from “Not yet.”
+- **Proof (command + result + revision):** Frontend `npm run typecheck` passed. No test/browser interaction or backend runtime change.
+- **What is NOT done:** Live timestamp comparison and hosted publication.
+- **Next action (task ID + files):** FE-ADM01 — refresh `/admin/admins` and compare the displayed timestamps with known admin sign-ins.

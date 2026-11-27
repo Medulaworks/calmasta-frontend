@@ -8,13 +8,14 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ToastStack, useToasts } from "@/components/ui/toast";
 import { type Json, adminPatch, adminPost } from "@/lib/admin-client";
+import { capability } from "@/lib/admin-capabilities";
 import type { AdminPack, AdminPlan, PlanList } from "@/lib/admin-types";
 import { formatMinutes } from "@/lib/status";
 import { BillingPlans } from "./billing-plans";
 import { PlanCard } from "./plan-card";
 import { PlanEditor } from "./plan-editor";
 import { MenuTd, RowMenu } from "./row-menu";
-import { AdminUnavailable, DataTable, ResourceBoundary, SimpleDialog, Td, Th, inputClass, useResource } from "./ui";
+import { AdminUnavailable, DataTable, Notice, ResourceBoundary, SimpleDialog, Td, Th, inputClass, useResource } from "./ui";
 
 type Plan = Json<AdminPlan>;
 type Pack = Json<AdminPack>;
@@ -25,6 +26,7 @@ const httpsOk = (t: string) => { if (!t.trim()) return true; try { return new UR
 /** The three plans, the yearly discount, and the extra-hours packs: the same things the app's Plan page shows. */
 export function PlansView() {
   const res = useResource<Json<PlanList>>("/api/admin/plans");
+  const canEdit = capability("settings_edit").allowed;
   const toasts = useToasts("plans-admin");
   const [editing, setEditing] = useState<Plan | null>(null);
   const [discount, setDiscount] = useState(false);
@@ -36,14 +38,15 @@ export function PlansView() {
     <ResourceBoundary resource={res}>
       {(data: Json<PlanList> & { available?: boolean; reason?: string; items?: unknown[] }) => {
         if ((data as { available?: boolean }).available === false) {
-          return <div className="space-y-10"><BillingPlans /><AdminUnavailable title="Legacy store plans aren’t available yet"><p className="text-sm text-muted">Dynamic plan config above works without WooCommerce.</p></AdminUnavailable></div>;
+          return <div className="space-y-10">{!canEdit && <Notice>You have view-only access to plans and pricing. Ask an owner to make changes.</Notice>}<BillingPlans readOnly={!canEdit} /><AdminUnavailable title="Legacy store plans aren’t available yet"><p className="text-sm text-muted">Dynamic plan config above works without WooCommerce.</p></AdminUnavailable></div>;
         }
         const { plans, packs, annualDiscountPct, enterpriseUrl } = data as Json<PlanList>;
         return (
         <div className="space-y-10">
-          <BillingPlans />
+          {!canEdit && <Notice>You have view-only access to plans and pricing. Ask an owner to make changes.</Notice>}
+          <BillingPlans readOnly={!canEdit} />
           <ul className="grid gap-5 md:grid-cols-3">
-            {plans.map((p) => <li key={p.id}><PlanCard plan={p} discountPct={annualDiscountPct} onOpen={() => setEditing(p)} /></li>)}
+            {plans.map((p) => <li key={p.id}><PlanCard plan={p} discountPct={annualDiscountPct} onOpen={canEdit ? () => setEditing(p) : undefined} /></li>)}
           </ul>
 
           <Card>
@@ -52,14 +55,14 @@ export function PlansView() {
                 <p className="font-medium">Yearly billing: {annualDiscountPct > 0 ? `${annualDiscountPct}% off` : "no discount"}</p>
                 <p className="mt-1 text-muted">{enterpriseUrl ? "Custom terms link is set." : "No custom terms link."}</p>
               </div>
-              <Button onClick={() => setDiscount(true)}>Edit</Button>
+              {canEdit && <Button onClick={() => setDiscount(true)}>Edit</Button>}
             </div>
           </Card>
 
           <section aria-labelledby="packs" className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 id="packs" className="text-sm font-semibold">Extra hours</h2>
-              <Button onClick={() => setPack("new")}><Plus aria-hidden className="size-4" /> Add pack</Button>
+              {canEdit && <Button onClick={() => setPack("new")}><Plus aria-hidden className="size-4" /> Add pack</Button>}
             </div>
             {packs.length === 0 ? (
               <Card><EmptyState title="No packs yet" body="People can’t buy extra hours until you add one." /></Card>
@@ -72,7 +75,7 @@ export function PlansView() {
                       <Td className="font-medium">{k.label}</Td>
                       <Td className="text-muted">{formatMinutes(k.minutes)}</Td>
                       <Td>{k.checkoutUrl ? <Badge tone="success">Connected</Badge> : <Badge tone="warning">Not connected</Badge>}</Td>
-                      <MenuTd><RowMenu label={`Actions for ${k.label}`} items={[{ label: "Edit pack…", onSelect: () => setPack(k) }, { label: "Delete pack…", onSelect: () => setDeleting(k), danger: true, divider: true }]} /></MenuTd>
+                      <MenuTd>{canEdit && <RowMenu label={`Actions for ${k.label}`} items={[{ label: "Edit pack…", onSelect: () => setPack(k) }, { label: "Delete pack…", onSelect: () => setDeleting(k), danger: true, divider: true }]} />}</MenuTd>
                     </tr>
                   ))}
                 </tbody>
@@ -80,10 +83,10 @@ export function PlansView() {
             )}
           </section>
 
-          {editing && <PlanEditor plan={editing} discountPct={annualDiscountPct} onClose={() => setEditing(null)} onSaved={done} />}
-          {discount && <DiscountDialog pct={annualDiscountPct} url={enterpriseUrl} onClose={() => setDiscount(false)} onSaved={() => done("Saved.")} />}
-          {pack && <PackDialog pack={pack === "new" ? null : pack} onClose={() => setPack(null)} onSaved={done} />}
-          {deleting && (
+          {canEdit && editing && <PlanEditor plan={editing} discountPct={annualDiscountPct} onClose={() => setEditing(null)} onSaved={done} />}
+          {canEdit && discount && <DiscountDialog pct={annualDiscountPct} url={enterpriseUrl} onClose={() => setDiscount(false)} onSaved={() => done("Saved.")} />}
+          {canEdit && pack && <PackDialog pack={pack === "new" ? null : pack} onClose={() => setPack(null)} onSaved={done} />}
+          {canEdit && deleting && (
             <SimpleDialog danger title={`Delete ${deleting.label}?`} description="Hours already bought stay." confirmLabel="Delete pack" busyLabel="Deleting…" onClose={() => setDeleting(null)}
               onSubmit={async () => { await adminPost(`/api/admin/plans/packs/${deleting.sku}/delete`, {}); done(`${deleting.label} deleted.`); }} />
           )}

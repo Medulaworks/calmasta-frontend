@@ -195,8 +195,13 @@ export class AuthService {
       if (!allowed.has(segments[0]) || segments.some(s => !/^[A-Za-z0-9_-]+$/.test(s))) throw new HttpError(404, "API route not found");
       const isPublicRoute = segments[0] === "public";
       const isAdminRoute = segments[0] === "admin";
-      const session = isAdminRoute ? await this.adminSession(request) : await this.session(request);
-      if (!session && !isPublicRoute) return isAdminRoute ? this.unauthorizedAdmin() : this.unauthorized();
+      const isInviteLookup = request.method === "POST" && segments.length === 4 && segments[0] === "admin" && segments[1] === "staff" && segments[2] === "invites" && segments[3] === "lookup";
+      // Invitees are ordinary signed-in users until the API accepts their invite and grants staff access.
+      // This endpoint must therefore use the standard session cookie, while other /admin routes use the admin cookie.
+      const isInviteAccept = request.method === "POST" && segments.length === 4 && segments[0] === "admin" && segments[1] === "staff" && segments[2] === "invites" && segments[3] === "accept";
+      const usesAdminSession = isAdminRoute && !isInviteAccept && !isInviteLookup;
+      const session = isInviteLookup ? null : usesAdminSession ? await this.adminSession(request) : await this.session(request);
+      if (!session && !isPublicRoute && !isInviteLookup) return usesAdminSession ? this.unauthorizedAdmin() : this.unauthorized();
       const transcriptEdit=request.method==="PATCH"&&segments.length===4&&segments[0]==="library"&&segments[1]==="captures"&&segments[3]==="transcript";
       const transcriptImport=request.method==="POST"&&segments.length===2&&segments[0]==="captures"&&segments[1]==="transcripts";
       const bodylessInsight = request.method === "POST" && segments.length === 3 && segments[0] === "captures" && ["recap", "questions"].includes(segments[2]);
@@ -207,10 +212,10 @@ export class AuthService {
       const url = new URL(request.url);
       const pathAndQuery = "/" + segments.map(encodeURIComponent).join("/") + url.search;
       bffContext.getStore()!.stage="api_request";
-      const upstream = isPublicRoute
-        ? await this.upstream(pathAndQuery, request.method, body, undefined, request.headers.get("idempotency-key") ?? undefined)
+      const upstream = isPublicRoute || isInviteLookup
+        ? await this.upstream(pathAndQuery, request.method, body, undefined, request.headers.get("idempotency-key") ?? undefined, isInviteLookup ? this.clientIp(request) : undefined)
         : await this.api(session!, pathAndQuery, request.method, body, request.headers.get("idempotency-key") ?? undefined);
-      if (upstream.status === 401) return isAdminRoute ? this.unauthorizedAdmin() : this.unauthorized();
+      if (upstream.status === 401) return usesAdminSession ? this.unauthorizedAdmin() : this.unauthorized();
       if (upstream.status === 204) return new Response(null, { status: 204, headers });
       bffContext.getStore()!.stage="api_response";
       const result = await upstream.json();

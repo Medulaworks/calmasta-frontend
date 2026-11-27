@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { adminPatch, adminPost, fmtUtc } from "@/lib/admin-client";
+import { capability } from "@/lib/admin-capabilities";
 import { ToastStack, useToasts } from "@/components/ui/toast";
-import { ActionDialog, ResourceBoundary, useResource } from "./ui";
+import { ActionDialog, Notice, ResourceBoundary, useResource } from "./ui";
 import type {
   EmailCategory,
   EmailTemplateDto,
@@ -24,6 +25,7 @@ const CATEGORY_LABELS: Record<EmailCategory, string> = {
 
 export function EmailTemplatesView() {
   const res = useResource<EmailTemplateListResponse>("/api/admin/settings/emails");
+  const canEdit = capability("settings_edit").allowed;
   const toasts = useToasts("email-templates");
 
   const [activeCategory, setActiveCategory] = useState<string>("all");
@@ -158,6 +160,7 @@ export function EmailTemplatesView() {
 
         return (
           <div className="space-y-6">
+            {!canEdit && <Notice>You have view-only access to email templates. Ask an owner to edit, reset, or send a test email.</Notice>}
             {/* Category Filter Pills */}
             <div className="flex flex-wrap items-center gap-2 border-b border-border pb-4">
               <button
@@ -272,6 +275,7 @@ export function EmailTemplatesView() {
                           id="tpl-subject"
                           type="text"
                           value={subject}
+                          disabled={!canEdit}
                           maxLength={200}
                           onChange={(e) => setSubject(e.target.value)}
                           className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
@@ -288,6 +292,7 @@ export function EmailTemplatesView() {
                           id="tpl-greeting"
                           type="text"
                           value={greeting}
+                          disabled={!canEdit}
                           maxLength={100}
                           onChange={(e) => setGreeting(e.target.value)}
                           className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
@@ -307,6 +312,7 @@ export function EmailTemplatesView() {
                           id="tpl-paragraphs"
                           rows={5}
                           value={paragraphsText}
+                          disabled={!canEdit}
                           maxLength={10000}
                           onChange={(e) => setParagraphsText(e.target.value)}
                           className="w-full rounded-lg border border-border bg-background p-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
@@ -324,6 +330,7 @@ export function EmailTemplatesView() {
                             id="tpl-cta"
                             type="text"
                             value={ctaLabel}
+                            disabled={!canEdit}
                             maxLength={60}
                             onChange={(e) => setCtaLabel(e.target.value)}
                             className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
@@ -341,6 +348,7 @@ export function EmailTemplatesView() {
                           id="tpl-footer"
                           type="text"
                           value={footerNote}
+                          disabled={!canEdit}
                           maxLength={400}
                           onChange={(e) => setFooterNote(e.target.value)}
                           className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
@@ -350,7 +358,7 @@ export function EmailTemplatesView() {
 
                       {/* Action Buttons */}
                       <div className="flex flex-wrap items-center gap-2 pt-2">
-                        <Button
+                        {canEdit && <Button
                           variant="primary"
                           size="sm"
                           disabled={saving}
@@ -359,9 +367,9 @@ export function EmailTemplatesView() {
                         >
                           <Check className="size-3.5" />
                           {saving ? "Saving…" : "Save Changes"}
-                        </Button>
+                        </Button>}
 
-                        <Button
+                        {canEdit && <Button
                           variant="ghost"
                           size="sm"
                           disabled={saving}
@@ -370,9 +378,9 @@ export function EmailTemplatesView() {
                         >
                           <Send className="size-3.5" />
                           Send Test Email
-                        </Button>
+                        </Button>}
 
-                        {current.isCustomized && (
+                        {canEdit && current.isCustomized && (
                           <Button
                             variant="danger"
                             size="sm"

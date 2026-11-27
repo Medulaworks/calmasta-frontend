@@ -97,7 +97,7 @@ export function IntegrationsView() {
             <div className="space-y-5">
               {!nd.replacementEnabled && <Notice tone="warning">Changing credentials is switched off. The tech team needs to add the server’s encryption key first.</Notice>}
               {nd.runtimeAvailable === false && <Notice tone="warning">Automatic application needs the server migration and updated API and worker processes. Contact your operator to finish the setup.</Notice>}
-              {!replace.allowed && <Notice>{replace.reason}</Notice>}
+              {!replace.allowed && replace.reason === "staff_permission_required" && <Notice>Your role can view these connected services but can’t change credentials. Ask an owner to make integration changes.</Notice>}
               <p className="text-xs leading-relaxed text-muted">Environment <span className="font-medium text-foreground/70">{nd.environment}</span> · activation applies automatically with a graceful restart · refreshes every 5s · applied credential checks available on supported services.</p>
               <div className="grid items-start gap-3 md:grid-cols-2">
                 {nd.items.map((i) => {

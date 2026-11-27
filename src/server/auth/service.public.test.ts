@@ -87,6 +87,22 @@ describe("public BFF proxy allowlist", () => {
     expect(res.status).toBe(404);
     globalThis.fetch = origFetch;
   });
+
+  it("allows only the exact invite lookup path without a session", async () => {
+    const req = new Request(`${APP}/api/admin/staff/invites/lookup`, {
+      method: "POST", headers: { Origin: APP, "Content-Type": "application/json" },
+      body: JSON.stringify({ token: "a".repeat(64) }),
+    });
+    const res = await auth.proxy(req, ["admin", "staff", "invites", "lookup"]);
+    expect(res.status).toBe(404);
+    expect(upstream[0].path).toBe("/admin/staff/invites/lookup");
+    expect(upstream[0].auth).toBeNull();
+
+    const other = new Request(`${APP}/api/admin/staff/invites`, { headers: { Origin: APP } });
+    expect((await auth.proxy(other, ["admin", "staff", "invites"])).status).toBe(401);
+    expect(upstream).toHaveLength(1);
+    globalThis.fetch = origFetch;
+  });
 });
 
 describe("Microsoft OAuth dispatch", () => {
