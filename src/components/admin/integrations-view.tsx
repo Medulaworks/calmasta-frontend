@@ -181,7 +181,7 @@ export function IntegrationsView() {
                 await adminPost(`/api/admin/integration-profiles/${activating.id}/activate`, { expectedVersion: activating.version, reason: v.reason }, { "Idempotency-Key": key() });
                 toasts.push({ tone: "success", message: "Version activated. Automatic application is pending; watch the API and worker status." }); setActivating(null); res.reload();
               }} />}
-              {mailTest && <ActionDialog title="Send SMTP test email" description="Enter a sample recipient. CalMasta will send one fixed diagnostic message using the SMTP credentials currently applied to this API. SMTP acceptance does not guarantee inbox placement." confirmLabel="Send test email" fields={[{name:"recipientEmail",label:"Recipient email",type:"email",autoComplete:"email",required:true}]} hideReason onClose={() => setMailTest(null)} onSubmit={async v => {
+              {mailTest && <ActionDialog title="Send SMTP test email" description="Enter a sample recipient. Joobah will send one fixed diagnostic message using the SMTP credentials currently applied to this API. SMTP acceptance does not guarantee inbox placement." confirmLabel="Send test email" fields={[{name:"recipientEmail",label:"Recipient email",type:"email",autoComplete:"email",required:true}]} hideReason onClose={() => setMailTest(null)} onSubmit={async v => {
                 await runCredentialTest(mailTest,v.reason || `Test applied ${toTitle(mailTest.id)} credentials`,v.recipientEmail.trim().toLowerCase(),true);
               }} />}
               {historyId && <IntegrationHistory key={`${historyId}:${nd.items.find(i => i.id === historyId)?.version}:${nd.items.find(i => i.id === historyId)?.activeVersion}`} id={historyId} onClose={closeHistory} />}

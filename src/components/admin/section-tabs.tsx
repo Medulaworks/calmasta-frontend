@@ -39,7 +39,7 @@ export function SettingsSubNav() {
   if (section?.id !== "settings") return null;
   const tabs = section.tabs as readonly { href: string; label: string; hint?: string; exact?: boolean }[];
   return (
-    <nav aria-label="Settings sections" className="flex gap-2 overflow-x-auto [scrollbar-width:none] lg:flex-col lg:gap-1 lg:overflow-visible">
+    <nav aria-label="Settings sections" className="flex gap-1.5 overflow-x-auto [scrollbar-width:none] lg:flex-col lg:gap-0.5 lg:overflow-visible">
       {tabs.map((t) => {
         const on = tabActive(pathname, t);
         return (
@@ -47,10 +47,10 @@ export function SettingsSubNav() {
             key={t.href}
             href={t.href}
             aria-current={on ? "page" : undefined}
-            className={`block shrink-0 rounded-xl px-3.5 py-2.5 transition-colors lg:shrink ${on ? "bg-accent/10 ring-1 ring-accent/20" : "hover:bg-surface"}`}
+            className={`block shrink-0 rounded-lg px-3 py-2 transition-colors lg:shrink ${on ? "bg-accent/10 ring-1 ring-accent/20" : "hover:bg-surface"}`}
           >
-            <span className={`block whitespace-nowrap text-sm ${on ? "font-semibold text-accent" : "font-medium text-foreground"}`}>{t.label}</span>
-            {t.hint && <span className="mt-0.5 hidden text-xs text-muted lg:block">{t.hint}</span>}
+            <span className={`block whitespace-nowrap text-[13px] leading-tight ${on ? "font-semibold text-accent" : "font-medium text-foreground"}`}>{t.label}</span>
+            {t.hint && <span className="mt-px hidden text-[11px] leading-snug text-muted lg:block">{t.hint}</span>}
           </Link>
         );
       })}
@@ -85,8 +85,8 @@ export function SettingsPageLayout({
   return (
     <div className="space-y-5">
       <PageHeader title={title} description={description} actions={actions} />
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
-        <aside className="w-full shrink-0 lg:sticky lg:top-6 lg:w-60 lg:self-start">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-6">
+        <aside className="w-full shrink-0 lg:sticky lg:top-6 lg:w-48 lg:self-start">
           <SettingsSubNav />
         </aside>
         <div className="min-w-0 flex-1">{children}</div>

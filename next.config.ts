@@ -36,8 +36,10 @@ const nextConfig: NextConfig = {
       { source: "/api/public/:path*", headers: [{ key: "Cache-Control", value: "no-store" }, { key: "X-Robots-Tag", value: "noindex, nofollow" }] },
     ];
   },
-  // @ts-ignore - Next 16.4.1 supports instrumentationHook
-  experimental: { instrumentationHook: true } as unknown as Record<string, unknown>,
+  experimental: {
+    agentUpgrade: "security",
+    instrumentationHook: true,
+  } as unknown as Record<string, unknown>,
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {

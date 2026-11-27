@@ -1,12 +1,21 @@
 import { ApiError } from "./upload-client";
 
+const ADMIN_ERROR_MESSAGES: Record<string, string> = {
+  invalid_integration_profile: "Some required integration fields are missing or malformed. Check every required field and try again.",
+  invalid_store_profile: "WooCommerce rejected these settings. Check that the store URL uses HTTPS, includes its WordPress subdirectory when needed, and that the selected mode is Sandbox or Production.",
+  invalid_store_url: "Enter a valid HTTPS WooCommerce store URL. Keep the WordPress subdirectory if the store uses one; remove credentials, query strings, and fragments.",
+  invalid_woo_mode: "Choose either Sandbox or Production for the WooCommerce mode.",
+  woo_store_origin_not_allowed: "This WooCommerce store origin is not approved for the API environment. Ask an administrator to allowlist the store origin, then retry.",
+};
+
 async function adminFetch<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, { cache: "no-store", credentials: "same-origin", ...init });
   if (res.status === 204) return undefined as T;
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
     const corr = res.headers.get("x-correlation-id") ?? body.correlationId;
-    throw new ApiError(res.status, body.error ?? body.message ?? "Something went wrong.", body.code ?? (corr ? `correlation:${corr}` : undefined));
+    const message = ADMIN_ERROR_MESSAGES[body.code] ?? body.error ?? body.message ?? "Something went wrong.";
+    throw new ApiError(res.status, message, body.code ?? (corr ? `correlation:${corr}` : undefined));
   }
   return body as T;
 }

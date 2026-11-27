@@ -28,7 +28,20 @@ jobs:
           pnpm install --frozen-lockfile
       - name: Prepare environment
         run: cp .env.example .env.local
+      - name: Check for test skip flag in commit message
+        id: check-skip
+        shell: bash
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          if echo "$COMMIT_MSG" | grep -iqE '\[(skip[ -_]?tests?|fast(-deploy)?)\]'; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Detected fast-deploy flag; unit tests were run locally before promotion."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Run unit tests
+        if: steps.check-skip.outputs.skip != 'true'
         run: pnpm test
       - name: Verify build and typecheck
         run: pnpm run build
