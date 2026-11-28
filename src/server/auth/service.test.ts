@@ -14,6 +14,7 @@ class MemoryStore implements AuthStore {
 }
 let server:Server,origin:string,store:MemoryStore,auth:AuthService;
 let actionFailure: {code:string;status:number}|undefined;
+let profileFailure: {code:string;status:number;correlationId:string}|undefined;
 let calls:{path:string;body:Record<string,unknown>;authorization:string|undefined;clientIp?:string;bffProof?:string}[]=[],emailVerified=true,refreshCalls=0,revoked=false;
 const userId="11111111-1111-4111-8111-111111111111";
 const responseCookie=(res:Response,name="sid")=>res.headers.getSetCookie().find(x=>x.startsWith(name+"="))!.split(";")[0];
@@ -31,6 +32,7 @@ beforeAll(async()=>{
   if(path==="/auth/refresh"){refreshCalls++;return res.end(JSON.stringify({...credentials,refreshToken:"rotated-refresh"}));}
   if(path==="/auth/logout"){revoked=true;return res.end(JSON.stringify({ok:true}));}
   if(path==="/account/me"){
+   if(profileFailure){res.statusCode=profileFailure.status;res.setHeader("x-correlation-id",profileFailure.correlationId);return res.end(JSON.stringify({code:profileFailure.code,correlationId:profileFailure.correlationId,message:"private database diagnostic"}));}
    if(req.headers.authorization!=="Bearer internal-access"||revoked){res.statusCode=401;return res.end("{}");}
    return res.end(JSON.stringify({userId,subject:userId,email:"user@example.com",emailVerified,name:"Local name",profession:body.profession??"consultant",role:"owner",onboarded:true,theme:body.theme??"a",mode:body.mode??"system"}));
   }
@@ -43,11 +45,29 @@ beforeAll(async()=>{
  });await new Promise<void>(r=>server.listen(0,"127.0.0.1",r));origin=`http://127.0.0.1:${(server.address() as {port:number}).port}`;
 });
 afterAll(()=>new Promise<void>(r=>server.close(()=>r())));
-beforeEach(()=>{actionFailure=undefined;calls=[];emailVerified=true;refreshCalls=0;revoked=false;store=new MemoryStore();auth=new AuthService(cfg(),store);});
+beforeEach(()=>{actionFailure=undefined;profileFailure=undefined;calls=[];emailVerified=true;refreshCalls=0;revoked=false;store=new MemoryStore();auth=new AuthService(cfg(),store);});
 async function login(){return auth.login(request("/api/auth/login",{email:"user@example.com",password:"ValidPassword1!"}));}
 it("email/password login and registration issue opaque cookies without browser tokens",async()=>{
  const res=await login();expect(res.status).toBe(200);const body=await res.json();expect(body).toEqual({ok:true,onboarded:true,emailVerified:true});expect(JSON.stringify(body)).not.toContain("internal-access");expect(responseCookie(res)).not.toContain("internal-access");
  const registration=await auth.register(request("/api/auth/register",{email:"user@example.com",password:"ValidPassword1!"}));expect(registration.status).toBe(200);
+});
+it.each(["login","register"] as const)("returns a safe profile-service diagnostic after %s succeeds but account loading fails",async(action)=>{
+ profileFailure={status:503,code:"database_unavailable",correlationId:"a4ce8f4e-1f38-49ad-b218-5bca82306aec"};
+ const response=action==="login"
+  ? await auth.login(request("/api/auth/login",{email:"user@example.com",password:"ValidPassword1!"}))
+  : await auth.register(request("/api/auth/register",{email:"user@example.com",password:"ValidPassword1!"}));
+ expect(response.status).toBe(502);
+ const body=await response.json();
+ expect(body).toMatchObject({
+  code:"account_profile_unavailable",
+  upstreamStatus:503,
+  upstreamCode:"database_unavailable",
+  correlationId:"a4ce8f4e-1f38-49ad-b218-5bca82306aec",
+  error:expect.stringContaining("HTTP 503"),
+ });
+ expect(JSON.stringify(body)).not.toContain("private database diagnostic");
+ expect(response.headers.getSetCookie()).toEqual([]);
+ expect(store.sessions.size).toBe(0);
 });
 it("realtime tickets use the trusted BFF origin and expose only a fixed public websocket URL",async()=>{
  const loginResponse=await login();const cookie=responseCookie(loginResponse);

@@ -6,6 +6,10 @@ import type { AuthStore, SessionData } from "./store";
 import { cookie,hashId,HttpError,opaqueId,readCookie,readJson,assertEmptyBody,safeReturnTo,sameOrigin } from "./security";
 type Profile=Record<string,unknown>&{userId:string;subject:string;role:string;onboarded:boolean};
 type Credentials={accessToken:string;refreshToken:string;expiresIn:number;user:{id:string;email:string;name:string|null;emailVerified:boolean}};
+type AccountProfileDiagnostic={upstreamStatus:number;upstreamCode?:string;correlationId?:string};
+class AccountProfileUnavailable extends HttpError{
+ constructor(readonly diagnostic:AccountProfileDiagnostic){super(502,"Account profile unavailable after authentication");}
+}
 const headers={"Cache-Control":"no-store","Pragma":"no-cache"};
 const json=(body:unknown,status=200)=>Response.json(body,{status,headers});
 export class AuthService {
@@ -122,7 +126,16 @@ export class AuthService {
  }
  private async adminSession(req:Request){return this.session(req,true);}
  private async profile(session:SessionData):Promise<Profile>{
-  const res=await this.api(session,"/account/me");if(!res.ok){if(res.status===401)console.warn(JSON.stringify({event:"profile_session_rejected",endpoint:"/account/me",reason:"access_token_rejected"}));throw new HttpError(res.status===401?401:502,"Account is unavailable");}const p=await res.json() as Profile;
+  const res=await this.api(session,"/account/me");if(!res.ok){
+   const body=await res.json().catch(()=>({})) as {code?:unknown;correlationId?:unknown};
+   const upstreamCode=typeof body.code==="string"&&/^[a-z][a-z0-9_]{0,63}$/.test(body.code)?body.code:undefined;
+   const rawCorrelationId=res.headers.get("x-correlation-id")??body.correlationId;
+   const correlationId=typeof rawCorrelationId==="string"&&/^[a-f0-9-]{36}$/i.test(rawCorrelationId)?rawCorrelationId:undefined;
+   if(res.status===401)console.warn(JSON.stringify({event:"profile_session_rejected",endpoint:"/account/me",reason:"access_token_rejected",upstreamCode,correlationId}));
+   else console.error(JSON.stringify({event:"auth_account_profile_unavailable",endpoint:"/account/me",upstreamStatus:res.status,upstreamCode,correlationId}));
+   if(res.status===401)throw new HttpError(401,"Account session was rejected");
+   throw new AccountProfileUnavailable({upstreamStatus:res.status,upstreamCode,correlationId});
+  }const p=await res.json() as Profile;
   if(p.userId!==session.subject)throw new HttpError(401,"Account identity mismatch");return p;
  }
  private view(profile:Profile){return {...profile,role:profile.profession??null,workspaceRole:profile.role};}
@@ -297,5 +310,14 @@ export class AuthService {
   }catch(e){return this.error(e);}
  }
  private unauthorized(){return this.setCookie(json({error:"Your session expired. Please sign in again."},401),this.config.sessionCookie,"",0);}
- private error(error:unknown){if(error instanceof HttpError&&error.status===401)return this.unauthorized();return json({error:error instanceof HttpError?error.message:"Authentication service unavailable"},error instanceof HttpError?error.status:503);}
+ private error(error:unknown){
+  if(error instanceof HttpError&&error.status===401)return this.unauthorized();
+  if(error instanceof AccountProfileUnavailable){
+   const {upstreamStatus,upstreamCode,correlationId}=error.diagnostic;
+   const reason=upstreamCode?`; ${upstreamCode}`:"";
+   const reference=correlationId?` Reference: ${correlationId}.`:"";
+   return json({error:`Authentication was accepted, but your account profile could not be loaded (HTTP ${upstreamStatus}${reason}). Please try again.${reference}`,code:"account_profile_unavailable",upstreamStatus,...(upstreamCode?{upstreamCode}:{}),...(correlationId?{correlationId}:{})},502);
+  }
+  return json({error:error instanceof HttpError?error.message:"Authentication service unavailable"},error instanceof HttpError?error.status:503);
+ }
 }
