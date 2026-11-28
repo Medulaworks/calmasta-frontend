@@ -37,7 +37,12 @@ const NAV: readonly NavItem[] = [
   { href: "/dashboard", label: "Home", Icon: House },
   { href: "/dashboard/capture", label: "Meet", Icon: Video },
   { href: "/dashboard/voice", label: "Record", Icon: Mic },
-  { href: "/dashboard/library", label: "My Folder", Icon: FolderOpen, also: ["/dashboard/captures"] },
+  {
+    href: "/dashboard/library",
+    label: "My Folder",
+    Icon: FolderOpen,
+    also: ["/dashboard/captures"],
+  },
   { href: "/dashboard/calendar", label: "Calendar", Icon: CalendarDays },
   { href: "/dashboard/booking", label: "Booking", Icon: CalendarCheck },
   { href: "/dashboard/plan", label: "Plan and usage", Icon: Gauge },
@@ -77,7 +82,10 @@ function NavLink({
             ? "bg-accent/10 font-medium text-accent"
             : "text-muted hover:bg-surface hover:text-foreground"
       }`}>
-      <Icon aria-hidden className="h-5 w-5 shrink-0 transition-transform duration-150 group-hover:scale-110" />
+      <Icon
+        aria-hidden
+        className="h-5 w-5 shrink-0 transition-transform duration-150 group-hover:scale-110"
+      />
       <span className={tone === "sidebar" ? "sc:md:sr-only" : ""}>{label}</span>
       {tone === "sidebar" && (
         // Names for the icon-only rail, shown on hover or keyboard focus.
@@ -201,9 +209,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             <nav aria-label="Primary" className="flex flex-col gap-1 p-4">
               {NAV.map((n) => (
-                <NavLink key={n.href} {...n} pathname={pathname} tone="sidebar" />
+                <NavLink
+                  key={n.href}
+                  {...n}
+                  pathname={pathname}
+                  tone="sidebar"
+                />
               ))}
-              {profile?.isStaff && <NavLink href="/admin" label="Staff area" Icon={ShieldCheck} pathname={pathname} tone="sidebar" />}
+              {profile?.isStaff && (
+                <NavLink
+                  href="/admin"
+                  label="Staff area"
+                  Icon={ShieldCheck}
+                  pathname={pathname}
+                  tone="sidebar"
+                />
+              )}
             </nav>
             <div className="mt-auto border-t border-sidebar-border p-4">
               <SidebarPlanCard plan={account.plan} />
